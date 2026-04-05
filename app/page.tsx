@@ -1,65 +1,103 @@
-import Image from "next/image";
+"use client"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 
 export default function Home() {
+  const router = useRouter()
+  const [birthDate, setBirthDate] = useState("")
+  const [lifeExpectancy, setLifeExpectancy] = useState("80")
+  const [error, setError] = useState("")
+
+  function handleStart() {
+    if (!birthDate) {
+      setError("Please enter your birth date")
+      return
+    }
+    if (new Date(birthDate) > new Date()) {
+      setError("Birth date cannot be in the future")
+      return
+    }
+    localStorage.setItem("birthDate", birthDate)
+    localStorage.setItem("lifeExpectancy", lifeExpectancy)
+    router.push("/grid")
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
+
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="text-center max-w-md w-full"
+      >
+        {/* Title */}
+        <h1 className="text-5xl font-light text-white mb-3 tracking-tight">
+          Life in Weeks
+        </h1>
+        <p className="text-zinc-500 text-sm mb-12 leading-relaxed">
+          Every square is one week of your life.
+          <br />How many do you have left?
+        </p>
+
+        {/* Form */}
+        <div className="space-y-4 text-left">
+
+          <div>
+            <label className="text-zinc-400 text-xs uppercase tracking-widest block mb-2">
+              Your birth date
+            </label>
+            <input
+              type="date"
+              value={birthDate}
+              onChange={e => {
+                setBirthDate(e.target.value)
+                setError("")
+              }}
+              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-zinc-500 transition-colors"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+
+          <div>
+            <label className="text-zinc-400 text-xs uppercase tracking-widest block mb-2">
+              Life expectancy (years)
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="20"
+                max="100"
+                value={lifeExpectancy}
+                onChange={e => setLifeExpectancy(e.target.value)}
+                className="flex-1 accent-white"
+              />
+              <span className="text-white text-sm w-8 text-right">
+                {lifeExpectancy}
+              </span>
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-red-400 text-xs">{error}</p>
+          )}
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleStart}
+            className="w-full bg-white text-black rounded-lg py-3 text-sm font-medium mt-4 hover:bg-zinc-100 transition-colors"
           >
-            Documentation
-          </a>
+            See my life →
+          </motion.button>
         </div>
-      </main>
-    </div>
-  );
+
+        {/* Footer note */}
+        <p className="text-zinc-700 text-xs mt-10">
+          Your data never leaves your device.
+        </p>
+      </motion.div>
+
+    </main>
+  )
 }
