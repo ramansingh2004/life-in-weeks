@@ -7,7 +7,6 @@ import WeekModal from "@/components/weekModel"
 import { useWeekNotes } from "@/hooks/useWeekNotes"
 import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
 
-
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
   const totalWeeks = lifeExpectancy * 52
   const weeksLived = differenceInWeeks(new Date(), birthDate)
@@ -56,20 +55,28 @@ const years = Array.from(
     <main className="min-h-screen bg-black text-white px-4 py-10">
 
       {/* Header */}
-      <div className="max-w-5xl mx-auto mb-8">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
-          <button
-            onClick={() => router.push("/")}
-            className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-          >
-            ← Change date
-          </button>
-        </div>
-        <p className="text-zinc-600 text-xs">
-          Age {currentAge} · Each square = 1 week · Click any square to add a memory or dream
-        </p>
-      </div>
+<div className="max-w-5xl mx-auto mb-8">
+  <div className="flex items-center justify-between mb-1">
+    <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => router.push("/journal")}
+        className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
+      >
+      *Journal 
+      </button>
+      <button
+        onClick={() => router.push("/")}
+        className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
+      >
+      *Change date
+      </button>
+    </div>
+  </div>
+  <p className="text-zinc-600 text-xs">
+    Age {currentAge} · Each square = 1 week · Click any square to add a memory or dream
+  </p>
+</div>
 
       {/* Stats */}
       <div className="max-w-5xl mx-auto grid grid-cols-3 gap-3 mb-10">

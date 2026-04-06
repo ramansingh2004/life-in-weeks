@@ -6,14 +6,12 @@ import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { Week, WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from "@/typesDefined"
 
-
 type Props = {
   week: Week | null
   onClose: () => void
   onSave: (data: WeekData) => void
   existingData?: WeekData
 }
-
 
 export default function WeekModal({ week, onClose, onSave, existingData }: Props) {
   const [mood, setMood] = useState(existingData?.mood || 0)

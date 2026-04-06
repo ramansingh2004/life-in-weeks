@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { WeekData } from "@/typesDefined/index"
 
-
 export function useWeekNotes() {
   const [notes, setNotes] = useState<Record<number, WeekData>>({})
 
