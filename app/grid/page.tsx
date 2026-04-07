@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { differenceInWeeks, addWeeks, format, getYear } from "date-fns"
 import WeekModal from "@/components/weekModel"
-import { useWeekNotes } from "@/hooks/useWeekNotes"
 import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
+import { useLifeStore } from "@/store/useCapsuleStore"
 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
   const totalWeeks = lifeExpectancy * 52
@@ -27,20 +27,17 @@ export default function GridPage() {
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<Week | null>(null)
   const [birthDate, setBirthDate] = useState<Date | null>(null)
-  const { saveNote, getNote, hasNote } = useWeekNotes()
+  const { birthDate: storedDate, lifeExpectancy, notes, saveNote, getNote, hasNote } = useLifeStore()
   
   useEffect(() => {
-    const stored = localStorage.getItem("birthDate")
-    const expectancy = Number(localStorage.getItem("lifeExpectancy") || "80")
-    if (!stored) { router.push("/"); return }
-    const birth = new Date(stored)
-    setBirthDate(birth)
-    const allWeeks = generateWeeks(birth, expectancy)
-    setWeeks(allWeeks)
-    const lived = allWeeks.filter(w => w.isPast).length
-    setStats({ lived, remaining: allWeeks.length - lived, total: allWeeks.length })
-
-  }, [router])
+  if (!storedDate) { router.push("/"); return }
+  const birth = new Date(storedDate)
+  setBirthDate(birth)
+  const allWeeks = generateWeeks(birth, lifeExpectancy)
+  setWeeks(allWeeks)
+  const lived = allWeeks.filter(w => w.isPast).length
+  setStats({ lived, remaining: allWeeks.length - lived, total: allWeeks.length })
+}, [storedDate, lifeExpectancy, router])
 
   const currentAge = birthDate
     ? Math.floor(differenceInWeeks(new Date(), birthDate) / 52)

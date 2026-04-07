@@ -2,21 +2,23 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { useWeekNotes } from "@/hooks/useWeekNotes"
+import { useLifeStore } from "@/store/useCapsuleStore"
 import { WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from "@/typesDefined"
 
 type Filter = "all" | "memories" | "dreams"
 
 export default function JournalPage() {
   const router = useRouter()
-  const { notes } = useWeekNotes()
+  const { notes, birthDates } = useLifeStore()
   const [filter, setFilter] = useState<Filter>("all")
   const [search, setSearch] = useState("")
   const [entries, setEntries] = useState<WeekData[]>([])
 
   useEffect(() => {
-    const stored = localStorage.getItem("birthDate")
-    if (!stored) { router.push("/"); return }
+    if (!birthDates) { 
+      router.push("/");
+      return;
+     }
 
     // Convert notes object to sorted array
     const allNotes = Object.values(notes)

@@ -2,37 +2,33 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { useLifeStore } from "@/store/useCapsuleStore"
 
 export default function Home() {
   const router = useRouter()
-  const [birthDate, setBirthDate] = useState("")
-  const [lifeExpectancy, setLifeExpectancy] = useState("80")
+  const { birthDates, lifeExpectancy, setBirthDate, setLifeExpectancy } = useLifeStore()
   const [error, setError] = useState("")
 
   function handleStart() {
-    if (!birthDate) {
+    if (!birthDates) {
       setError("Please enter your birth date")
       return
     }
-    if (new Date(birthDate) > new Date()) {
+    if (new Date(birthDates) > new Date()) {
       setError("Birth date cannot be in the future")
       return
     }
-    localStorage.setItem("birthDate", birthDate)
-    localStorage.setItem("lifeExpectancy", lifeExpectancy)
     router.push("/grid")
   }
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
-
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
         className="text-center max-w-md w-full"
       >
-        {/* Title */}
         <h1 className="text-5xl font-light text-white mb-3 tracking-tight">
           Life in Weeks
         </h1>
@@ -41,16 +37,14 @@ export default function Home() {
           <br />How many do you have left?
         </p>
 
-        {/* Form */}
         <div className="space-y-4 text-left">
-
           <div>
             <label className="text-zinc-400 text-xs uppercase tracking-widest block mb-2">
               Your birth date
             </label>
             <input
               type="date"
-              value={birthDate}
+              value={birthDates}
               onChange={e => {
                 setBirthDate(e.target.value)
                 setError("")
@@ -66,10 +60,10 @@ export default function Home() {
             <div className="flex items-center gap-4">
               <input
                 type="range"
-                min="20"
+                min="50"
                 max="100"
                 value={lifeExpectancy}
-                onChange={e => setLifeExpectancy(e.target.value)}
+                onChange={e => setLifeExpectancy(Number(e.target.value))}
                 className="flex-1 accent-white"
               />
               <span className="text-white text-sm w-8 text-right">
@@ -78,9 +72,7 @@ export default function Home() {
             </div>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-xs">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-xs">{error}</p>}
 
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -92,12 +84,10 @@ export default function Home() {
           </motion.button>
         </div>
 
-        {/* Footer note */}
         <p className="text-zinc-700 text-xs mt-10">
           Your data never leaves your device.
         </p>
       </motion.div>
-
     </main>
   )
 }
