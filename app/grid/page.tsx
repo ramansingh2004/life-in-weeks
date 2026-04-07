@@ -27,7 +27,7 @@ export default function GridPage() {
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<Week | null>(null)
   const [birthDate, setBirthDate] = useState<Date | null>(null)
-  const { birthDate: storedDate, lifeExpectancy, notes, saveNote, getNote, hasNote } = useLifeStore()
+  const { birthDates: storedDate, lifeExpectancy, notes, saveNote, getNote, hasNote } = useLifeStore()
   
   useEffect(() => {
   if (!storedDate) { router.push("/"); return }
@@ -56,6 +56,12 @@ const years = Array.from(
   <div className="flex items-center justify-between mb-1">
     <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
     <div className="flex items-center gap-4">
+      <button
+    onClick={() => router.push("/stats")}
+    className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
+  >
+    Stats 
+  </button>
       <button
         onClick={() => router.push("/journal")}
         className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
