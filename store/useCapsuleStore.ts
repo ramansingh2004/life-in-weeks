@@ -1,19 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { WeekData } from "@/typesDefined"
-
-type LifeStore = {
-  birthDates: string
-  lifeExpectancy: number
-  notes: Record<number, WeekData>
-
-  setBirthDate: (date: string) => void
-  setLifeExpectancy: (years: number) => void
-  saveNote: (data: WeekData) => void
-  getNote: (weekIndex: number) => WeekData | undefined
-  hasNote: (weekIndex: number) => boolean
-  reset: () => void
-}
+import { LifeStore } from "@/typesDefined"
 
 export const useLifeStore = create<LifeStore>()(
   persist(

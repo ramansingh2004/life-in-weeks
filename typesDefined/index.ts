@@ -44,3 +44,16 @@ export const MOOD_TEXT_COLORS: Record<number, string> = {
   4: "text-green-400",
   5: "text-emerald-400",
 }
+
+export type LifeStore = {
+  birthDate: string
+  lifeExpectancy: number
+  notes: Record<number, WeekData>
+
+  setBirthDate: (date: string) => void
+  setLifeExpectancy: (years: number) => void
+  saveNote: (data: WeekData) => void
+  getNote: (weekIndex: number) => WeekData | undefined
+  hasNote: (weekIndex: number) => boolean
+  reset: () => void
+}

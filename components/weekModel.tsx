@@ -73,7 +73,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.2 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6"
           onClick={e => e.stopPropagation()}
         >

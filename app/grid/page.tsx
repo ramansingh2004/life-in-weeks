@@ -1,11 +1,12 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { differenceInWeeks, addWeeks, format, getYear } from "date-fns"
 import WeekModal from "@/components/weekModel"
 import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
+import { useCountUp } from "@/hooks/useCountUp"
 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
   const totalWeeks = lifeExpectancy * 52
@@ -22,71 +23,116 @@ function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
 
 export default function GridPage() {
   const router = useRouter()
-  const [weeks, setWeeks] = useState<Week[]>([])
+  const { birthDate: storedDate, lifeExpectancy, saveNote, getNote, hasNote } = useLifeStore()
   const [stats, setStats] = useState({ lived: 0, remaining: 0, total: 0 })
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<Week | null>(null)
-  const [birthDate, setBirthDate] = useState<Date | null>(null)
-  const { birthDates: storedDate, lifeExpectancy, notes, saveNote, getNote, hasNote } = useLifeStore()
-  
-  useEffect(() => {
-  if (!storedDate) { router.push("/"); return }
-  const birth = new Date(storedDate)
-  setBirthDate(birth)
-  const allWeeks = generateWeeks(birth, lifeExpectancy)
-  setWeeks(allWeeks)
-  const lived = allWeeks.filter(w => w.isPast).length
-  setStats({ lived, remaining: allWeeks.length - lived, total: allWeeks.length })
-}, [storedDate, lifeExpectancy, router])
+  const [loading, setLoading] = useState(true)
+  const [hydrated, setHydrated] = useState(false)
 
-  const currentAge = birthDate
-    ? Math.floor(differenceInWeeks(new Date(), birthDate) / 52)
+  const animatedLived = useCountUp(stats.lived)
+  const animatedRemaining = useCountUp(stats.remaining)
+  const animatedTotal = useCountUp(stats.total)
+
+  const birthDateObj = storedDate ? new Date(storedDate) : null
+
+  // Step 1 — hydrate first
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
+
+  // Step 2 — redirect if no birthDate after hydration
+  useEffect(() => {
+    if (!hydrated) return
+    if (!storedDate) { router.push("/"); return }
+  }, [hydrated, storedDate, router])
+
+  // Step 3 — compute weeks
+  const weeks = useMemo(() => {
+    if (!storedDate) return []
+    return generateWeeks(new Date(storedDate), lifeExpectancy)
+  }, [storedDate, lifeExpectancy])
+
+  // Step 4 — compute stats from weeks
+  useEffect(() => {
+    if (weeks.length === 0) return
+    const lived = weeks.filter(w => w.isPast).length
+    setStats({ lived, remaining: weeks.length - lived, total: weeks.length })
+    setLoading(false)
+  }, [weeks.length])
+
+  const currentAge = birthDateObj
+    ? Math.floor(differenceInWeeks(new Date(), birthDateObj) / 52)
     : 0
 
-const years = Array.from(
-  { length: Math.ceil(weeks.length / 52) },
-  (_, i) => i
-)
+  const years = useMemo(() =>
+    Array.from({ length: Math.ceil(weeks.length / 52) }, (_, i) => i),
+    [weeks.length]
+  )
+
+  if (!hydrated || loading) {
+    return (
+      <main className="min-h-screen bg-black flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <div className="flex gap-1 justify-center mb-4">
+            {[0, 1, 2, 3].map(i => (
+              <motion.div
+                key={i}
+                animate={{ opacity: [0.2, 1, 0.2] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                className="w-2 h-2 bg-zinc-600 rounded-[1px]"
+              />
+            ))}
+          </div>
+          <p className="text-zinc-600 text-xs">Building your life grid...</p>
+        </motion.div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-black text-white px-4 py-10">
 
       {/* Header */}
-<div className="max-w-5xl mx-auto mb-8">
-  <div className="flex items-center justify-between mb-1">
-    <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
-    <div className="flex items-center gap-4">
-      <button
-    onClick={() => router.push("/stats")}
-    className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
-  >
-    Stats 
-  </button>
-      <button
-        onClick={() => router.push("/journal")}
-        className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
-      >
-      *Journal 
-      </button>
-      <button
-        onClick={() => router.push("/")}
-        className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
-      >
-      *Change date
-      </button>
-    </div>
-  </div>
-  <p className="text-zinc-600 text-xs">
-    Age {currentAge} · Each square = 1 week · Click any square to add a memory or dream
-  </p>
-</div>
+      <div className="max-w-5xl mx-auto mb-8">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push("/stats")}
+              className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
+            >
+              Stats →
+            </button>
+            <button
+              onClick={() => router.push("/journal")}
+              className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
+            >
+              Journal →
+            </button>
+            <button
+              onClick={() => router.push("/")}
+              className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
+            >
+              ← Change date
+            </button>
+          </div>
+        </div>
+        <p className="text-zinc-600 text-xs">
+          Age {currentAge} · Each square = 1 week · Click any square to add a memory or dream
+        </p>
+      </div>
 
       {/* Stats */}
       <div className="max-w-5xl mx-auto grid grid-cols-3 gap-3 mb-10">
         {[
-          { label: "Weeks lived", value: stats.lived.toLocaleString() },
-          { label: "Weeks remaining", value: stats.remaining.toLocaleString() },
-          { label: "Total weeks", value: stats.total.toLocaleString() },
+          { label: "Weeks lived", value: animatedLived.toLocaleString() },
+          { label: "Weeks remaining", value: animatedRemaining.toLocaleString() },
+          { label: "Total weeks", value: animatedTotal.toLocaleString() },
         ].map(stat => (
           <div key={stat.label} className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
             <p className="text-zinc-500 text-xs mb-1">{stat.label}</p>
@@ -118,11 +164,8 @@ const years = Array.from(
                   const noted = hasNote(week.index)
 
                   return (
-                    <motion.div
+                    <div
                       key={week.index}
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: week.index * 0.0001, duration: 0.2 }}
                       onClick={() => setSelectedWeek(week)}
                       onMouseEnter={e => {
                         const rect = (e.target as HTMLElement).getBoundingClientRect()
@@ -136,9 +179,9 @@ const years = Array.from(
                       }}
                       className={`
                         w-[14px] h-[14px] rounded-[2px] cursor-pointer
-                        transition-all duration-150 hover:scale-150 hover:z-10 relative
+                        transition-colors duration-150 hover:scale-150 hover:z-10 relative
                         ${week.isCurrent
-                          ? "bg-white animate-pulse"
+                          ? "bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse"
                           : week.isPast
                           ? moodColor || "bg-zinc-500"
                           : noted
@@ -182,7 +225,7 @@ const years = Array.from(
 
       {/* Footer */}
       <div className="max-w-5xl mx-auto mt-16 text-center">
-        <p className="text-zinc-700 text-xl leading-relaxed ">
+        <p className="text-zinc-700 text-xs leading-relaxed">
           You have lived {stats.lived.toLocaleString()} weeks. <br />
           Make the remaining {stats.remaining.toLocaleString()} count.
         </p>
@@ -202,7 +245,7 @@ const years = Array.from(
           className="fixed pointer-events-none bg-zinc-800 text-white text-xs px-2 py-1 rounded z-50"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
-         {tooltip.text}
+          {tooltip.text}
         </div>
       )}
 

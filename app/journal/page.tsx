@@ -9,13 +9,13 @@ type Filter = "all" | "memories" | "dreams"
 
 export default function JournalPage() {
   const router = useRouter()
-  const { notes, birthDates } = useLifeStore()
+  const { notes, birthDate } = useLifeStore()
   const [filter, setFilter] = useState<Filter>("all")
   const [search, setSearch] = useState("")
   const [entries, setEntries] = useState<WeekData[]>([])
 
   useEffect(() => {
-    if (!birthDates) { 
+    if (!birthDate) { 
       router.push("/");
       return;
      }
@@ -119,6 +119,7 @@ export default function JournalPage() {
               key={entry.weekIndex}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.01, borderColor: "#3f3f46" }}
               transition={{ delay: i * 0.05 }}
               className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 cursor-pointer hover:border-zinc-700 transition-colors"
               onClick={() => router.push(`/grid?week=${entry.weekIndex}`)}
