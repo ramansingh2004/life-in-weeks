@@ -1,93 +1,222 @@
 "use client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
+
+const QUOTES = [
+  "The average person lives just 4,000 weeks.",
+  "Most of your Mondays are already behind you.",
+  "You have lived more weeks than you think.",
+  "Time is the only currency that can't be earned back.",
+]
 
 export default function Home() {
   const router = useRouter()
-  const { birthDates, lifeExpectancy, setBirthDate, setLifeExpectancy } = useLifeStore()
+  const { birthDate, lifeExpectancy, setBirthDate, setLifeExpectancy } = useLifeStore()
   const [error, setError] = useState("")
+  const [started, setStarted] = useState(false)
+  const [quoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length))
 
   function handleStart() {
-    if (!birthDates) {
-      setError("Please enter your birth date")
-      return
-    }
-    if (new Date(birthDates) > new Date()) {
-      setError("Birth date cannot be in the future")
-      return
-    }
-    router.push("/grid")
+    if (!birthDate) { setError("Please enter your birth date"); return }
+    if (new Date(birthDate) > new Date()) { setError("Birth date cannot be in the future"); return }
+    setStarted(true)
+    setTimeout(() => router.push("/grid"), 600)
   }
 
   return (
-    <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="text-center max-w-md w-full"
-      >
-        <h1 className="text-5xl font-light text-white mb-3 tracking-tight">
-          Life in Weeks
-        </h1>
-        <p className="text-zinc-500 text-sm mb-12 leading-relaxed">
-          Every square is one week of your life.
-          <br />How many do you have left?
-        </p>
+    <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4 relative overflow-hidden">
 
-        <div className="space-y-4 text-left">
-          <div>
-            <label className="text-zinc-400 text-xs uppercase tracking-widest block mb-2">
-              Your birth date
-            </label>
-            <input
-              type="date"
-              value={birthDates}
-              onChange={e => {
-                setBirthDate(e.target.value)
-                setError("")
-              }}
-              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-zinc-500 transition-colors"
-            />
-          </div>
+      {/* Background grid decoration */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`,
+          backgroundSize: "24px 24px",
+        }}
+      />
 
-          <div>
-            <label className="text-zinc-400 text-xs uppercase tracking-widest block mb-2">
-              Life expectancy (years)
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="50"
-                max="100"
-                value={lifeExpectancy}
-                onChange={e => setLifeExpectancy(Number(e.target.value))}
-                className="flex-1 accent-white"
-              />
-              <span className="text-white text-sm w-8 text-right">
-                {lifeExpectancy}
-              </span>
-            </div>
-          </div>
+      {/* Subtle glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)" }}
+      />
 
-          {error && <p className="text-red-400 text-xs">{error}</p>}
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleStart}
-            className="w-full bg-white text-black rounded-lg py-3 text-sm font-medium mt-4 hover:bg-zinc-100 transition-colors"
+      <AnimatePresence>
+        {!started ? (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="w-full max-w-md relative z-10"
           >
-            See my life →
-          </motion.button>
-        </div>
 
-        <p className="text-zinc-700 text-xs mt-10">
-          Your data never leaves your device.
-        </p>
-      </motion.div>
+            {/* Mini grid preview */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-wrap gap-[3px] justify-center mb-10"
+            >
+              {Array.from({ length: 80 * 4 }, (_, i) => (
+                <div
+                  key={i}
+                  className={`w-[6px] h-[6px] rounded-[1px] ${
+                    i < 80
+                      ? "bg-zinc-500"
+                      : i === 80
+                      ? "bg-white animate-pulse"
+                      : "bg-zinc-800"
+                  }`}
+                />
+              ))}
+            </motion.div>
+
+            {/* Quote */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-zinc-600 text-xs text-center mb-8 italic"
+            >
+              "{QUOTES[quoteIndex]}"
+            </motion.p>
+
+            {/* Title */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center mb-10"
+            >
+              <h1 className="text-6xl font-light text-white tracking-tight mb-3">
+                Life in Weeks
+              </h1>
+              <p className="text-zinc-500 text-sm leading-relaxed">
+                Every square is one week of your life. <br />
+                How many do you have left?
+              </p>
+            </motion.div>
+
+            {/* Form */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-5"
+            >
+              {/* Birth date */}
+              <div>
+                <label className="text-zinc-500 text-xs uppercase tracking-widest block mb-2">
+                  Your birth date
+                </label>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={e => { setBirthDate(e.target.value); setError("") }}
+                  className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors backdrop-blur-sm"
+                />
+              </div>
+
+              {/* Life expectancy */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <label className="text-zinc-500 text-xs uppercase tracking-widest">
+                    Life expectancy
+                  </label>
+                  <span className="text-zinc-400 text-xs">{lifeExpectancy} years</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="100"
+                  value={lifeExpectancy}
+                  onChange={e => setLifeExpectancy(Number(e.target.value))}
+                  className="w-full accent-white"
+                />
+                <div className="flex justify-between text-zinc-700 text-xs mt-1">
+                  <span>50</span>
+                  <span>100</span>
+                </div>
+              </div>
+
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-red-400 text-xs"
+                >
+                  {error}
+                </motion.p>
+              )}
+
+              {/* CTA Button */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleStart}
+                className="w-full bg-white text-black rounded-xl py-3.5 text-sm font-medium hover:bg-zinc-100 transition-colors mt-2"
+              >
+                See my life →
+              </motion.button>
+            </motion.div>
+
+            {/* Features row */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="flex justify-center gap-6 mt-10"
+            >
+              {[
+                { icon: "◈", label: "Grid view" },
+                { icon: "◎", label: "Journal" },
+                { icon: "◉", label: "Stats" },
+              ].map(f => (
+                <div key={f.label} className="flex flex-col items-center gap-1.5">
+                  <span className="text-zinc-600 text-sm">{f.icon}</span>
+                  <span className="text-zinc-700 text-xs">{f.label}</span>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* Privacy note */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="text-zinc-800 text-xs text-center mt-8"
+            >
+              Your data never leaves your device
+            </motion.p>
+
+          </motion.div>
+        ) : (
+
+          /* Transition out animation */
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center"
+          >
+            <div className="flex gap-1 justify-center mb-3">
+              {[0, 1, 2, 3].map(i => (
+                <motion.div
+                  key={i}
+                  animate={{ opacity: [0.2, 1, 0.2] }}
+                  transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+                  className="w-2 h-2 bg-zinc-600 rounded-[1px]"
+                />
+              ))}
+            </div>
+            <p className="text-zinc-600 text-xs">Building your grid...</p>
+          </motion.div>
+
+        )}
+      </AnimatePresence>
+
     </main>
   )
 }

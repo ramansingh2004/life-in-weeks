@@ -57,3 +57,37 @@ export type LifeStore = {
   hasNote: (weekIndex: number) => boolean
   reset: () => void
 }
+
+export interface IUser {
+  _id: string
+  name: string
+  email: string
+  password: string
+  birthDate?: string
+  lifeExpectancy: number
+  createdAt: Date
+}
+
+export interface IWeek {
+  _id: string
+  userId: string
+  weekIndex: number
+  note: string
+  mood: number
+  isPast: boolean
+  isCurrent: boolean
+  date: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface IMedia {
+  _id: string
+  userId: string
+  weekIndex: number
+  type: "image" | "video" | "audio"
+  url: string
+  publicId: string
+  name: string
+  createdAt: Date
+}
