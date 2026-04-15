@@ -91,3 +91,19 @@ export interface IMedia {
   name: string
   createdAt: Date
 }
+
+export type User = {
+  id: string
+  name: string
+  email: string
+  birthDate?: string
+  lifeExpectancy: number
+}
+
+export type AuthStore = {
+  user: User | null
+  isLoading: boolean
+  setUser: (user: User | null) => void
+  setLoading: (loading: boolean) => void
+  logout: () => Promise<void>
+}

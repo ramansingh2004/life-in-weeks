@@ -3,6 +3,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
+import { useAuthStore } from "@/store/useAuthStore"
 
 const QUOTES = [
   "The average person lives just 4,000 weeks.",
@@ -17,13 +18,25 @@ export default function Home() {
   const [error, setError] = useState("")
   const [started, setStarted] = useState(false)
   const [quoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length))
+  const { user } = useAuthStore()
 
-  function handleStart() {
-    if (!birthDate) { setError("Please enter your birth date"); return }
-    if (new Date(birthDate) > new Date()) { setError("Birth date cannot be in the future"); return }
-    setStarted(true)
-    setTimeout(() => router.push("/grid"), 600)
+  
+  async function handleStart() {
+  if (!birthDate) { setError("Please enter your birth date"); return }
+  if (new Date(birthDate) > new Date()) { setError("Birth date cannot be in the future"); return }
+
+  // If logged in — save birthDate to backend
+  if (user) {
+    await fetch("/api/auth/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ birthDate, lifeExpectancy }),
+    })
   }
+
+  setStarted(true)
+  setTimeout(() => router.push("/grid"), 600)
+}
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4 relative overflow-hidden">
