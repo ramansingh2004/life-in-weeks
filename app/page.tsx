@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useAuthStore } from "@/store/useAuthStore"
@@ -194,15 +195,39 @@ export default function Home() {
               ))}
             </motion.div>
 
-            {/* Privacy note */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="text-zinc-800 text-xs text-center mt-8"
-            >
-              Your data never leaves your device
-            </motion.p>
+            {/* Auth links */}
+<motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ delay: 1 }}
+  className="flex justify-center gap-4 mt-8"
+>
+  {user ? (
+    <div className="flex items-center gap-4">
+      <span className="text-zinc-700 text-xs">
+        Signed in as {user.name}
+      </span>
+      <button
+        onClick={async () => {
+          await useAuthStore.getState().logout()
+        }}
+        className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+      >
+        Sign out
+      </button>
+    </div>
+  ) : (
+    <>
+      <Link href="/login" className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors">
+        Sign in
+      </Link>
+      <span className="text-zinc-800 text-xs">·</span>
+      <Link href="/register" className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors">
+        Create account
+      </Link>
+    </>
+  )}
+</motion.div>
 
           </motion.div>
         ) : (
