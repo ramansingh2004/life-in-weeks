@@ -5,6 +5,8 @@ import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useAuthStore } from "@/store/useAuthStore"
+import { useEffect } from "react"
+import { getMe } from "@/lib/api"
 
 const QUOTES = [
   "The average person lives just 4,000 weeks.",
@@ -20,6 +22,7 @@ export default function Home() {
   const [started, setStarted] = useState(false)
   const [quoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length))
   const { user } = useAuthStore()
+  const { user, setUser } = useAuthStore()
 
   
   async function handleStart() {
@@ -38,6 +41,23 @@ export default function Home() {
   setStarted(true)
   setTimeout(() => router.push("/grid"), 600)
 }
+
+   useEffect(() => {
+  async function loadUser() {
+    const data = await getMe()
+    if (data?.user) {
+      setUser(data.user)
+      // Sync birthDate from backend to Zustand
+      if (data.user.birthDate) {
+        setBirthDate(data.user.birthDate)
+      }
+      if (data.user.lifeExpectancy) {
+        setLifeExpectancy(data.user.lifeExpectancy)
+      }
+    }
+  }
+  loadUser()
+}, [])
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4 relative overflow-hidden">

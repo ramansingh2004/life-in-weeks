@@ -49,12 +49,14 @@ export type LifeStore = {
   birthDate: string
   lifeExpectancy: number
   notes: Record<number, WeekData>
+  isSynced: boolean
 
   setBirthDate: (date: string) => void
   setLifeExpectancy: (years: number) => void
-  saveNote: (data: WeekData) => void
+  saveNote: (data: WeekData) => Promise<void>
   getNote: (weekIndex: number) => WeekData | undefined
   hasNote: (weekIndex: number) => boolean
+  syncFromBackend: () => Promise<void>
   reset: () => void
 }
 

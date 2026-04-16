@@ -7,6 +7,7 @@ import WeekModal from "@/components/weekModel"
 import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useCountUp } from "@/hooks/useCountUp"
+import { useAuthStore } from "@/store/useAuthStore"
 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
   const totalWeeks = lifeExpectancy * 52
@@ -34,6 +35,9 @@ export default function GridPage() {
   const animatedRemaining = useCountUp(stats.remaining)
   const animatedTotal = useCountUp(stats.total)
 
+  const { user } = useAuthStore()
+const { syncFromBackend, isSynced } = useLifeStore()
+
   const birthDateObj = storedDate ? new Date(storedDate) : null
 
   // Step 1 — hydrate first
@@ -43,9 +47,12 @@ export default function GridPage() {
 
   // Step 2 — redirect if no birthDate after hydration
   useEffect(() => {
-    if (!hydrated) return
-    if (!storedDate) { router.push("/"); return }
-  }, [hydrated, storedDate, router])
+  if (!hydrated) return
+  if (!storedDate) { router.push("/"); return }
+  if (!isSynced) {
+    syncFromBackend()
+  }
+}, [hydrated, storedDate, isSynced])
 
   // Step 3 — compute weeks
   const weeks = useMemo(() => {
@@ -98,34 +105,42 @@ export default function GridPage() {
     <main className="min-h-screen bg-black text-white px-4 py-10">
 
       {/* Header */}
-      <div className="max-w-5xl mx-auto mb-8">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/stats")}
-              className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
-            >
-              Stats →
-            </button>
-            <button
-              onClick={() => router.push("/journal")}
-              className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
-            >
-              Journal →
-            </button>
-            <button
-              onClick={() => router.push("/")}
-              className="text-zinc-600 text-xl hover:text-zinc-400 transition-colors"
-            >
-              ← Change date
-            </button>
-          </div>
-        </div>
-        <p className="text-zinc-600 text-xs">
-          Age {currentAge} · Each square = 1 week · Click any square to add a memory or dream
-        </p>
-      </div>
+<div className="max-w-5xl mx-auto mb-8">
+  <div className="flex items-center justify-between mb-1">
+    <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => router.push("/stats")}
+        className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+      >
+        Stats →
+      </button>
+      <button
+        onClick={() => router.push("/journal")}
+        className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+      >
+        Journal →
+      </button>
+      {user && (
+        <span className="text-zinc-700 text-xs">
+          {user.name}
+        </span>
+      )}
+      <button
+        onClick={async () => {
+          await useAuthStore.getState().logout()
+          router.push("/login")
+        }}
+        className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+      >
+        Sign out
+      </button>
+    </div>
+  </div>
+  <p className="text-zinc-600 text-xs">
+    Age {currentAge} · Each square = 1 week · Click any square to add a memory or dream
+  </p>
+</div>
 
       {/* Stats */}
       <div className="max-w-5xl mx-auto grid grid-cols-3 gap-3 mb-10">
