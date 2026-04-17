@@ -11,8 +11,11 @@ export const useLifeStore = create<LifeStore>()(
       notes: {},
       isSynced: false,
 
-      setBirthDate: (date) => set({ birthDate: date }),
-      setLifeExpectancy: (years) => set({ lifeExpectancy: years }),
+     setBirthDate: (date) => set({ birthDate: date }),
+     setLifeExpectancy: (years) => set({ lifeExpectancy: years }),
+
+  //    setBirthDate: setBirthDateFromStore,
+  // setLifeExpectancy: setLifeExpectancyFromStore,
 
       saveNote: async (data) => {
         // 1. Update Zustand instantly (optimistic)

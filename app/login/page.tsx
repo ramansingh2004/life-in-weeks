@@ -27,7 +27,7 @@ export default function LoginPage() {
     })
 
     const data = await res.json()
-
+ 
     if (!res.ok) {
       setError(data.error || "Invalid email or password")
       setLoading(false)
@@ -35,7 +35,11 @@ export default function LoginPage() {
     }
 
     setUser(data.user)
-    router.push("/")
+    if (data.user?.birthDate) {
+    router.push("/grid")
+     } else {
+       router.push("/")
+     }
   }
 
   return (

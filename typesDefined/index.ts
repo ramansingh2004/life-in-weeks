@@ -50,7 +50,7 @@ export type LifeStore = {
   lifeExpectancy: number
   notes: Record<number, WeekData>
   isSynced: boolean
-
+ 
   setBirthDate: (date: string) => void
   setLifeExpectancy: (years: number) => void
   saveNote: (data: WeekData) => Promise<void>

@@ -20,26 +20,51 @@ export default function Home() {
   const { birthDate, lifeExpectancy, setBirthDate, setLifeExpectancy } = useLifeStore()
   const [error, setError] = useState("")
   const [started, setStarted] = useState(false)
-  const [quoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length))
-  const { user } = useAuthStore()
+  const [quoteIndex, setQuoteIndex] = useState<number | null>(null);
   const { user, setUser } = useAuthStore()
+
+  const [authLoading, setAuthLoading] = useState(true);
+  //const { user, setUser } = useAuthStore()
 
   
   async function handleStart() {
-  if (!birthDate) { setError("Please enter your birth date"); return }
-  if (new Date(birthDate) > new Date()) { setError("Birth date cannot be in the future"); return }
+  if (!birthDate) {
+    setError("Please enter your birth date");
+    return;
+  }
 
-  // If logged in — save birthDate to backend
-  if (user) {
+  if (new Date(birthDate) > new Date()) {
+    setError("Birth date cannot be in the future");
+    return;
+  }
+
+  // 🔥 If user NOT logged in → save locally & redirect
+  if (!user) {
+    localStorage.setItem(
+      "tempLifeData",
+      JSON.stringify({ birthDate, lifeExpectancy })
+    );
+
+    router.push("/login");
+    return;
+  }
+
+  // ✅ If logged in → save to backend
+  try {
     await fetch("/api/auth/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ birthDate, lifeExpectancy }),
-    })
+    });
+  } catch (err) {
+    console.error("Failed to save profile", err);
   }
 
-  setStarted(true)
-  setTimeout(() => router.push("/grid"), 600)
+  // (Zustand already has latest values, no need to re-set but safe)
+  setBirthDate(birthDate);
+  setLifeExpectancy(lifeExpectancy);
+
+  setTimeout(() => router.push("/grid"), 600);
 }
 
    useEffect(() => {
@@ -55,9 +80,14 @@ export default function Home() {
         setLifeExpectancy(data.user.lifeExpectancy)
       }
     }
+    setAuthLoading(false)
   }
   loadUser()
 }, [])
+
+  useEffect(() => {
+  setQuoteIndex(Math.floor(Math.random() * QUOTES.length));
+}, []);
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4 relative overflow-hidden">
@@ -114,7 +144,7 @@ export default function Home() {
               transition={{ delay: 0.5 }}
               className="text-zinc-600 text-xs text-center mb-8 italic"
             >
-              "{QUOTES[quoteIndex]}"
+              "{quoteIndex !== null && `"${QUOTES[quoteIndex]}"`}"
             </motion.p>
 
             {/* Title */}

@@ -8,7 +8,7 @@ import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useCountUp } from "@/hooks/useCountUp"
 import { useAuthStore } from "@/store/useAuthStore"
-
+ 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
   const totalWeeks = lifeExpectancy * 52
   const weeksLived = differenceInWeeks(new Date(), birthDate)
@@ -24,7 +24,7 @@ function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
 
 export default function GridPage() {
   const router = useRouter()
-  const { birthDate: storedDate, lifeExpectancy, saveNote, getNote, hasNote } = useLifeStore()
+  const { birthDate: storedDate, lifeExpectancy, saveNote, getNote, hasNote, setBirthDate, setLifeExpectancy } = useLifeStore()
   const [stats, setStats] = useState({ lived: 0, remaining: 0, total: 0 })
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<Week | null>(null)
@@ -42,17 +42,26 @@ const { syncFromBackend, isSynced } = useLifeStore()
 
   // Step 1 — hydrate first
   useEffect(() => {
-    setHydrated(true)
-  }, [])
-
-  // Step 2 — redirect if no birthDate after hydration
-  useEffect(() => {
   if (!hydrated) return
-  if (!storedDate) { router.push("/"); return }
-  if (!isSynced) {
-    syncFromBackend()
+
+  async function init() {
+    // Load fresh user data from backend
+    const res = await fetch("/api/auth/me")
+    const data = await res.json()
+
+    if (!data?.user) { router.push("/login"); return }
+    if (!data.user.birthDate) { router.push("/"); return }
+
+    // Sync birthDate from backend into Zustand
+    setBirthDate(data.user.birthDate)
+    setLifeExpectancy(data.user.lifeExpectancy || 80)
+
+    // Sync weeks from backend
+    if (!isSynced) await syncFromBackend()
   }
-}, [hydrated, storedDate, isSynced])
+
+  init()
+}, [hydrated])
 
   // Step 3 — compute weeks
   const weeks = useMemo(() => {

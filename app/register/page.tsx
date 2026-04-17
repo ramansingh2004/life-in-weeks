@@ -55,7 +55,11 @@ export default function RegisterPage() {
     const meData = await meRes.json()
     setUser(meData.user)
 
-    router.push("/")
+   if (meData.user?.birthDate) {
+  router.push("/grid")
+} else {
+  router.push("/")
+}
   }
 
   return (
