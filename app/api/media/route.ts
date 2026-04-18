@@ -14,9 +14,11 @@ export async function GET(req: NextRequest) {
     const weekIndex = Number(searchParams.get("weekIndex"))
 
     await connectDB()
-    const media = await Media.find({ userId: auth.userId, weekIndex })
+    const media = await Media.find({ userId: auth.userId, weekIndex }).sort({ createdAt: -1 })
+    
     return NextResponse.json({ media })
-  } catch {
+  } catch (err) {
+    console.error("GET /api/media error:", err)
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }
@@ -30,21 +32,33 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData()
     const file = formData.get("file") as File
     const weekIndex = Number(formData.get("weekIndex"))
-    const type = formData.get("type") as string
+    const type = formData.get("type") as "image" | "video" | "audio"
 
     if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    if (!type) return NextResponse.json({ error: "No type provided" }, { status: 400 })
+
+    console.log(`📤 Uploading ${type}: ${file.name}`)
 
     // Convert file to base64 for Cloudinary
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     const base64 = `data:${file.type};base64,${buffer.toString("base64")}`
 
-    // Upload to Cloudinary
-    const resourceType = type === "video" ? "video" : type === "audio" ? "video" : "image"
+    // Determine resource type for Cloudinary
+    // Images: image
+    // Videos: video
+    // Audio: video (Cloudinary treats audio as video)
+    const resourceType = type === "image" ? "image" : "video"
+
+    // Upload to Cloudinary with folder organization
     const result = await cloudinary.uploader.upload(base64, {
       folder: `life-in-weeks/${auth.userId}`,
       resource_type: resourceType,
+      public_id: `${type}-${Date.now()}`,
+      overwrite: false,
     })
+
+    console.log(`✅ Uploaded to Cloudinary:`, result.secure_url)
 
     // Save to MongoDB
     await connectDB()
@@ -57,9 +71,15 @@ export async function POST(req: NextRequest) {
       name: file.name,
     })
 
+    console.log(`✅ Saved to MongoDB:`, media._id)
+
     return NextResponse.json({ media }, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  } catch (err) {
+    console.error("❌ POST /api/media error:", err)
+    return NextResponse.json({ 
+      error: "Upload failed",
+      details: err instanceof Error ? err.message : "Unknown error"
+    }, { status: 500 })
   }
 }
 
@@ -75,14 +95,26 @@ export async function DELETE(req: NextRequest) {
     const media = await Media.findOne({ _id: mediaId, userId: auth.userId })
     if (!media) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+    console.log(`🗑️ Deleting media:`, media.publicId)
+
     // Delete from Cloudinary
-    await cloudinary.uploader.destroy(media.publicId)
+    try {
+      await cloudinary.uploader.destroy(media.publicId, { 
+        resource_type: media.type === "image" ? "image" : "video"
+      })
+      console.log(`✅ Deleted from Cloudinary`)
+    } catch (err) {
+      console.error("⚠️ Failed to delete from Cloudinary:", err)
+      // Continue anyway - delete from DB
+    }
 
     // Delete from MongoDB
     await Media.deleteOne({ _id: mediaId })
+    console.log(`✅ Deleted from MongoDB`)
 
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error("❌ DELETE /api/media error:", err)
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

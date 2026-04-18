@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { Week, WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from "@/typesDefined"
+import MediaUploader from "./mediaUploader"
 
 type Props = {
   week: Week | null
@@ -74,7 +75,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6"
+          className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto"
           onClick={e => e.stopPropagation()}
         >
 
@@ -91,7 +92,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             </div>
             <button
               onClick={onClose}
-              className="text-zinc-600 hover:text-zinc-400 text-xl leading-none transition-colors"
+              className="text-zinc-600 hover:text-zinc-400 text-xl leading-none transition-colors flex-shrink-0"
             >
               ×
             </button>
@@ -103,7 +104,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
               <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
                 Mood
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {[1, 2, 3, 4, 5].map(m => (
                   <button
                     key={m}
@@ -133,7 +134,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
               {week.isPast || week.isCurrent ? "Memory" : "Dream"}
             </p>
-            {isWritable || !week.isPast ? (
+            {isWritable ? (
               <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-3 min-h-[120px]">
                 {editor ? (
                   <EditorContent editor={editor} />
@@ -146,8 +147,15 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             )}
           </div>
 
+          {/* Media Uploader — only for past/current weeks */}
+          {isWritable && (
+            <div className="mb-5 border-t border-zinc-800 pt-5">
+              <MediaUploader weekIndex={week.index} />
+            </div>
+          )}
+
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 sticky bottom-0 bg-zinc-900 -mx-6 -mb-6 px-6 py-4 border-t border-zinc-800">
             <button
               onClick={onClose}
               className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-zinc-600 transition-colors"
