@@ -1,13 +1,19 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/models/User.model"
-import { getAuthUser } from "@/lib/getUser"
+import { verifyToken } from "@/lib/jwt"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const auth = await getAuthUser()
-    if (!auth) {
+    // Read token directly from request instead of using getAuthUser
+    const token = req.cookies.get("token")?.value
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const auth = verifyToken(token)
+    if (!auth) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
     await connectDB()
@@ -17,7 +23,8 @@ export async function GET() {
     }
 
     return NextResponse.json({ user })
-  } catch {
+  } catch (err) {
+    console.error("Auth error:", err)
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

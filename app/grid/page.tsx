@@ -8,7 +8,7 @@ import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useCountUp } from "@/hooks/useCountUp"
 import { useAuthStore } from "@/store/useAuthStore"
- 
+
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
   const totalWeeks = lifeExpectancy * 52
   const weeksLived = differenceInWeeks(new Date(), birthDate)
@@ -24,9 +24,25 @@ function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
 
 export default function GridPage() {
   const router = useRouter()
-  const { birthDate: storedDate, lifeExpectancy, saveNote, getNote, hasNote, setBirthDate, setLifeExpectancy } = useLifeStore()
+  const {
+    birthDate: storedDate,
+    lifeExpectancy,
+    saveNote,
+    getNote,
+    hasNote,
+    setBirthDate,
+    setLifeExpectancy,
+    syncFromBackend,
+    isSynced,
+  } = useLifeStore()
+  const { user } = useAuthStore()
+
   const [stats, setStats] = useState({ lived: 0, remaining: 0, total: 0 })
-  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
+  const [tooltip, setTooltip] = useState<{
+    text: string
+    x: number
+    y: number
+  } | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<Week | null>(null)
   const [loading, setLoading] = useState(true)
   const [hydrated, setHydrated] = useState(false)
@@ -35,44 +51,71 @@ export default function GridPage() {
   const animatedRemaining = useCountUp(stats.remaining)
   const animatedTotal = useCountUp(stats.total)
 
-  const { user } = useAuthStore()
-const { syncFromBackend, isSynced } = useLifeStore()
+  // Step 1: Hydrate client-side
+  useEffect(() => {
+    console.log("🔄 Setting hydrated to true")
+    setHydrated(true)
+  }, [])
+
+  // Step 2: Load user data from backend when hydrated
+  useEffect(() => {
+    if (!hydrated) {
+      console.log("⏳ Not hydrated yet, skipping init")
+      return
+    }
+
+    async function init() {
+      try {
+        console.log("🔍 Fetching /api/auth/me...")
+        const res = await fetch("/api/auth/me")
+        const data = await res.json()
+
+        if (!res.ok || !data?.user) {
+          console.log("❌ Auth check failed, redirecting to /login")
+          router.push("/login")
+          return
+        }
+
+        console.log("✅ User authenticated:", data.user.email)
+
+        if (!data.user.birthDate) {
+          console.log("⚠️ No birthDate set, redirecting to home")
+          router.push("/")
+          return
+        }
+
+        // Sync birthDate from backend
+        setBirthDate(data.user.birthDate)
+        setLifeExpectancy(data.user.lifeExpectancy || 80)
+        console.log("✅ BirthDate synced:", data.user.birthDate)
+
+        // Sync weeks from backend
+        if (!isSynced) {
+          console.log("🔄 Syncing weeks from backend...")
+          await syncFromBackend()
+          console.log("✅ Weeks synced")
+        }
+      } catch (err) {
+        console.error("❌ Init error:", err)
+        router.push("/login")
+      }
+    }
+
+    init()
+  }, [hydrated, setBirthDate, setLifeExpectancy, syncFromBackend, isSynced, router])
 
   const birthDateObj = storedDate ? new Date(storedDate) : null
 
-  // Step 1 — hydrate first
-  useEffect(() => {
-  if (!hydrated) return
-
-  async function init() {
-    // Load fresh user data from backend
-    const res = await fetch("/api/auth/me")
-    const data = await res.json()
-
-    if (!data?.user) { router.push("/login"); return }
-    if (!data.user.birthDate) { router.push("/"); return }
-
-    // Sync birthDate from backend into Zustand
-    setBirthDate(data.user.birthDate)
-    setLifeExpectancy(data.user.lifeExpectancy || 80)
-
-    // Sync weeks from backend
-    if (!isSynced) await syncFromBackend()
-  }
-
-  init()
-}, [hydrated])
-
-  // Step 3 — compute weeks
+  // Step 3: Generate weeks
   const weeks = useMemo(() => {
     if (!storedDate) return []
     return generateWeeks(new Date(storedDate), lifeExpectancy)
   }, [storedDate, lifeExpectancy])
 
-  // Step 4 — compute stats from weeks
+  // Step 4: Compute stats
   useEffect(() => {
     if (weeks.length === 0) return
-    const lived = weeks.filter(w => w.isPast).length
+    const lived = weeks.filter((w) => w.isPast).length
     setStats({ lived, remaining: weeks.length - lived, total: weeks.length })
     setLoading(false)
   }, [weeks.length])
@@ -81,11 +124,16 @@ const { syncFromBackend, isSynced } = useLifeStore()
     ? Math.floor(differenceInWeeks(new Date(), birthDateObj) / 52)
     : 0
 
-  const years = useMemo(() =>
-    Array.from({ length: Math.ceil(weeks.length / 52) }, (_, i) => i),
+  const years = useMemo(
+    () =>
+      Array.from(
+        { length: Math.ceil(weeks.length / 52) },
+        (_, i) => i
+      ),
     [weeks.length]
   )
 
+  // Loading state
   if (!hydrated || loading) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -95,11 +143,15 @@ const { syncFromBackend, isSynced } = useLifeStore()
           className="text-center"
         >
           <div className="flex gap-1 justify-center mb-4">
-            {[0, 1, 2, 3].map(i => (
+            {[0, 1, 2, 3].map((i) => (
               <motion.div
                 key={i}
                 animate={{ opacity: [0.2, 1, 0.2] }}
-                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                }}
                 className="w-2 h-2 bg-zinc-600 rounded-[1px]"
               />
             ))}
@@ -112,53 +164,57 @@ const { syncFromBackend, isSynced } = useLifeStore()
 
   return (
     <main className="min-h-screen bg-black text-white px-4 py-10">
-
       {/* Header */}
-<div className="max-w-5xl mx-auto mb-8">
-  <div className="flex items-center justify-between mb-1">
-    <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
-    <div className="flex items-center gap-4">
-      <button
-        onClick={() => router.push("/stats")}
-        className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-      >
-        Stats →
-      </button>
-      <button
-        onClick={() => router.push("/journal")}
-        className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-      >
-        Journal →
-      </button>
-      {user && (
-        <span className="text-zinc-700 text-xs">
-          {user.name}
-        </span>
-      )}
-      <button
-        onClick={async () => {
-          await useAuthStore.getState().logout()
-          router.push("/login")
-        }}
-        className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-      >
-        Sign out
-      </button>
-    </div>
-  </div>
-  <p className="text-zinc-600 text-xs">
-    Age {currentAge} · Each square = 1 week · Click any square to add a memory or dream
-  </p>
-</div>
+      <div className="max-w-5xl mx-auto mb-8">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push("/stats")}
+              className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+            >
+              Stats →
+            </button>
+            <button
+              onClick={() => router.push("/journal")}
+              className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+            >
+              Journal →
+            </button>
+            {user && (
+              <span className="text-zinc-700 text-xs">{user.name}</span>
+            )}
+            <button
+              onClick={async () => {
+                await useAuthStore.getState().logout()
+                router.push("/login")
+              }}
+              className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+        <p className="text-zinc-600 text-xs">
+          Age {currentAge} · Each square = 1 week · Click any square to add a
+          memory or dream
+        </p>
+      </div>
 
       {/* Stats */}
       <div className="max-w-5xl mx-auto grid grid-cols-3 gap-3 mb-10">
         {[
           { label: "Weeks lived", value: animatedLived.toLocaleString() },
-          { label: "Weeks remaining", value: animatedRemaining.toLocaleString() },
+          {
+            label: "Weeks remaining",
+            value: animatedRemaining.toLocaleString(),
+          },
           { label: "Total weeks", value: animatedTotal.toLocaleString() },
-        ].map(stat => (
-          <div key={stat.label} className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3"
+          >
             <p className="text-zinc-500 text-xs mb-1">{stat.label}</p>
             <p className="text-white text-lg font-light">{stat.value}</p>
           </div>
@@ -168,54 +224,66 @@ const { syncFromBackend, isSynced } = useLifeStore()
       {/* Grid */}
       <div className="max-w-5xl mx-auto">
         <div className="flex gap-2">
-
           {/* Year labels */}
           <div className="flex flex-col gap-[4px] pt-[1px]">
-            {years.map(y => (
-              <div key={y} className="text-zinc-700 text-[8px] w-6 h-[14px] flex items-center justify-end pr-2">
+            {years.map((y) => (
+              <div
+                key={y}
+                className="text-zinc-700 text-[8px] w-6 h-[14px] flex items-center justify-end pr-2"
+              >
                 {y % 5 === 0 ? y : ""}
               </div>
             ))}
           </div>
 
           {/* Squares */}
-          <div className="flex flex-col gap-[4px]" onMouseLeave={() => setTooltip(null)}>
-            {years.map(yearIndex => (
+          <div
+            className="flex flex-col gap-[4px]"
+            onMouseLeave={() => setTooltip(null)}
+          >
+            {years.map((yearIndex) => (
               <div key={yearIndex} className="flex gap-[4px]">
-                {weeks.slice(yearIndex * 52, yearIndex * 52 + 52).map(week => {
-                  const note = getNote(week.index)
-                  const moodColor = note?.mood ? MOOD_COLORS[note.mood] : null
-                  const noted = hasNote(week.index)
+                {weeks
+                  .slice(yearIndex * 52, yearIndex * 52 + 52)
+                  .map((week) => {
+                    const note = getNote(week.index)
+                    const moodColor = note?.mood
+                      ? MOOD_COLORS[note.mood]
+                      : null
+                    const noted = hasNote(week.index)
 
-                  return (
-                    <div
-                      key={week.index}
-                      onClick={() => setSelectedWeek(week)}
-                      onMouseEnter={e => {
-                        const rect = (e.target as HTMLElement).getBoundingClientRect()
-                        setTooltip({
-                          text: noted
-                            ? `Week ${week.index + 1} · ${week.date} ✦`
-                            : `Week ${week.index + 1} · ${week.date}`,
-                          x: rect.left,
-                          y: rect.top - 32,
-                        })
-                      }}
-                      className={`
-                        w-[14px] h-[14px] rounded-[2px] cursor-pointer
-                        transition-colors duration-150 hover:scale-150 hover:z-10 relative
-                        ${week.isCurrent
-                          ? "bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse"
-                          : week.isPast
-                          ? moodColor || "bg-zinc-500"
-                          : noted
-                          ? "bg-zinc-600"
-                          : "bg-zinc-800 hover:bg-zinc-600"
-                        }
-                      `}
-                    />
-                  )
-                })}
+                    return (
+                      <div
+                        key={week.index}
+                        onClick={() => setSelectedWeek(week)}
+                        onMouseEnter={(e) => {
+                          const rect = (
+                            e.target as HTMLElement
+                          ).getBoundingClientRect()
+                          setTooltip({
+                            text: noted
+                              ? `Week ${week.index + 1} · ${week.date} ✦`
+                              : `Week ${week.index + 1} · ${week.date}`,
+                            x: rect.left,
+                            y: rect.top - 32,
+                          })
+                        }}
+                        className={`
+                          w-[14px] h-[14px] rounded-[2px] cursor-pointer
+                          transition-colors duration-150 hover:scale-150 hover:z-10 relative
+                          ${
+                            week.isCurrent
+                              ? "bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse"
+                              : week.isPast
+                              ? moodColor || "bg-zinc-500"
+                              : noted
+                              ? "bg-zinc-600"
+                              : "bg-zinc-800 hover:bg-zinc-600"
+                          }
+                        `}
+                      />
+                    )
+                  })}
               </div>
             ))}
           </div>
@@ -239,7 +307,7 @@ const { syncFromBackend, isSynced } = useLifeStore()
           { color: "bg-zinc-800", label: "Future" },
           { color: "bg-emerald-700", label: "Amazing week" },
           { color: "bg-red-900", label: "Hard week" },
-        ].map(item => (
+        ].map((item) => (
           <div key={item.label} className="flex items-center gap-2">
             <div className={`w-[14px] h-[14px] rounded-[2px] ${item.color}`} />
             <span className="text-zinc-500 text-xs">{item.label}</span>
@@ -272,7 +340,6 @@ const { syncFromBackend, isSynced } = useLifeStore()
           {tooltip.text}
         </div>
       )}
-
     </main>
   )
 }

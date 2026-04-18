@@ -1,11 +1,10 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useAuthStore } from "@/store/useAuthStore"
-import { useEffect } from "react"
 import { getMe } from "@/lib/api"
 
 const QUOTES = [
@@ -18,82 +17,108 @@ const QUOTES = [
 export default function Home() {
   const router = useRouter()
   const { birthDate, lifeExpectancy, setBirthDate, setLifeExpectancy } = useLifeStore()
+  const { user, setUser } = useAuthStore()
+  
   const [error, setError] = useState("")
   const [started, setStarted] = useState(false)
-  const [quoteIndex, setQuoteIndex] = useState<number | null>(null);
-  const { user, setUser } = useAuthStore()
+  const [quoteIndex, setQuoteIndex] = useState<number | null>(null)
+  const [hydrated, setHydrated] = useState(false)
 
-  const [authLoading, setAuthLoading] = useState(true);
-  //const { user, setUser } = useAuthStore()
+  // Step 1: Hydrate Zustand stores
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
 
-  
-  async function handleStart() {
-  if (!birthDate) {
-    setError("Please enter your birth date");
-    return;
-  }
+  // Step 2: Load user from backend if hydrated
+  useEffect(() => {
+    if (!hydrated) return
 
-  if (new Date(birthDate) > new Date()) {
-    setError("Birth date cannot be in the future");
-    return;
-  }
-
-  // 🔥 If user NOT logged in → save locally & redirect
-  if (!user) {
-    localStorage.setItem(
-      "tempLifeData",
-      JSON.stringify({ birthDate, lifeExpectancy })
-    );
-
-    router.push("/login");
-    return;
-  }
-
-  // ✅ If logged in → save to backend
-  try {
-    await fetch("/api/auth/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ birthDate, lifeExpectancy }),
-    });
-  } catch (err) {
-    console.error("Failed to save profile", err);
-  }
-
-  // (Zustand already has latest values, no need to re-set but safe)
-  setBirthDate(birthDate);
-  setLifeExpectancy(lifeExpectancy);
-
-  setTimeout(() => router.push("/grid"), 600);
-}
-
-   useEffect(() => {
-  async function loadUser() {
-    const data = await getMe()
-    if (data?.user) {
-      setUser(data.user)
-      // Sync birthDate from backend to Zustand
-      if (data.user.birthDate) {
-        setBirthDate(data.user.birthDate)
-      }
-      if (data.user.lifeExpectancy) {
-        setLifeExpectancy(data.user.lifeExpectancy)
+    async function loadUser() {
+      try {
+        const data = await getMe()
+        if (data?.user) {
+          setUser(data.user)
+          // Sync birthDate & lifeExpectancy from backend
+          if (data.user.birthDate) {
+            setBirthDate(data.user.birthDate)
+          }
+          if (data.user.lifeExpectancy) {
+            setLifeExpectancy(data.user.lifeExpectancy)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user:", err)
       }
     }
-    setAuthLoading(false)
-  }
-  loadUser()
-}, [])
 
+    loadUser()
+  }, [hydrated, setUser, setBirthDate, setLifeExpectancy])
+
+  // Set random quote
   useEffect(() => {
-  setQuoteIndex(Math.floor(Math.random() * QUOTES.length));
-}, []);
+    setQuoteIndex(Math.floor(Math.random() * QUOTES.length))
+  }, [])
+
+  async function handleStart() {
+    if (!birthDate) {
+      setError("Please enter your birth date")
+      return
+    }
+
+    if (new Date(birthDate) > new Date()) {
+      setError("Birth date cannot be in the future")
+      return
+    }
+
+    // If NOT logged in → go to login
+    if (!user) {
+      localStorage.setItem(
+        "tempLifeData",
+        JSON.stringify({ birthDate, lifeExpectancy })
+      )
+      router.push("/login")
+      return
+    }
+
+    // If logged in → save to backend first
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ birthDate, lifeExpectancy }),
+      })
+
+      if (!res.ok) {
+        setError("Failed to save profile")
+        return
+      }
+
+      // Update local store
+      setBirthDate(birthDate)
+      setLifeExpectancy(lifeExpectancy)
+
+      // Navigate to grid with animation
+      setStarted(true)
+      setTimeout(() => router.push("/grid"), 600)
+    } catch (err) {
+      console.error("Error saving profile:", err)
+      setError("Failed to save profile")
+    }
+  }
+
+  if (!hydrated) {
+    return (
+      <main className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-zinc-600 text-xs">Loading...</div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4 relative overflow-hidden">
-
       {/* Background grid decoration */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
           backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`,
           backgroundSize: "24px 24px",
@@ -101,8 +126,12 @@ export default function Home() {
       />
 
       {/* Subtle glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)" }}
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)",
+        }}
       />
 
       <AnimatePresence>
@@ -115,7 +144,6 @@ export default function Home() {
             transition={{ duration: 0.7, ease: "easeOut" }}
             className="w-full max-w-md relative z-10"
           >
-
             {/* Mini grid preview */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -144,7 +172,7 @@ export default function Home() {
               transition={{ delay: 0.5 }}
               className="text-zinc-600 text-xs text-center mb-8 italic"
             >
-              "{quoteIndex !== null && `"${QUOTES[quoteIndex]}"`}"
+              {quoteIndex !== null && `"${QUOTES[quoteIndex]}"`}
             </motion.p>
 
             {/* Title */}
@@ -178,7 +206,10 @@ export default function Home() {
                 <input
                   type="date"
                   value={birthDate}
-                  onChange={e => { setBirthDate(e.target.value); setError("") }}
+                  onChange={(e) => {
+                    setBirthDate(e.target.value)
+                    setError("")
+                  }}
                   className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors backdrop-blur-sm"
                 />
               </div>
@@ -196,7 +227,7 @@ export default function Home() {
                   min="50"
                   max="100"
                   value={lifeExpectancy}
-                  onChange={e => setLifeExpectancy(Number(e.target.value))}
+                  onChange={(e) => setLifeExpectancy(Number(e.target.value))}
                   className="w-full accent-white"
                 />
                 <div className="flex justify-between text-zinc-700 text-xs mt-1">
@@ -237,7 +268,7 @@ export default function Home() {
                 { icon: "◈", label: "Grid view" },
                 { icon: "◎", label: "Journal" },
                 { icon: "◉", label: "Stats" },
-              ].map(f => (
+              ].map((f) => (
                 <div key={f.label} className="flex flex-col items-center gap-1.5">
                   <span className="text-zinc-600 text-sm">{f.icon}</span>
                   <span className="text-zinc-700 text-xs">{f.label}</span>
@@ -246,42 +277,45 @@ export default function Home() {
             </motion.div>
 
             {/* Auth links */}
-<motion.div
-  initial={{ opacity: 0 }}
-  animate={{ opacity: 1 }}
-  transition={{ delay: 1 }}
-  className="flex justify-center gap-4 mt-8"
->
-  {user ? (
-    <div className="flex items-center gap-4">
-      <span className="text-zinc-700 text-xs">
-        Signed in as {user.name}
-      </span>
-      <button
-        onClick={async () => {
-          await useAuthStore.getState().logout()
-        }}
-        className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-      >
-        Sign out
-      </button>
-    </div>
-  ) : (
-    <>
-      <Link href="/login" className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors">
-        Sign in
-      </Link>
-      <span className="text-zinc-800 text-xs">·</span>
-      <Link href="/register" className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors">
-        Create account
-      </Link>
-    </>
-  )}
-</motion.div>
-
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="flex justify-center gap-4 mt-8"
+            >
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-zinc-700 text-xs">Signed in as {user.name}</span>
+                  <button
+                    onClick={async () => {
+                      await useAuthStore.getState().logout()
+                      setUser(null)
+                    }}
+                    className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                  <span className="text-zinc-800 text-xs">·</span>
+                  <Link
+                    href="/register"
+                    className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+                  >
+                    Create account
+                  </Link>
+                </>
+              )}
+            </motion.div>
           </motion.div>
         ) : (
-
           /* Transition out animation */
           <motion.div
             key="loading"
@@ -290,21 +324,23 @@ export default function Home() {
             className="text-center"
           >
             <div className="flex gap-1 justify-center mb-3">
-              {[0, 1, 2, 3].map(i => (
+              {[0, 1, 2, 3].map((i) => (
                 <motion.div
                   key={i}
                   animate={{ opacity: [0.2, 1, 0.2] }}
-                  transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+                  transition={{
+                    duration: 0.8,
+                    repeat: Infinity,
+                    delay: i * 0.15,
+                  }}
                   className="w-2 h-2 bg-zinc-600 rounded-[1px]"
                 />
               ))}
             </div>
             <p className="text-zinc-600 text-xs">Building your grid...</p>
           </motion.div>
-
         )}
       </AnimatePresence>
-
     </main>
   )
 }

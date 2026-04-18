@@ -19,21 +19,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
-    const token = signToken(user._id.toString())
+    console.log("✅ Password verified for user:", user.email)
+    
+    const token = signToken(user._id.toString()) as string
+    console.log("🔐 Token created:", token.substring(0, 50) + "...")
 
     const res = NextResponse.json({
-      user: { id: user._id, name: user.name, email: user.email }
-    })
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        birthDate: user.birthDate,
+        lifeExpectancy: user.lifeExpectancy,
+      },
+    }, { status: 200 })
+
     res.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 7 * 24 * 60 * 60,
       path: "/",
     })
 
+    console.log("🍪 Cookie set:", {
+      tokenLength: token.length,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    })
+
     return res
-  } catch {
+  } catch (err) {
+    console.error("❌ Login error:", err)
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }
