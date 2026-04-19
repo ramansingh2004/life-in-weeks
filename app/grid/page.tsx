@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { differenceInWeeks, addWeeks, format, getYear } from "date-fns"
+import Sidebar from "@/components/Sidebar"
 import WeekModal from "@/components/weekModel"
 import MemoryViewCard from "@/components/MemoryViewCard"
 import MilestoneModal from "@/components/MilestoneModal"
@@ -48,7 +49,7 @@ export default function GridPage() {
     y: number
   } | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<Week | null>(null)
-  const [viewMode, setViewMode] = useState(true) // true = view, false = edit
+  const [viewMode, setViewMode] = useState(true)
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false)
   const [selectedMilestoneWeek, setSelectedMilestoneWeek] = useState<Week | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,12 +59,10 @@ export default function GridPage() {
   const animatedRemaining = useCountUp(stats.remaining)
   const animatedTotal = useCountUp(stats.total)
 
-  // Hydrate
   useEffect(() => {
     setHydrated(true)
   }, [])
 
-  // Load data
   useEffect(() => {
     if (!hydrated) return
 
@@ -122,7 +121,6 @@ export default function GridPage() {
   function handleWeekClick(week: Week) {
     setSelectedWeek(week)
     const data = getNote(week.index)
-    // If has note, show view card; if no note, show edit modal
     setViewMode(!!data)
   }
 
@@ -147,206 +145,174 @@ export default function GridPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 py-10">
-      {/* Header */}
-      <div className="max-w-5xl mx-auto mb-8">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/milestone")}
-              className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-            >
-              Milestones →
-            </button>
-            <button
-              onClick={() => router.push("/stats")}
-              className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-            >
-              Stats →
-            </button>
-            <button
-              onClick={() => router.push("/journal")}
-              className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-            >
-              Journal →
-            </button>
-            {user && <span className="text-zinc-700 text-xs">{user.name}</span>}
-            <button
-              onClick={async () => {
-                await useAuthStore.getState().logout()
-                router.push("/login")
-              }}
-              className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-        <p className="text-zinc-600 text-xs">
-          Age {currentAge} · Click week for memory/dream · Right-click for milestone · {milestones.length} milestones
-        </p>
-      </div>
+    <main className="min-h-screen bg-black text-white">
+      {/* Sidebar */}
+      <Sidebar />
 
-      {/* Stats */}
-      <div className="max-w-5xl mx-auto grid grid-cols-3 gap-3 mb-10">
-        {[
-          { label: "Weeks lived", value: animatedLived.toLocaleString() },
-          { label: "Weeks remaining", value: animatedRemaining.toLocaleString() },
-          { label: "Total weeks", value: animatedTotal.toLocaleString() },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3"
-          >
-            <p className="text-zinc-500 text-xs mb-1">{stat.label}</p>
-            <p className="text-white text-lg font-light">{stat.value}</p>
+      {/* Main Content with padding to avoid hamburger overlap */}
+      <div className="pt-10 px-4 py-10">
+        <div className="max-w-5xl mx-auto">
+          {/* Simplified Header with left padding */}
+          <div className="mb-8 pl-0">
+            <h1 className="text-3xl font-light tracking-tight mb-2">Life in Weeks</h1>
+            <p className="text-zinc-600 text-sm">
+              Age {currentAge} · {stats.lived.toLocaleString()} weeks lived · {milestones.length} milestones
+            </p>
           </div>
-        ))}
-      </div>
 
-      {/* Grid */}
-      <div className="max-w-5xl mx-auto">
-        <div className="flex gap-2">
-          {/* Year labels */}
-          <div className="flex flex-col gap-[4px] pt-[1px]">
-            {years.map((y) => (
+          {/* Stats Cards */}
+          <div className="grid grid-cols-3 gap-3 mb-10">
+            {[
+              { label: "Weeks lived", value: animatedLived.toLocaleString() },
+              { label: "Weeks remaining", value: animatedRemaining.toLocaleString() },
+              { label: "Total weeks", value: animatedTotal.toLocaleString() },
+            ].map((stat) => (
               <div
-                key={y}
-                className="text-zinc-700 text-[8px] w-6 h-[14px] flex items-center justify-end pr-2"
+                key={stat.label}
+                className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3"
               >
-                {y % 5 === 0 ? y : ""}
+                <p className="text-zinc-500 text-xs mb-1">{stat.label}</p>
+                <p className="text-white text-lg font-light">{stat.value}</p>
               </div>
             ))}
           </div>
 
-          {/* Squares with milestone markers */}
-          <div className="flex flex-col gap-[4px]" onMouseLeave={() => setTooltip(null)}>
-            {years.map((yearIndex) => (
-              <div key={yearIndex} className="flex gap-[4px]">
-                {weeks.slice(yearIndex * 52, yearIndex * 52 + 52).map((week) => {
-                  const note = getNote(week.index)
-                  const moodColor = note?.mood ? MOOD_COLORS[note.mood] : null
-                  const noted = hasNote(week.index)
-                  const milestone = getMilestone(week.index)
-
-                  return (
-                    <div key={week.index} className="relative group">
-                      {/* Week square */}
-                      <div
-                        onClick={() => handleWeekClick(week)}
-                        onContextMenu={(e) => {
-                          e.preventDefault()
-                          setSelectedMilestoneWeek(week)
-                          setMilestoneModalOpen(true)
-                        }}
-                        onMouseEnter={(e) => {
-                          const rect = (e.target as HTMLElement).getBoundingClientRect()
-                          setTooltip({
-                            text: milestone
-                              ? `${milestone.title} ✦ (right-click to edit)`
-                              : noted
-                              ? `Week ${week.index + 1} ✦ (click to view)`
-                              : `Week ${week.index + 1} (right-click for milestone)`,
-                            x: rect.left,
-                            y: rect.top - 32,
-                          })
-                        }}
-                        className={`
-                          w-[14px] h-[14px] rounded-[2px] cursor-pointer
-                          transition-all duration-150 hover:scale-150 hover:z-10 relative
-                          ${
-                            week.isCurrent
-                              ? "bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse"
-                              : week.isPast
-                              ? moodColor || "bg-zinc-500"
-                              : noted
-                              ? "bg-zinc-600"
-                              : "bg-zinc-800 hover:bg-zinc-600"
-                          }
-                        `}
-                      />
-
-                      {/* Milestone marker */}
-                      {milestone && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-black shadow-lg cursor-pointer hover:scale-110"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedMilestoneWeek(week)
-                            setMilestoneModalOpen(true)
-                          }}
-                          title={milestone.title}
-                        >
-                          {milestone.icon}
-                        </motion.div>
-                      )}
-                    </div>
-                  )
-                })}
+          {/* Grid */}
+          <div className="mb-10 overflow-x-auto pb-4">
+            <div className="flex gap-2">
+              {/* Year labels */}
+              <div className="flex flex-col gap-[4px] pt-[1px] flex-shrink-0">
+                {years.map((y) => (
+                  <div
+                    key={y}
+                    className="text-zinc-700 text-[8px] w-6 h-[14px] flex items-center justify-end pr-2"
+                  >
+                    {y % 5 === 0 ? y : ""}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Week column labels */}
-        <div className="flex gap-[4px] mt-3 ml-8">
-          {Array.from({ length: 52 }, (_, i) => (
-            <div key={i} className="text-zinc-700 text-[8px] w-[14px] text-center">
-              {(i + 1) % 13 === 0 ? i + 1 : ""}
+              {/* Squares with milestone markers */}
+              <div className="flex flex-col gap-[4px] flex-shrink-0" onMouseLeave={() => setTooltip(null)}>
+                {years.map((yearIndex) => (
+                  <div key={yearIndex} className="flex gap-[4px]">
+                    {weeks.slice(yearIndex * 52, yearIndex * 52 + 52).map((week) => {
+                      const note = getNote(week.index)
+                      const moodColor = note?.mood ? MOOD_COLORS[note.mood] : null
+                      const noted = hasNote(week.index)
+                      const milestone = getMilestone(week.index)
+
+                      return (
+                        <div key={week.index} className="relative group flex-shrink-0">
+                          {/* Week square */}
+                          <div
+                            onClick={() => handleWeekClick(week)}
+                            onContextMenu={(e) => {
+                              e.preventDefault()
+                              setSelectedMilestoneWeek(week)
+                              setMilestoneModalOpen(true)
+                            }}
+                            onMouseEnter={(e) => {
+                              const rect = (e.target as HTMLElement).getBoundingClientRect()
+                              setTooltip({
+                                text: milestone
+                                  ? `${milestone.title} ✦ (right-click to edit)`
+                                  : noted
+                                  ? `Week ${week.index + 1} ✦ (click to view)`
+                                  : `Week ${week.index + 1} (right-click for milestone)`,
+                                x: rect.left,
+                                y: rect.top - 32,
+                              })
+                            }}
+                            className={`
+                              w-[14px] h-[14px] rounded-[2px] cursor-pointer
+                              transition-all duration-150 hover:scale-150 hover:z-10 relative
+                              ${
+                                week.isCurrent
+                                  ? "bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse"
+                                  : week.isPast
+                                  ? moodColor || "bg-zinc-500"
+                                  : noted
+                                  ? "bg-zinc-600"
+                                  : "bg-zinc-800 hover:bg-zinc-600"
+                              }
+                            `}
+                          />
+
+                          {/* Milestone marker */}
+                          {milestone && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-black shadow-lg cursor-pointer hover:scale-110"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedMilestoneWeek(week)
+                                setMilestoneModalOpen(true)
+                              }}
+                              title={milestone.title}
+                            >
+                              {milestone.icon}
+                            </motion.div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Legend */}
-      <div className="max-w-5xl mx-auto mt-8 flex items-center gap-6 flex-wrap text-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-[14px] h-[14px] rounded-[2px] bg-zinc-500" />
-          <span className="text-zinc-500">Lived</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-[14px] h-[14px] rounded-[2px] bg-white animate-pulse" />
-          <span className="text-zinc-500">This week</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-[14px] h-[14px] rounded-[2px] bg-zinc-800" />
-          <span className="text-zinc-500">Future</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-[14px] h-[14px] rounded-[2px] bg-emerald-700" />
-          <span className="text-zinc-500">Amazing week</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-[14px] h-[14px] rounded-[2px] bg-red-900" />
-          <span className="text-zinc-500">Hard week</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-black" />
-          <span className="text-zinc-500">Milestone</span>
-        </div>
-      </div>
+            {/* Week column labels */}
+            <div className="flex gap-[4px] mt-3 ml-8">
+              {Array.from({ length: 52 }, (_, i) => (
+                <div key={i} className="text-zinc-700 text-[8px] w-[14px] text-center flex-shrink-0">
+                  {(i + 1) % 13 === 0 ? i + 1 : ""}
+                </div>
+              ))}
+            </div>
+          </div>
 
-      {/* Instructions */}
-      <div className="max-w-5xl mx-auto mt-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-        <p className="text-zinc-500 text-xs">
-          💡 <strong>Left-click</strong> a week to view/edit memory · <strong>Right-click</strong> to add/edit milestone
-        </p>
-      </div>
+          {/* Legend */}
+          <div className="flex items-center gap-6 flex-wrap text-xs mb-10">
+            <div className="flex items-center gap-2">
+              <div className="w-[14px] h-[14px] rounded-[2px] bg-zinc-500" />
+              <span className="text-zinc-500">Lived</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-[14px] h-[14px] rounded-[2px] bg-white animate-pulse" />
+              <span className="text-zinc-500">This week</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-[14px] h-[14px] rounded-[2px] bg-zinc-800" />
+              <span className="text-zinc-500">Future</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-[14px] h-[14px] rounded-[2px] bg-emerald-700" />
+              <span className="text-zinc-500">Amazing</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-[14px] h-[14px] rounded-[2px] bg-red-900" />
+              <span className="text-zinc-500">Hard</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-black" />
+              <span className="text-zinc-500">Milestone</span>
+            </div>
+          </div>
 
-      {/* Footer */}
-      <div className="max-w-5xl mx-auto mt-10 text-center">
-        <p className="text-zinc-700 text-xs leading-relaxed">
-          You have lived {stats.lived.toLocaleString()} weeks. <br />
-          Make the remaining {stats.remaining.toLocaleString()} count.
-        </p>
+          {/* Footer */}
+          <div className="text-center pb-10">
+            <p className="text-zinc-700 text-xs">
+              You have lived {stats.lived.toLocaleString()} weeks. <br />
+              Make the remaining {stats.remaining.toLocaleString()} count.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Modals */}
       {viewMode ? (
-        // View mode - show memory card
         <MemoryViewCard
           week={selectedWeek}
           data={selectedWeek ? getNote(selectedWeek.index) : undefined}
@@ -354,7 +320,6 @@ export default function GridPage() {
           onEdit={() => setViewMode(false)}
         />
       ) : (
-        // Edit mode - show week modal
         <WeekModal
           week={selectedWeek}
           onClose={() => setSelectedWeek(null)}
