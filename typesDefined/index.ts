@@ -151,3 +151,12 @@ export interface ITag {
   createdAt: Date
   updatedAt: Date
 }
+
+export interface TagPillProps {
+  name: string
+  color?: string
+  emoji?: string
+  onClick?: () => void
+  onRemove?: () => void
+  showCount?: number
+}
