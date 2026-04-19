@@ -109,3 +109,13 @@ export type AuthStore = {
   setLoading: (loading: boolean) => void
   logout: () => Promise<void>
 }
+
+export const CATEGORY_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
+  career: { bg: "bg-blue-900/30", text: "text-blue-400", icon: "💼" },
+  education: { bg: "bg-purple-900/30", text: "text-purple-400", icon: "🎓" },
+  health: { bg: "bg-green-900/30", text: "text-green-400", icon: "💪" },
+  family: { bg: "bg-pink-900/30", text: "text-pink-400", icon: "👨‍👩‍👧‍👦" },
+  travel: { bg: "bg-amber-900/30", text: "text-amber-400", icon: "✈️" },
+  personal: { bg: "bg-yellow-900/30", text: "text-yellow-400", icon: "✨" },
+  other: { bg: "bg-zinc-800/30", text: "text-zinc-400", icon: "📌" },
+}

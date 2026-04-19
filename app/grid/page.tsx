@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { differenceInWeeks, addWeeks, format, getYear } from "date-fns"
 import WeekModal from "@/components/weekModel"
+import MemoryViewCard from "@/components/MemoryViewCard"
+import MilestoneModal from "@/components/MilestoneModal"
 import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useCountUp } from "@/hooks/useCountUp"
 import { useAuthStore } from "@/store/useAuthStore"
+import { useMilestoneStore } from "@/store/useMilestoneStore"
 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
   const totalWeeks = lifeExpectancy * 52
@@ -36,6 +39,7 @@ export default function GridPage() {
     isSynced,
   } = useLifeStore()
   const { user } = useAuthStore()
+  const { milestones, syncFromBackend: syncMilestones, getMilestone } = useMilestoneStore()
 
   const [stats, setStats] = useState({ lived: 0, remaining: 0, total: 0 })
   const [tooltip, setTooltip] = useState<{
@@ -44,6 +48,9 @@ export default function GridPage() {
     y: number
   } | null>(null)
   const [selectedWeek, setSelectedWeek] = useState<Week | null>(null)
+  const [viewMode, setViewMode] = useState(true) // true = view, false = edit
+  const [milestoneModalOpen, setMilestoneModalOpen] = useState(false)
+  const [selectedMilestoneWeek, setSelectedMilestoneWeek] = useState<Week | null>(null)
   const [loading, setLoading] = useState(true)
   const [hydrated, setHydrated] = useState(false)
 
@@ -51,68 +58,51 @@ export default function GridPage() {
   const animatedRemaining = useCountUp(stats.remaining)
   const animatedTotal = useCountUp(stats.total)
 
-  // Step 1: Hydrate client-side
+  // Hydrate
   useEffect(() => {
-    console.log("🔄 Setting hydrated to true")
     setHydrated(true)
   }, [])
 
-  // Step 2: Load user data from backend when hydrated
+  // Load data
   useEffect(() => {
-    if (!hydrated) {
-      console.log("⏳ Not hydrated yet, skipping init")
-      return
-    }
+    if (!hydrated) return
 
     async function init() {
       try {
-        console.log("🔍 Fetching /api/auth/me...")
         const res = await fetch("/api/auth/me")
         const data = await res.json()
 
         if (!res.ok || !data?.user) {
-          console.log("❌ Auth check failed, redirecting to /login")
           router.push("/login")
           return
         }
 
-        console.log("✅ User authenticated:", data.user.email)
-
         if (!data.user.birthDate) {
-          console.log("⚠️ No birthDate set, redirecting to home")
           router.push("/")
           return
         }
 
-        // Sync birthDate from backend
         setBirthDate(data.user.birthDate)
         setLifeExpectancy(data.user.lifeExpectancy || 80)
-        console.log("✅ BirthDate synced:", data.user.birthDate)
 
-        // Sync weeks from backend
-        if (!isSynced) {
-          console.log("🔄 Syncing weeks from backend...")
-          await syncFromBackend()
-          console.log("✅ Weeks synced")
-        }
+        if (!isSynced) await syncFromBackend()
+        await syncMilestones()
       } catch (err) {
-        console.error("❌ Init error:", err)
+        console.error("Init error:", err)
         router.push("/login")
       }
     }
 
     init()
-  }, [hydrated, setBirthDate, setLifeExpectancy, syncFromBackend, isSynced, router])
+  }, [hydrated, setBirthDate, setLifeExpectancy, syncFromBackend, syncMilestones, isSynced, router])
 
   const birthDateObj = storedDate ? new Date(storedDate) : null
 
-  // Step 3: Generate weeks
   const weeks = useMemo(() => {
     if (!storedDate) return []
     return generateWeeks(new Date(storedDate), lifeExpectancy)
   }, [storedDate, lifeExpectancy])
 
-  // Step 4: Compute stats
   useEffect(() => {
     if (weeks.length === 0) return
     const lived = weeks.filter((w) => w.isPast).length
@@ -125,33 +115,27 @@ export default function GridPage() {
     : 0
 
   const years = useMemo(
-    () =>
-      Array.from(
-        { length: Math.ceil(weeks.length / 52) },
-        (_, i) => i
-      ),
+    () => Array.from({ length: Math.ceil(weeks.length / 52) }, (_, i) => i),
     [weeks.length]
   )
 
-  // Loading state
+  function handleWeekClick(week: Week) {
+    setSelectedWeek(week)
+    const data = getNote(week.index)
+    // If has note, show view card; if no note, show edit modal
+    setViewMode(!!data)
+  }
+
   if (!hydrated || loading) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
           <div className="flex gap-1 justify-center mb-4">
             {[0, 1, 2, 3].map((i) => (
               <motion.div
                 key={i}
                 animate={{ opacity: [0.2, 1, 0.2] }}
-                transition={{
-                  duration: 1.2,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
                 className="w-2 h-2 bg-zinc-600 rounded-[1px]"
               />
             ))}
@@ -170,6 +154,12 @@ export default function GridPage() {
           <h1 className="text-xl font-light tracking-tight">Life in Weeks</h1>
           <div className="flex items-center gap-4">
             <button
+              onClick={() => router.push("/milestone")}
+              className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+            >
+              Milestones →
+            </button>
+            <button
               onClick={() => router.push("/stats")}
               className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
             >
@@ -181,9 +171,7 @@ export default function GridPage() {
             >
               Journal →
             </button>
-            {user && (
-              <span className="text-zinc-700 text-xs">{user.name}</span>
-            )}
+            {user && <span className="text-zinc-700 text-xs">{user.name}</span>}
             <button
               onClick={async () => {
                 await useAuthStore.getState().logout()
@@ -196,8 +184,7 @@ export default function GridPage() {
           </div>
         </div>
         <p className="text-zinc-600 text-xs">
-          Age {currentAge} · Each square = 1 week · Click any square to add a
-          memory or dream
+          Age {currentAge} · Click week for memory/dream · Right-click for milestone · {milestones.length} milestones
         </p>
       </div>
 
@@ -205,10 +192,7 @@ export default function GridPage() {
       <div className="max-w-5xl mx-auto grid grid-cols-3 gap-3 mb-10">
         {[
           { label: "Weeks lived", value: animatedLived.toLocaleString() },
-          {
-            label: "Weeks remaining",
-            value: animatedRemaining.toLocaleString(),
-          },
+          { label: "Weeks remaining", value: animatedRemaining.toLocaleString() },
           { label: "Total weeks", value: animatedTotal.toLocaleString() },
         ].map((stat) => (
           <div
@@ -236,41 +220,41 @@ export default function GridPage() {
             ))}
           </div>
 
-          {/* Squares */}
-          <div
-            className="flex flex-col gap-[4px]"
-            onMouseLeave={() => setTooltip(null)}
-          >
+          {/* Squares with milestone markers */}
+          <div className="flex flex-col gap-[4px]" onMouseLeave={() => setTooltip(null)}>
             {years.map((yearIndex) => (
               <div key={yearIndex} className="flex gap-[4px]">
-                {weeks
-                  .slice(yearIndex * 52, yearIndex * 52 + 52)
-                  .map((week) => {
-                    const note = getNote(week.index)
-                    const moodColor = note?.mood
-                      ? MOOD_COLORS[note.mood]
-                      : null
-                    const noted = hasNote(week.index)
+                {weeks.slice(yearIndex * 52, yearIndex * 52 + 52).map((week) => {
+                  const note = getNote(week.index)
+                  const moodColor = note?.mood ? MOOD_COLORS[note.mood] : null
+                  const noted = hasNote(week.index)
+                  const milestone = getMilestone(week.index)
 
-                    return (
+                  return (
+                    <div key={week.index} className="relative group">
+                      {/* Week square */}
                       <div
-                        key={week.index}
-                        onClick={() => setSelectedWeek(week)}
+                        onClick={() => handleWeekClick(week)}
+                        onContextMenu={(e) => {
+                          e.preventDefault()
+                          setSelectedMilestoneWeek(week)
+                          setMilestoneModalOpen(true)
+                        }}
                         onMouseEnter={(e) => {
-                          const rect = (
-                            e.target as HTMLElement
-                          ).getBoundingClientRect()
+                          const rect = (e.target as HTMLElement).getBoundingClientRect()
                           setTooltip({
-                            text: noted
-                              ? `Week ${week.index + 1} · ${week.date} ✦`
-                              : `Week ${week.index + 1} · ${week.date}`,
+                            text: milestone
+                              ? `${milestone.title} ✦ (right-click to edit)`
+                              : noted
+                              ? `Week ${week.index + 1} ✦ (click to view)`
+                              : `Week ${week.index + 1} (right-click for milestone)`,
                             x: rect.left,
                             y: rect.top - 32,
                           })
                         }}
                         className={`
                           w-[14px] h-[14px] rounded-[2px] cursor-pointer
-                          transition-colors duration-150 hover:scale-150 hover:z-10 relative
+                          transition-all duration-150 hover:scale-150 hover:z-10 relative
                           ${
                             week.isCurrent
                               ? "bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse"
@@ -282,8 +266,26 @@ export default function GridPage() {
                           }
                         `}
                       />
-                    )
-                  })}
+
+                      {/* Milestone marker */}
+                      {milestone && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-black shadow-lg cursor-pointer hover:scale-110"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedMilestoneWeek(week)
+                            setMilestoneModalOpen(true)
+                          }}
+                          title={milestone.title}
+                        >
+                          {milestone.icon}
+                        </motion.div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ))}
           </div>
@@ -300,35 +302,82 @@ export default function GridPage() {
       </div>
 
       {/* Legend */}
-      <div className="max-w-5xl mx-auto mt-8 flex items-center gap-6 flex-wrap">
-        {[
-          { color: "bg-zinc-500", label: "Lived" },
-          { color: "bg-white animate-pulse", label: "This week" },
-          { color: "bg-zinc-800", label: "Future" },
-          { color: "bg-emerald-700", label: "Amazing week" },
-          { color: "bg-red-900", label: "Hard week" },
-        ].map((item) => (
-          <div key={item.label} className="flex items-center gap-2">
-            <div className={`w-[14px] h-[14px] rounded-[2px] ${item.color}`} />
-            <span className="text-zinc-500 text-xs">{item.label}</span>
-          </div>
-        ))}
+      <div className="max-w-5xl mx-auto mt-8 flex items-center gap-6 flex-wrap text-xs">
+        <div className="flex items-center gap-2">
+          <div className="w-[14px] h-[14px] rounded-[2px] bg-zinc-500" />
+          <span className="text-zinc-500">Lived</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-[14px] h-[14px] rounded-[2px] bg-white animate-pulse" />
+          <span className="text-zinc-500">This week</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-[14px] h-[14px] rounded-[2px] bg-zinc-800" />
+          <span className="text-zinc-500">Future</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-[14px] h-[14px] rounded-[2px] bg-emerald-700" />
+          <span className="text-zinc-500">Amazing week</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-[14px] h-[14px] rounded-[2px] bg-red-900" />
+          <span className="text-zinc-500">Hard week</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-black" />
+          <span className="text-zinc-500">Milestone</span>
+        </div>
+      </div>
+
+      {/* Instructions */}
+      <div className="max-w-5xl mx-auto mt-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+        <p className="text-zinc-500 text-xs">
+          💡 <strong>Left-click</strong> a week to view/edit memory · <strong>Right-click</strong> to add/edit milestone
+        </p>
       </div>
 
       {/* Footer */}
-      <div className="max-w-5xl mx-auto mt-16 text-center">
+      <div className="max-w-5xl mx-auto mt-10 text-center">
         <p className="text-zinc-700 text-xs leading-relaxed">
           You have lived {stats.lived.toLocaleString()} weeks. <br />
           Make the remaining {stats.remaining.toLocaleString()} count.
         </p>
       </div>
 
-      {/* Modal */}
-      <WeekModal
-        week={selectedWeek}
-        onClose={() => setSelectedWeek(null)}
-        onSave={(data: WeekData) => saveNote(data)}
-        existingData={selectedWeek ? getNote(selectedWeek.index) : undefined}
+      {/* Modals */}
+      {viewMode ? (
+        // View mode - show memory card
+        <MemoryViewCard
+          week={selectedWeek}
+          data={selectedWeek ? getNote(selectedWeek.index) : undefined}
+          onClose={() => setSelectedWeek(null)}
+          onEdit={() => setViewMode(false)}
+        />
+      ) : (
+        // Edit mode - show week modal
+        <WeekModal
+          week={selectedWeek}
+          onClose={() => setSelectedWeek(null)}
+          onSave={(data: WeekData) => {
+            saveNote(data)
+            setSelectedWeek(null)
+            setViewMode(true)
+          }}
+          existingData={selectedWeek ? getNote(selectedWeek.index) : undefined}
+        />
+      )}
+
+      <MilestoneModal
+        isOpen={milestoneModalOpen}
+        onClose={() => {
+          setMilestoneModalOpen(false)
+          setSelectedMilestoneWeek(null)
+        }}
+        weekIndex={selectedMilestoneWeek?.index || 0}
+        date={selectedMilestoneWeek?.date || ""}
+        existingMilestone={
+          selectedMilestoneWeek ? getMilestone(selectedMilestoneWeek.index) : undefined
+        }
       />
 
       {/* Tooltip */}

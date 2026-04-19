@@ -15,25 +15,46 @@ type Props = {
 }
 
 export default function WeekModal({ week, onClose, onSave, existingData }: Props) {
-  const [mood, setMood] = useState(existingData?.mood || 0)
+  const [mood, setMood] = useState(0)
+  const [editorKey, setEditorKey] = useState(0) // Force editor re-mount
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [StarterKit],
-    content: existingData?.note || "",
-    editorProps: {
-      attributes: {
-        class: "prose prose-invert prose-sm max-w-none focus:outline-none min-h-[120px] text-zinc-300 leading-relaxed",
+  // Create editor with key to force remount when week changes
+  const editor = useEditor(
+    {
+      immediatelyRender: false,
+      extensions: [StarterKit],
+      content: existingData?.note || "",
+      editorProps: {
+        attributes: {
+          class: "prose prose-invert prose-sm max-w-none focus:outline-none min-h-[120px] text-zinc-300 leading-relaxed",
+        },
       },
     },
-  })
+    [editorKey] // Dependency array to force remake
+  )
 
+  // Reset state when week changes
   useEffect(() => {
-    if (existingData && editor) {
-      editor.commands.setContent(existingData.note || "")
-      setMood(existingData.mood || 0)
+    if (week) {
+      // Reset mood
+      setMood(existingData?.mood || 0)
+      
+      // Force editor to remount with new content
+      setEditorKey(prev => prev + 1)
+      
+      console.log(`📝 Opening week ${week.index + 1}, has data: ${!!existingData}, isFuture: ${week.isFuture}`)
     }
-  }, [existingData, editor])
+  }, [week?.index, existingData]) // Depend on week.index to catch changes
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (week) {
+      document.body.style.overflow = "hidden"
+      return () => {
+        document.body.style.overflow = "unset"
+      }
+    }
+  }, [week])
 
   if (!week) return null
 
@@ -50,7 +71,6 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
     onClose()
   }
 
-  const isWritable = week.isPast || week.isCurrent
   const title = week.isCurrent
     ? "This week"
     : week.isPast
@@ -63,115 +83,131 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-4"
-        onClick={onClose}
-      >
+      {week && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto"
-          onClick={e => e.stopPropagation()}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-4"
+          onClick={onClose}
         >
+          <motion.div
+            key={`modal-${week.index}`} // Force remount of modal too
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
 
-          {/* Header */}
-          <div className="flex items-start justify-between mb-5">
-            <div>
-              <span className="text-zinc-500 text-xs uppercase tracking-widest">
-                {title}
-              </span>
-              <h2 className="text-white text-lg font-light mt-1">
-                Week {week.index + 1}
-              </h2>
-              <p className="text-zinc-600 text-xs mt-0.5">{week.date}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-zinc-600 hover:text-zinc-400 text-xl leading-none transition-colors flex-shrink-0"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Mood selector — only for past/current */}
-          {isWritable && (
-            <div className="mb-4">
-              <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
-                Mood
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                {[1, 2, 3, 4, 5].map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setMood(m)}
-                    className={`
-                      w-8 h-8 rounded-full border text-xs font-medium transition-all
-                      ${mood === m
-                        ? "border-white bg-white text-black"
-                        : "border-zinc-700 text-zinc-500 hover:border-zinc-500"
-                      }
-                    `}
-                  >
-                    {m}
-                  </button>
-                ))}
-                {mood > 0 && (
-                  <span className={`text-xs self-center ml-1 ${MOOD_TEXT_COLORS[mood]}`}>
-                    {MOOD_LABELS[mood]}
-                  </span>
-                )}
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <span className="text-zinc-500 text-xs uppercase tracking-widest">
+                  {title}
+                </span>
+                <h2 className="text-white text-lg font-light mt-1">
+                  Week {week.index + 1}
+                </h2>
+                <p className="text-zinc-600 text-xs mt-0.5">{week.date}</p>
               </div>
+              <button
+                onClick={onClose}
+                className="text-zinc-600 hover:text-zinc-400 text-xl leading-none transition-colors flex-shrink-0"
+              >
+                ×
+              </button>
             </div>
-          )}
 
-          {/* Editor */}
-          <div className="mb-5">
-            <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
-              {week.isPast || week.isCurrent ? "Memory" : "Dream"}
-            </p>
-            {isWritable ? (
+            {/* Mood selector — only for past/current weeks */}
+            {(week.isPast || week.isCurrent) && (
+              <div className="mb-4">
+                <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
+                  Mood
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  {[1, 2, 3, 4, 5].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setMood(m)}
+                      className={`
+                        w-8 h-8 rounded-full border text-xs font-medium transition-all
+                        ${mood === m
+                          ? "border-white bg-white text-black"
+                          : "border-zinc-700 text-zinc-500 hover:border-zinc-500"
+                        }
+                      `}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                  {mood > 0 && (
+                    <span className={`text-xs self-center ml-1 ${MOOD_TEXT_COLORS[mood]}`}>
+                      {MOOD_LABELS[mood]}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Editor — for all weeks (past, current, and future) */}
+            <div className="mb-5">
+              <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
+                {week.isPast || week.isCurrent ? "Memory" : "Dream"}
+              </p>
               <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-3 min-h-[120px]">
                 {editor ? (
-                  <EditorContent editor={editor} />
+                  <EditorContent key={editorKey} editor={editor} />
                 ) : (
                   <p className="text-zinc-600 text-sm">{placeholder}</p>
                 )}
               </div>
-            ) : (
-              <p className="text-zinc-600 text-sm italic">{placeholder}</p>
-            )}
-          </div>
-
-          {/* Media Uploader — only for past/current weeks */}
-          {isWritable && (
-            <div className="mb-5 border-t border-zinc-800 pt-5">
-              <MediaUploader weekIndex={week.index} />
             </div>
-          )}
 
-          {/* Actions */}
-          <div className="flex gap-3 sticky bottom-0 bg-zinc-900 -mx-6 -mb-6 px-6 py-4 border-t border-zinc-800">
-            <button
-              onClick={onClose}
-              className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-zinc-600 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium hover:bg-zinc-100 transition-colors"
-            >
-              Save {week.isPast ? "memory" : "dream"} →
-            </button>
-          </div>
+            {/* Media Uploader */}
+            {(week.isPast || week.isCurrent || week.isFuture) && (
+              <div className="mb-5 border-t border-zinc-800 pt-5">
+                <p className="text-zinc-500 text-xs uppercase tracking-widest mb-3">
+                  {week.isPast || week.isCurrent ? "Memories & Voice Notes" : "Voice Notes & Dreams"}
+                </p>
+                <MediaUploader weekIndex={week.index} />
+                {week.isFuture && (
+                  <p className="text-zinc-600 text-xs mt-3 italic">
+                    🎙️ Record your aspirations as voice notes for this future week
+                  </p>
+                )}
+              </div>
+            )}
 
+            {/* Note for future weeks */}
+            {week.isFuture && (
+              <div className="mb-5 p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+                <p className="text-blue-300 text-xs">
+                  💡 Plan your dreams and record voice notes for this week. Add photos when it arrives.
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 sticky bottom-0 bg-zinc-900 -mx-6 -mb-6 px-6 py-4 border-t border-zinc-800">
+              <button
+                onClick={onClose}
+                className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-zinc-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium hover:bg-zinc-100 transition-colors"
+              >
+                Save {week.isPast ? "memory" : "dream"} →
+              </button>
+            </div>
+
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </AnimatePresence>
   )
 }
