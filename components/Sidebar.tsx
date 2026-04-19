@@ -71,7 +71,7 @@ export default function Sidebar({ onLogout }: Props) {
 
   const navItems: NavItem[] = [
     { id: "grid", label: "Grid", icon: "📊", href: "/grid" },
-    { id: "milestones", label: `Milestones (${milestones.length})`, icon: "🎯", href: "/milestones" },
+    { id: "milestones", label: `Milestones (${milestones.length})`, icon: "🎯", href: "/milestone" },
     { id: "stats", label: "Stats", icon: "📈", href: "/stats" },
     { id: "journal", label: "Journal", icon: "📝", href: "/journal" },
     { id: "timeline", label: "timeline", icon: "📜", href: "/timeline" },
