@@ -30,9 +30,20 @@ const WeekSchema = new Schema<IWeek>({
     type: String,
      required: true
     },
+  tags: [
+    { 
+      type: String,
+       lowercase: true
+       }
+  ],     // ["college", "family"]
+  
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true })
 
 // Compound index — one week entry per user
 WeekSchema.index({ userId: 1, weekIndex: 1 }, { unique: true })
+WeekSchema.index({ userId: 1, tags: 1 })        // NEW: for filtering by tag
+WeekSchema.index({ userId: 1, date: 1 })
 
 export const Week = models.Week || model<IWeek>("Week", WeekSchema)

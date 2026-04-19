@@ -1,3 +1,5 @@
+import { ObjectId } from 'mongodb';
+
 // Week types
 export type Week = {
   index: number
@@ -6,6 +8,8 @@ export type Week = {
   isPast: boolean
   isCurrent: boolean
   isFuture: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 export type WeekData = {
@@ -79,6 +83,7 @@ export interface IWeek {
   isPast: boolean
   isCurrent: boolean
   date: string
+  tags: string[]               // Array of tag names ["college", "family"]
   createdAt: Date
   updatedAt: Date
 }
@@ -118,4 +123,31 @@ export const CATEGORY_COLORS: Record<string, { bg: string; text: string; icon: s
   travel: { bg: "bg-amber-900/30", text: "text-amber-400", icon: "✈️" },
   personal: { bg: "bg-yellow-900/30", text: "text-yellow-400", icon: "✨" },
   other: { bg: "bg-zinc-800/30", text: "text-zinc-400", icon: "📌" },
+}
+
+export interface IMilestone {
+  _id: string
+  userId: string
+  weekIndex: number
+  title: string
+  description: string
+  category: "career" | "education" | "health" | "family" | "travel" | "personal" | "other"
+  icon: string
+  date: string // ISO date
+  tags?: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ITag {
+  _id: ObjectId
+  userId: ObjectId
+  name: string                  // "college" (lowercase, no #)
+  displayName: string           // "College" (user-friendly)
+  color: string                 // hex color for UI (#FF6B6B)
+  description?: string          // "My college years 2020-2024"
+  emoji?: string               // Optional emoji 🎓
+  usageCount: number           // How many weeks tagged
+  createdAt: Date
+  updatedAt: Date
 }

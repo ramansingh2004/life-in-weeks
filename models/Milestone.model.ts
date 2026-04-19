@@ -1,17 +1,5 @@
 import { Schema, model, models } from "mongoose"
-
-export interface IMilestone {
-  _id: string
-  userId: string
-  weekIndex: number
-  title: string
-  description: string
-  category: "career" | "education" | "health" | "family" | "travel" | "personal" | "other"
-  icon: string
-  date: string // ISO date
-  createdAt: Date
-  updatedAt: Date
-}
+import { IMilestone } from "@/typesDefined"
 
 const MilestoneSchema = new Schema<IMilestone>(
   {
