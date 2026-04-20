@@ -15,7 +15,7 @@ export function TagCloud({ onTagClick, limit = 20 }: TagCloudProps) {
 
   useEffect(() => {
     fetchTags()
-  }, [])
+  }, [limit])
 
   async function fetchTags() {
     try {
