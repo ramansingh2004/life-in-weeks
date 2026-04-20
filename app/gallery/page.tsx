@@ -1,4 +1,4 @@
-import { PhotoGallery } from '@/components/AllPhotos/PhotoGallery'
+import { PhotoGallery } from '@/components/AllPhotosComponents/PhotoGallery'
 
 export const metadata = {
   title: 'Photo Gallery - Life in Weeks',

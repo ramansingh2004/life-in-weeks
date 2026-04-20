@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useAuthStore } from "@/store/useAuthStore"
 import { MOOD_COLORS, MOOD_LABELS } from "@/typesDefined"
-import { TagFilter } from '@/components/TagFilter'
-import { TagPill } from '@/components/TagPill'
+import { TagFilter } from '@/components/TagComponents/TagFilter'
+import { TagPill } from '@/components/TagComponents/TagPill'
 
 
 type MediaItem = {

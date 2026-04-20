@@ -7,7 +7,7 @@ import StarterKit from "@tiptap/starter-kit"
 import { Week, WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import MediaUploader from "./mediaUploader"
-import { TagInput } from './TagInput'
+import { TagInput } from './TagComponents/TagInput'
 import toast from 'react-hot-toast'
 
 
