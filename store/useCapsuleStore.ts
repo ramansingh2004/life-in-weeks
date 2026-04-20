@@ -13,7 +13,6 @@ export const useLifeStore = create<LifeStore>()(
 
      setBirthDate: (date) => set({ birthDate: date }),
      setLifeExpectancy: (years) => set({ lifeExpectancy: years }),
-
   //    setBirthDate: setBirthDateFromStore,
   // setLifeExpectancy: setLifeExpectancyFromStore,
 

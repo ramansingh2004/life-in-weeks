@@ -6,6 +6,7 @@ import { differenceInWeeks, differenceInYears, format } from "date-fns"
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { MOOD_LABELS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
+import { TagFilter } from '@/components/TagFilter'
 
 type StatCard = { label: string; value: string; sub?: string }
 
@@ -18,6 +19,7 @@ export default function StatsPage() {
   const [birthDateObj, setBirthDateObj] = useState<Date | null>(null)
   const [lifePercent, setLifePercent] = useState(0)
   const [hydrated, setHydrated] = useState(false)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   // Step 1 — hydrate
   useEffect(() => {

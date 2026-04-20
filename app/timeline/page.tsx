@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useAuthStore } from "@/store/useAuthStore"
 import { MOOD_COLORS, MOOD_LABELS } from "@/typesDefined"
+import { TagFilter } from '@/components/TagFilter'
+import { TagPill } from '@/components/TagPill'
+
 
 type MediaItem = {
   _id: string
@@ -21,6 +24,7 @@ type TimelineMemory = {
   mood: number
   isPast: boolean
   isCurrent: boolean
+  tags?: string[]
   media?: MediaItem[]
 }
 
@@ -34,6 +38,7 @@ export default function TimelinePage() {
   const [hydrated, setHydrated] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [moodFilter, setMoodFilter] = useState<number | null>(null)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [preview, setPreview] = useState<TimelineMemory | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
@@ -80,6 +85,7 @@ export default function TimelinePage() {
           mood: note.mood,
           isPast: note.isPast,
           isCurrent: note.isCurrent,
+          tags: note.tags || [], // Load tags from note
         }
 
         // Load media for this week
@@ -116,7 +122,7 @@ export default function TimelinePage() {
     }
   }, [preview, imagePreview])
 
-  // Filter memories
+  // Filter memories: search + mood + tags
   const filtered = memories.filter((mem) => {
     const matchesSearch =
       searchTerm === "" ||
@@ -125,7 +131,11 @@ export default function TimelinePage() {
 
     const matchesMood = moodFilter === null || mem.mood === moodFilter
 
-    return matchesSearch && matchesMood
+    // Tag filtering: AND logic (must have ALL selected tags)
+    const matchesTags = selectedTags.length === 0 || 
+      selectedTags.every(tag => mem.tags?.includes(tag))
+
+    return matchesSearch && matchesMood && matchesTags
   })
 
   if (!hydrated || loading) {
@@ -180,9 +190,18 @@ export default function TimelinePage() {
           />
         </div>
 
+        {/* Tag Filter */}
+        <div className="mb-6 bg-zinc-900 rounded-lg border border-zinc-800 p-4">
+          <TagFilter
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            mode="multiple"
+          />
+        </div>
+
         {/* Mood Filter */}
         <div className="mb-6 flex items-center gap-2 flex-wrap">
-          <span className="text-zinc-600 text-xs uppercase tracking-widest">Filter:</span>
+          <span className="text-zinc-600 text-xs uppercase tracking-widest">Filter by mood:</span>
           <button
             onClick={() => setMoodFilter(null)}
             className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
@@ -212,13 +231,33 @@ export default function TimelinePage() {
           })}
         </div>
 
+        {/* Active Filters Display */}
+        {(selectedTags.length > 0 || moodFilter !== null) && (
+          <div className="mb-4 p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg flex items-center justify-between">
+            <p className="text-blue-300 text-xs">
+              🔍 Filtered by: {selectedTags.length > 0 && selectedTags.map(t => `#${t}`).join(', ')}
+              {selectedTags.length > 0 && moodFilter && ' + '}
+              {moodFilter && MOOD_LABELS[moodFilter]}
+            </p>
+            <button
+              onClick={() => {
+                setSelectedTags([])
+                setMoodFilter(null)
+              }}
+              className="text-blue-300 hover:text-blue-200 text-xs underline transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         {/* Timeline */}
         {filtered.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-zinc-600 text-sm mb-4">
               {memories.length === 0
                 ? "No memories yet. Start writing some!"
-                : "No memories match your search."}
+                : "No memories match your filters."}
             </p>
             <button
               onClick={() => router.push("/grid")}
@@ -283,6 +322,27 @@ export default function TimelinePage() {
                             dangerouslySetInnerHTML={{ __html: mem.note }}
                           />
                         </div>
+
+                        {/* Tags Display */}
+                        {mem.tags && mem.tags.length > 0 && (
+                          <div className="mb-3 flex flex-wrap gap-2">
+                            {mem.tags.map((tag) => (
+                              <button
+                                key={tag}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  // Filter by this tag
+                                  if (!selectedTags.includes(tag)) {
+                                    setSelectedTags([...selectedTags, tag])
+                                  }
+                                }}
+                                className="text-xs px-2 py-1 bg-emerald-900/30 text-emerald-300 rounded hover:bg-emerald-900/50 transition-colors"
+                              >
+                                #{tag}
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Media preview indicators */}
                         {mem.media && mem.media.length > 0 && (
@@ -374,6 +434,29 @@ export default function TimelinePage() {
                       >
                         {m}
                       </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tags Display */}
+              {preview.tags && preview.tags.length > 0 && (
+                <div className="mb-4 pb-4 border-b border-zinc-700">
+                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {preview.tags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => {
+                          if (!selectedTags.includes(tag)) {
+                            setSelectedTags([...selectedTags, tag])
+                          }
+                          setPreview(null)
+                        }}
+                        className="px-3 py-1 bg-emerald-900/40 text-emerald-300 rounded-full text-xs hover:bg-emerald-900/60 transition-colors"
+                      >
+                        #{tag}
+                      </button>
                     ))}
                   </div>
                 </div>

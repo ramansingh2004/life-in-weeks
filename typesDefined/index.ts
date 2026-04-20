@@ -1,24 +1,26 @@
 import { ObjectId } from 'mongodb';
 
 // Week types
-export type Week = {
+export interface Week  {
   index: number
   date: string
   year: number
   isPast: boolean
   isCurrent: boolean
   isFuture: boolean
+  tags: string[]
   createdAt: Date
   updatedAt: Date
 }
 
-export type WeekData = {
+export interface WeekData  {
   weekIndex: number
   date: string
   isPast: boolean
   isCurrent: boolean
   note: string
   mood: number
+  tags: string[]
 }
 
 // Mood types
@@ -49,7 +51,7 @@ export const MOOD_TEXT_COLORS: Record<number, string> = {
   5: "text-emerald-400",
 }
 
-export type LifeStore = {
+export interface LifeStore  {
   birthDate: string
   lifeExpectancy: number
   notes: Record<number, WeekData>
@@ -99,7 +101,7 @@ export interface IMedia {
   createdAt: Date
 }
 
-export type User = {
+export interface User  {
   id: string
   name: string
   email: string
