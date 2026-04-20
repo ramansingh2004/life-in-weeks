@@ -14,10 +14,15 @@ export async function GET(req: NextRequest) {
       .sort({ usageCount: -1 })
       .limit(100)
 
+    console.log(`📊 Found ${tags.length} tags for user ${user.userId}`)
+
     return NextResponse.json({ tags })
   } catch (error) {
     console.error('Get tags error:', error)
-    return NextResponse.json({ error: 'Failed to fetch tags' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to fetch tags', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 })
   }
 }
 
@@ -47,6 +52,7 @@ export async function POST(req: NextRequest) {
     // Check if tag already exists
     const existing = await Tag.findOne({ userId: user.userId, name })
     if (existing) {
+      console.log(`⚠️ Tag already exists: ${name}`)
       return NextResponse.json(
         { error: 'Tag already exists', tag: existing },
         { status: 409 }
@@ -61,11 +67,17 @@ export async function POST(req: NextRequest) {
       emoji,
       color: color || '#6366f1',
       description,
+      usageCount: 0,
     })
+
+    console.log(`✅ Created tag: ${name} for user ${user.userId}`)
 
     return NextResponse.json({ tag }, { status: 201 })
   } catch (error) {
     console.error('Create tag error:', error)
-    return NextResponse.json({ error: 'Failed to create tag' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to create tag', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 })
   }
 }

@@ -117,8 +117,8 @@ export default function Sidebar({ onLogout }: Props) {
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="fixed left-0 top-0 h-screen w-64 bg-zinc-950 border-r border-zinc-800 z-35 overflow-y-auto flex flex-col"
       >
-        {/* Header */}
-        <div className="p-6 border-b border-zinc-800">
+        // Header 
+        <div className="p-6 pt-16 border-b border-zinc-800">
           <h1 className="text-xl font-light text-white mb-1">Life in Weeks</h1>
           <p className="text-zinc-500 text-xs">Your life visualized</p>
         </div>
