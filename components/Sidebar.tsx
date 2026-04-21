@@ -75,6 +75,7 @@ export default function Sidebar({ onLogout }: Props) {
     { id: "stats", label: "Stats", icon: "📈", href: "/stats" },
     { id: "journal", label: "Journal", icon: "📝", href: "/journal" },
     { id: "timeline", label: "timeline", icon: "📜", href: "/timeline" },
+    { id: "gallery", label: "Gallery", icon: "🖼️", href: "/gallery" },
   ]
 
   return (
