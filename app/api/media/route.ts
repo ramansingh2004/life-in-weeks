@@ -1,120 +1,150 @@
-import { NextRequest, NextResponse } from "next/server"
-import { connectDB } from "@/lib/mongodb"
-import { Media } from "@/models/Media.model"
-import { getAuthUser } from "@/lib/getUser"
-import cloudinary from "@/lib/cloudinary"
+// app/api/media/route.ts - CORRECTED VERSION
 
-// GET — fetch all media for a week
+import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUser } from '@/lib/getUser'
+import { Media } from '@/models/Media.model'
+import { connectDB } from '@/lib/mongodb'
+
 export async function GET(req: NextRequest) {
   try {
-    const auth = await getAuthUser()
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    await connectDB()
+    const user = await getAuthUser()
+    
+    if (!user) {
+      console.log('❌ No authenticated user')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const { searchParams } = new URL(req.url)
-    const weekIndex = Number(searchParams.get("weekIndex"))
+    const weekIndex = searchParams.get('weekIndex')
+    const type = searchParams.get('type') // Filter by type (image, video, audio)
 
-    await connectDB()
-    const media = await Media.find({ userId: auth.userId, weekIndex }).sort({ createdAt: -1 })
+    // Handle both userId and _id formats
+    const userId = user.userId || user.userId
     
-    return NextResponse.json({ media })
-  } catch (err) {
-    console.error("GET /api/media error:", err)
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
-  }
-}
+    console.log(`🔍 Fetching media for user: ${userId}`)
+    console.log(`   Type filter: ${type || 'none'}`)
+    console.log(`   Week filter: ${weekIndex || 'none'}`)
 
-// POST — upload media to Cloudinary + save to MongoDB
-export async function POST(req: NextRequest) {
-  try {
-    const auth = await getAuthUser()
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    let query: any = { userId }
 
-    const formData = await req.formData()
-    const file = formData.get("file") as File
-    const weekIndex = Number(formData.get("weekIndex"))
-    const type = formData.get("type") as "image" | "video" | "audio"
+    if (weekIndex) {
+      query.weekIndex = parseInt(weekIndex)
+    }
 
-    if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 })
-    if (!type) return NextResponse.json({ error: "No type provided" }, { status: 400 })
+    if (type) {
+      query.type = type // Filter: image, video, or audio
+      console.log(`   Query: { userId, type: '${type}' }`)
+    } else {
+      console.log(`   Query: { userId }`)
+    }
 
-    console.log(`📤 Uploading ${type}: ${file.name}`)
+    const media = await Media.find(query).sort({ createdAt: -1 })
 
-    // Convert file to base64 for Cloudinary
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const base64 = `data:${file.type};base64,${buffer.toString("base64")}`
-
-    // Determine resource type for Cloudinary
-    // Images: image
-    // Videos: video
-    // Audio: video (Cloudinary treats audio as video)
-    const resourceType = type === "image" ? "image" : "video"
-
-    // Upload to Cloudinary with folder organization
-    const result = await cloudinary.uploader.upload(base64, {
-      folder: `life-in-weeks/${auth.userId}`,
-      resource_type: resourceType,
-      public_id: `${type}-${Date.now()}`,
-      overwrite: false,
+    console.log(`✅ Found ${media.length} media items`)
+    media.forEach((m: any) => {
+      console.log(`   - ${m.name} (type: ${m.type})`)
     })
 
-    console.log(`✅ Uploaded to Cloudinary:`, result.secure_url)
-
-    // Save to MongoDB
-    await connectDB()
-    const media = await Media.create({
-      userId: auth.userId,
-      weekIndex,
-      type,
-      url: result.secure_url,
-      publicId: result.public_id,
-      name: file.name,
-    })
-
-    console.log(`✅ Saved to MongoDB:`, media._id)
-
-    return NextResponse.json({ media }, { status: 201 })
-  } catch (err) {
-    console.error("❌ POST /api/media error:", err)
     return NextResponse.json({ 
-      error: "Upload failed",
-      details: err instanceof Error ? err.message : "Unknown error"
+      media,
+      debug: {
+        userId,
+        type,
+        weekIndex,
+        count: media.length
+      }
+    })
+  } catch (error) {
+    console.error('❌ Get media error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch media',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      media: []
     }, { status: 500 })
   }
 }
 
-// DELETE — remove from Cloudinary + MongoDB
-export async function DELETE(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const auth = await getAuthUser()
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-    const { mediaId } = await req.json()
-
     await connectDB()
-    const media = await Media.findOne({ _id: mediaId, userId: auth.userId })
-    if (!media) return NextResponse.json({ error: "Not found" }, { status: 404 })
-
-    console.log(`🗑️ Deleting media:`, media.publicId)
-
-    // Delete from Cloudinary
-    try {
-      await cloudinary.uploader.destroy(media.publicId, { 
-        resource_type: media.type === "image" ? "image" : "video"
-      })
-      console.log(`✅ Deleted from Cloudinary`)
-    } catch (err) {
-      console.error("⚠️ Failed to delete from Cloudinary:", err)
-      // Continue anyway - delete from DB
+    const user = await getAuthUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Delete from MongoDB
-    await Media.deleteOne({ _id: mediaId })
-    console.log(`✅ Deleted from MongoDB`)
+    const { url, name, type, weekIndex, publicId } = await req.json()
 
+    if (!url || !name || !type || weekIndex === undefined) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Handle both userId and _id formats
+    const userId = user.userId || user.userId
+
+    const media = await Media.create({
+      userId,
+      url,
+      name,
+      type,
+      weekIndex,
+      publicId,
+    })
+
+    console.log(`✅ Created media: ${name} for user ${userId}`)
+
+    return NextResponse.json({ media }, { status: 201 })
+  } catch (error) {
+    console.error('❌ Create media error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to create media',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    await connectDB()
+    const user = await getAuthUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(req.url)
+    const mediaId = searchParams.get('id')
+
+    if (!mediaId) {
+      return NextResponse.json(
+        { error: 'Media ID required' },
+        { status: 400 }
+      )
+    }
+
+    const result = await Media.deleteOne({ 
+      _id: mediaId,
+      userId: user.userId || user.userId
+    })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: 'Media not found' },
+        { status: 404 }
+      )
+    }
+
+    console.log(`✅ Deleted media: ${mediaId}`)
     return NextResponse.json({ success: true })
-  } catch (err) {
-    console.error("❌ DELETE /api/media error:", err)
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  } catch (error) {
+    console.error('❌ Delete media error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to delete media',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
