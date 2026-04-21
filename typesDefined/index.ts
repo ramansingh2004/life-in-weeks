@@ -162,3 +162,31 @@ export interface TagPillProps {
   onRemove?: () => void
   showCount?: number
 }
+
+export interface LifeChapter {
+  userId: ObjectId
+  startWeek: number
+  endWeek: number
+  title: string
+  emoji: string
+  description: string
+  keyTags: string[]
+  averageMood: number
+  photoCount: number
+  milestoneCount: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Chapter {
+  _id: string
+  startWeek: number
+  endWeek: number
+  title: string
+  emoji: string
+  description: string
+  keyTags: string[]
+  averageMood: number
+  photoCount: number
+  milestoneCount: number
+}
