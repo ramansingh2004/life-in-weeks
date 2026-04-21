@@ -31,6 +31,16 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
     }
   }, [week?.index])
 
+  // background scroll stop
+  useEffect(() => {
+      if (week) {
+        document.body.style.overflow = "hidden"
+        return () => {
+          document.body.style.overflow = "unset"
+        }
+      }
+    }, [week])
+
   async function loadMedia() {
     if (!week) return
     setLoadingMedia(true)
