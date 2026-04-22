@@ -7,8 +7,15 @@ import { useLifeStore } from '@/store/useCapsuleStore'
 import { useMilestoneStore } from '@/store/useMilestoneStore'
 import { ChapterTimeline } from './ChapterTimeline'
 import { ChapterCard } from './ChapterCard'
+import { ChapterDetailModal } from './ChapterDetailModal'
 import { Chapter } from '@/typesDefined'
 
+interface ChapterWithMedia extends Chapter {
+  photos: string[]
+  videos: string[]
+  milestones: any[]
+  notes: any[]
+}
 
 export function LifeChapters() {
   const router = useRouter()
@@ -16,6 +23,7 @@ export function LifeChapters() {
   const { milestones } = useMilestoneStore()
 
   const [chapters, setChapters] = useState<Chapter[]>([])
+  const [chaptersWithMedia, setChaptersWithMedia] = useState<Map<string, ChapterWithMedia>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null)
 
@@ -27,7 +35,6 @@ export function LifeChapters() {
     try {
       setIsLoading(true)
 
-      // Get chapters from API
       const res = await fetch('/api/chapters/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,8 +42,18 @@ export function LifeChapters() {
 
       if (res.ok) {
         const data = await res.json()
-        setChapters(data.chapters || [])
-        console.log(`✅ Generated ${data.chapters?.length || 0} chapters`)
+        const chaptersList = data.chapters || []
+        setChapters(chaptersList)
+
+        // Fetch media for each chapter
+        const mediaMap = new Map<string, ChapterWithMedia>()
+        for (const chapter of chaptersList) {
+          const media = await fetchChapterMedia(chapter)
+          mediaMap.set(chapter._id, media)
+        }
+        setChaptersWithMedia(mediaMap)
+
+        console.log(`✅ Generated ${chaptersList.length} chapters with media`)
       }
     } catch (error) {
       console.error('Failed to generate chapters:', error)
@@ -44,6 +61,44 @@ export function LifeChapters() {
       setIsLoading(false)
     }
   }
+
+  async function fetchChapterMedia(chapter: Chapter): Promise<ChapterWithMedia> {
+    try {
+      const res = await fetch(
+        `/api/chapters/${chapter._id}/media?startWeek=${chapter.startWeek}&endWeek=${chapter.endWeek}`
+      )
+      if (res.ok) {
+        const data = await res.json()
+        return {
+          ...chapter,
+          photos: data.photos || [],
+          videos: data.videos || [],
+          milestones: data.milestones || [],
+          notes: data.notes || [],
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to fetch media for chapter ${chapter._id}:`, error)
+    }
+
+    return {
+      ...chapter,
+      photos: [],
+      videos: [],
+      milestones: [],
+      notes: [],
+    }
+  }
+
+  const selectedChapterWithMedia = selectedChapter
+    ? chaptersWithMedia.get(selectedChapter._id) || {
+        ...selectedChapter,
+        photos: [],
+        videos: [],
+        milestones: [],
+        notes: [],
+      }
+    : null
 
   if (isLoading) {
     return (
@@ -98,102 +153,40 @@ export function LifeChapters() {
 
         {/* Chapters Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-12">
-          {chapters.map((chapter) => (
-            <motion.div
-              key={chapter._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <ChapterCard
-                chapter={chapter}
-                onClick={() => setSelectedChapter(chapter)}
-              />
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Chapter Detail Modal */}
-        <AnimatePresence>
-          {selectedChapter && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedChapter(null)}
-              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-            >
+          {chapters.map((chapter) => {
+            const media = chaptersWithMedia.get(chapter._id)
+            return (
               <motion.div
-                onClick={(e) => e.stopPropagation()}
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.9 }}
-                className="bg-zinc-900 border border-zinc-800 rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto p-8"
+                key={chapter._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
               >
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <h2 className="text-4xl mb-2">
-                      {selectedChapter.emoji} {selectedChapter.title}
-                    </h2>
-                    <p className="text-zinc-400">
-                      Weeks {selectedChapter.startWeek + 1} - {selectedChapter.endWeek + 1}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedChapter(null)}
-                    className="text-zinc-600 hover:text-white transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <p className="text-zinc-300 mb-6 leading-relaxed">
-                  {selectedChapter.description}
-                </p>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="bg-zinc-800 rounded p-4">
-                    <p className="text-zinc-500 text-xs uppercase">Avg Mood</p>
-                    <p className="text-2xl font-light text-white mt-2">
-                      {selectedChapter.averageMood.toFixed(1)}/5
-                    </p>
-                  </div>
-                  <div className="bg-zinc-800 rounded p-4">
-                    <p className="text-zinc-500 text-xs uppercase">Photos</p>
-                    <p className="text-2xl font-light text-white mt-2">
-                      {selectedChapter.photoCount}
-                    </p>
-                  </div>
-                  <div className="bg-zinc-800 rounded p-4">
-                    <p className="text-zinc-500 text-xs uppercase">Milestones</p>
-                    <p className="text-2xl font-light text-white mt-2">
-                      {selectedChapter.milestoneCount}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                {selectedChapter.keyTags.length > 0 && (
-                  <div>
-                    <p className="text-zinc-500 text-xs uppercase mb-3">Key Tags</p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedChapter.keyTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-3 py-1 bg-zinc-800 rounded-full text-sm text-zinc-300"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <ChapterCard
+                  chapter={chapter}
+                  photos={media?.photos || []}
+                  videos={media?.videos || []}
+                  onClick={() => setSelectedChapter(chapter)}
+                />
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )
+          })}
+        </div>
       </div>
+
+      {/* Detail Modal */}
+      <AnimatePresence>
+        {selectedChapterWithMedia && (
+          <ChapterDetailModal
+            chapter={selectedChapter}
+            onClose={() => setSelectedChapter(null)}
+            photos={selectedChapterWithMedia.photos}
+            videos={selectedChapterWithMedia.videos}
+            milestones={selectedChapterWithMedia.milestones}
+            notes={selectedChapterWithMedia.notes}
+          />
+        )}
+      </AnimatePresence>
     </main>
   )
 }
