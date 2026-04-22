@@ -190,3 +190,10 @@ export interface Chapter {
   photoCount: number
   milestoneCount: number
 }
+
+export interface StatsCard {
+  type: 'summary' | 'mood' | 'milestones' | 'travel' | 'chapter' | 'progress'
+  theme: 'dark' | 'light' | 'gradient' | 'neon'
+  format: 'square' | 'story' | 'rect' // 1080x1080, 1080x1350, 1200x630
+  data: any
+}
