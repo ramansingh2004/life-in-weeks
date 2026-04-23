@@ -1,0 +1,124 @@
+/* styles/theme.css - CSS Variables for themes */
+
+:root {
+  /* Light theme colors */
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F8F7F6;
+  --color-bg-tertiary: #F3F4F6;
+  --color-bg-hover: #F0EFF0;
+  --color-bg-active: #E5E7EB;
+
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+
+  --color-border-light: #F3F4F6;
+  --color-border-default: #E5E7EB;
+  --color-border-dark: #D1D5DB;
+
+  --color-accent-emerald: #059669;
+  --color-accent-blue: #2563EB;
+  --color-accent-purple: #7C3AED;
+  --color-accent-pink: #EC4899;
+  --color-accent-orange: #EA580C;
+
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+}
+
+html.light {
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F8F7F6;
+  --color-bg-tertiary: #F3F4F6;
+  --color-bg-hover: #F0EFF0;
+  --color-bg-active: #E5E7EB;
+
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+
+  --color-border-light: #F3F4F6;
+  --color-border-default: #E5E7EB;
+  --color-border-dark: #D1D5DB;
+
+  --color-accent-emerald: #059669;
+  --color-accent-blue: #2563EB;
+  --color-accent-purple: #7C3AED;
+  --color-accent-pink: #EC4899;
+  --color-accent-orange: #EA580C;
+}
+
+html.dark {
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #09090B;
+  --color-bg-tertiary: #18181B;
+  --color-bg-hover: #27272A;
+  --color-bg-active: #3F3F46;
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A1A1AA;
+  --color-text-tertiary: #71717A;
+  --color-text-inverse: #000000;
+
+  --color-border-light: #3F3F46;
+  --color-border-default: #27272A;
+  --color-border-dark: #18181B;
+
+  --color-accent-emerald: #10B981;
+  --color-accent-blue: #3B82F6;
+  --color-accent-purple: #A78BFA;
+  --color-accent-pink: #F472B6;
+  --color-accent-orange: #FB923C;
+
+  --color-success: #10B981;
+  --color-warning: #FBBF24;
+  --color-error: #F87171;
+  --color-info: #60A5FA;
+}
+
+/* Utility classes */
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.bg-primary {
+  background-color: var(--color-bg-primary);
+}
+
+.bg-secondary {
+  background-color: var(--color-bg-secondary);
+}
+
+.bg-tertiary {
+  background-color: var(--color-bg-tertiary);
+}
+
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary);
+}
+
+.border-default {
+  border-color: var(--color-border-default);
+}
+
+.border-light {
+  border-color: var(--color-border-light);
+}
+
+.border-dark {
+  border-color: var(--color-border-dark);
+}
