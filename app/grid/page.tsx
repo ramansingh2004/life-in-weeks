@@ -10,7 +10,6 @@ import MilestoneModal from "@/components/MilestoneModal"
 import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { useCountUp } from "@/hooks/useCountUp"
-import { useAuthStore } from "@/store/useAuthStore"
 import { useMilestoneStore } from "@/store/useMilestoneStore"
 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
@@ -39,7 +38,6 @@ export default function GridPage() {
     syncFromBackend,
     isSynced,
   } = useLifeStore()
-  const { user } = useAuthStore()
   const { milestones, syncFromBackend: syncMilestones, getMilestone } = useMilestoneStore()
 
   const [stats, setStats] = useState({ lived: 0, remaining: 0, total: 0 })

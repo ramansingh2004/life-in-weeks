@@ -8,9 +8,9 @@ export interface Week  {
   isPast: boolean
   isCurrent: boolean
   isFuture: boolean
-  tags: string[]
-  createdAt: Date
-  updatedAt: Date
+  // tags: string[]
+  // createdAt: Date
+  // updatedAt: Date
 }
 
 export interface WeekData  {

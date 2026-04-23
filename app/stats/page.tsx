@@ -6,7 +6,6 @@ import { differenceInWeeks, differenceInYears, format } from "date-fns"
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { MOOD_LABELS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
-import { TagFilter } from '@/components/TagComponents/TagFilter'
 
 type StatCard = { label: string; value: string; sub?: string }
 
