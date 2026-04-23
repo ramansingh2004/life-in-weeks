@@ -24,7 +24,7 @@ export default function Sidebar({ onLogout }: Props) {
   const { user, logout } = useAuthStore()
   const { milestones } = useMilestoneStore()
   const [isOpen, setIsOpen] = useState(false)
-  const [theme, setTheme] = useState<"light" | "dark">("dark")
+  //const [theme, setTheme] = useState<"light" | "dark">("dark")
 
   // Prevent background scroll when sidebar is open
   useEffect(() => {
@@ -35,33 +35,6 @@ export default function Sidebar({ onLogout }: Props) {
       }
     }
   }, [isOpen])
-
-  // Check for saved theme
-  useEffect(() => {
-    const saved = localStorage.getItem("theme") as "light" | "dark" | null
-    if (saved) {
-      setTheme(saved)
-      applyTheme(saved)
-    }
-  }, [])
-
-  function applyTheme(t: "light" | "dark") {
-    if (t === "light") {
-      document.documentElement.classList.add("light")
-      document.documentElement.classList.remove("dark")
-    } else {
-      document.documentElement.classList.add("dark")
-      document.documentElement.classList.remove("light")
-    }
-  }
-
-  function toggleTheme() {
-    const newTheme = theme === "dark" ? "light" : "dark"
-    setTheme(newTheme)
-    applyTheme(newTheme)
-    localStorage.setItem("theme", newTheme)
-    console.log(`🌓 Theme switched to ${newTheme}`)
-  }
 
   async function handleLogout() {
     await logout()
@@ -166,20 +139,6 @@ export default function Sidebar({ onLogout }: Props) {
 
         {/* Settings Section */}
         <div className="px-3 py-4 space-y-2">
-          {/* Theme Toggle */}
-          <motion.button
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:bg-zinc-900 hover:text-white transition-all"
-            whileHover={{ x: 4 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <span className="text-lg flex-shrink-0">
-              {theme === "dark" ? "🌙" : "☀️"}
-            </span>
-            <span className="text-sm flex-1 text-left">
-              {theme === "dark" ? "Dark mode" : "Light mode"}
-            </span>
-          </motion.button>
 
           {/* Logout */}
           <motion.button
