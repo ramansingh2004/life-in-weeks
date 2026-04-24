@@ -81,8 +81,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Handle both userId and _id formats
-    const userId = user.userId || user.userId
+    const userId = user.userId
 
     const media = await Media.create({
       userId,
