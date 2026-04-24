@@ -1,5 +1,3 @@
-// app/api/media/route.ts - CORRECTED VERSION
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/getUser'
 import { Media } from '@/models/Media.model'
@@ -19,8 +17,8 @@ export async function GET(req: NextRequest) {
     const weekIndex = searchParams.get('weekIndex')
     const type = searchParams.get('type') // Filter by type (image, video, audio)
 
-    // Handle both userId and _id formats
-    const userId = user.userId || user.userId
+    // Handle userId formats
+    const userId = user.userId 
     
     console.log(`🔍 Fetching media for user: ${userId}`)
     console.log(`   Type filter: ${type || 'none'}`)
