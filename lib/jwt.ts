@@ -7,20 +7,20 @@ if (!SECRET) {
   throw new Error("❌ JWT_SECRET environment variable is not set!")
 }
 
-console.log("📌 JWT module loaded - SECRET length:", SECRET.length)
+//console.log("📌 JWT module loaded - SECRET length:", SECRET.length)
 
 export function signToken(userId: string) {
-  console.log("🔐 Signing token with userId:", userId)
+ // console.log("🔐 Signing token with userId:", userId)
   const token = jwt.sign({ userId }, SECRET, { expiresIn: "7d" })
-  console.log("✅ Token signed successfully")
+ // console.log("✅ Token signed successfully")
   return token
 }
 
 export function verifyToken(token: string): { userId: string } | null {
   try {
-    console.log("🔓 Attempting to verify token...")
+   // console.log("🔓 Attempting to verify token...")
     const decoded = jwt.verify(token, SECRET) as { userId: string }
-    console.log("✅ Token verified - userId:", decoded.userId)
+   // console.log("✅ Token verified - userId:", decoded.userId)
     return decoded
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err)

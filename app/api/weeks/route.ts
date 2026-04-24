@@ -1,9 +1,6 @@
-// app/api/weeks/route.ts (Complete version with MongoDB)
-
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/getUser"
 import { connectDB } from "@/lib/mongodb"
-import { models, model, Schema } from "mongoose"
 import { Week } from "@/models/Week.model"
 
 export async function POST(req: NextRequest) {
