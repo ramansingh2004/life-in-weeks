@@ -125,7 +125,7 @@ export async function DELETE(req: NextRequest) {
 
     const result = await Media.deleteOne({ 
       _id: mediaId,
-      userId: user.userId || user.userId
+      userId: user.userId
     })
 
     if (result.deletedCount === 0) {
@@ -136,7 +136,11 @@ export async function DELETE(req: NextRequest) {
     }
 
     console.log(`✅ Deleted media: ${mediaId}`)
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      "message": "Media deleted successfully"
+    })
+
   } catch (error) {
     console.error('❌ Delete media error:', error)
     return NextResponse.json({ 

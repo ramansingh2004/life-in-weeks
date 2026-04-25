@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       }, { status: 401 })
     }
 
-    const userId = user.userId || user.userId
+    const userId = user.userId
     console.log(`Searching for userId: ${userId}`)
 
     // Find all media for this user
