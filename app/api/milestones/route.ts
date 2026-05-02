@@ -4,7 +4,7 @@ import { Milestone } from "@/models/Milestone.model"
 import { getAuthUser } from "@/lib/getUser"
 
 // GET — fetch all milestones for user
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const auth = await getAuthUser()
     if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

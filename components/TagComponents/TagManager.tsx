@@ -53,8 +53,9 @@ export function TagManager() {
         setEditingTag(null)
         toast.success('Tag updated')
       }
-    } catch (_error) {
-      toast.error('Failed to update tag')
+    } catch (error) {
+      console.error("Failed to update tag:", error);
+      toast.error('Failed to update tag');
     }
   }
 
@@ -70,7 +71,8 @@ export function TagManager() {
         setTags(tags.filter((t) => t.name !== tagName))
         toast.success('Tag deleted')
       }
-    } catch (_error) {
+    } catch (error) {
+      console.error("Failed to delete tag:", error)
       toast.error('Failed to delete tag')
     }
   }

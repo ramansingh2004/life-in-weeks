@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
     })
 
     return res
-  } catch (_error) {
+  } catch (error) {
+    console.error("Registration error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

@@ -7,7 +7,7 @@ import { connectDB } from '@/lib/mongodb'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ chapterId: string }> }
+  //{ params }: { params: Promise<{ chapterId: string }> }
 ) {
   try {
     await connectDB()

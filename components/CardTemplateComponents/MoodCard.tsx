@@ -10,7 +10,7 @@ interface MoodCounts {
 
    interface MoodStats {
      moodCounts: MoodCounts
-     averageMood: number | String
+     averageMood: number | string
    }
 
 interface MoodCardProps {

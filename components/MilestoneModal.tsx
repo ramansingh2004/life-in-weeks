@@ -151,7 +151,8 @@ export default function MilestoneModal({
       removeMilestone(existingMilestone._id)
       console.log("✅ Milestone deleted")
       onClose()
-    } catch (_err) {
+    } catch (err) {
+      console.error("failed to delete milestone:", err)
       setError("Failed to delete milestone")
     }
   }

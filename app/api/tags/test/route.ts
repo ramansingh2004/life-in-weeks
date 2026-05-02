@@ -1,11 +1,11 @@
 // app/api/tags/test/route.ts
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/getUser'
 import { Tag } from '@/models/Tag.model'
 import { connectDB } from '@/lib/mongodb'
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     await connectDB()
     const user = await getAuthUser()

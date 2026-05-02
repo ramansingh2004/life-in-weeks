@@ -4,7 +4,7 @@ import { Tag } from '@/models/Tag.model'
 import { connectDB } from '@/lib/mongodb'
 
 // GET /api/tags - Get all tags for user
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     await connectDB()
     const user = await getAuthUser()

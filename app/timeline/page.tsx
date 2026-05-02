@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
-import { useAuthStore } from "@/store/useAuthStore"
 import { MOOD_COLORS, MOOD_LABELS } from "@/typesDefined"
 import { TagFilter } from '@/components/TagComponents/TagFilter'
 import Image from 'next/image'

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/getUser'
 import { Week } from '@/models/Week.model'
 import { LifeChapter } from '@/models/LifeChapter.model'
@@ -7,7 +7,7 @@ import { Media } from '@/models/Media.model'
 import { connectDB } from '@/lib/mongodb'
 import { detectChapterBreaks, generateChapterTitle, generateChapterDescription } from '@/lib/chapterDetection'
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   try {
     await connectDB()
     const user = await getAuthUser()
@@ -75,11 +75,8 @@ export async function POST(_req: NextRequest) {
       })
 
       // Generate title and emoji
-      const { title, emoji } = generateChapterTitle(Array.from(tags), averageMood, chapterWeeks.length)
-      const description = generateChapterDescription(
-        Array.from(tags),
-        chapterWeeks.map(w => w.note || '')
-      )
+      const { title, emoji } = generateChapterTitle(Array.from(tags), averageMood)
+      const description = generateChapterDescription( Array.from(tags) )
 
       // Create chapter
       const chapter = new LifeChapter({

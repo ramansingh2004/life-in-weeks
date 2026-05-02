@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence, numberValueTypes } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useMilestoneStore } from '@/store/useMilestoneStore'
 import { CardPreview } from './CardPreview'
@@ -95,8 +94,8 @@ export function StatsCardGenerator() {
     let maxStreak = 0
     let tempStreak = 0
     
-    const sortedNotes = noteArray.sort((a: any, b: any) => a.weekIndex - b.weekIndex)
-    sortedNotes.forEach((note: any, idx: number) => {
+    const sortedNotes = noteArray.sort((a, b) => a.weekIndex - b.weekIndex)
+    sortedNotes.forEach((note, idx) => {
       if (note.note && note.note.length > 0) {
         tempStreak++
         maxStreak = Math.max(maxStreak, tempStreak)
@@ -108,7 +107,7 @@ export function StatsCardGenerator() {
 
     // Tags
     const tagCount = new Map<string, number>()
-    noteArray.forEach((note: any) => {
+    noteArray.forEach((note) => {
       if (note.tags) {
         note.tags.forEach((tag: string) => {
           tagCount.set(tag, (tagCount.get(tag) || 0) + 1)
