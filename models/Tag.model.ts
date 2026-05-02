@@ -9,9 +9,10 @@ const TagSchema = new Schema<ITag>({
   emoji: { type: String },                                // "🎓"
   description: { type: String },                          // Optional
   usageCount: { type: Number, default: 0 },               // Cached count
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-})
+  // createdAt: { type: Date, default: Date.now },
+  // updatedAt: { type: Date, default: Date.now },
+},
+ { timestamps: true })
 
 // Unique index on userId + name
 TagSchema.index({ userId: 1, name: 1 }, { unique: true })

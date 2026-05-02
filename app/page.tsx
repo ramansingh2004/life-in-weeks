@@ -85,6 +85,7 @@ export default function Home() {
       const res = await fetch("/api/auth/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ birthDate, lifeExpectancy }),
       })
 

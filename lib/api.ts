@@ -9,6 +9,7 @@ export async function saveWeek(data: {
 }) {
   const res = await fetch("/api/weeks", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   })
@@ -42,7 +43,7 @@ export async function getWeekMedia(weekIndex: number) {
   if (!res.ok) throw new Error("Failed to fetch media")
   return res.json()
 }
-
+ 
 export async function deleteMedia(mediaId: string) {
   const res = await fetch("/api/media", {
     method: "DELETE",
@@ -55,7 +56,10 @@ export async function deleteMedia(mediaId: string) {
 
 // Auth
 export async function getMe() {
-  const res = await fetch("/api/auth/me")
+  const res = await fetch("/api/auth/me", {
+    method: "GET",
+    credentials: "include", // REQUIRED
+  })
   if (!res.ok) return null
   return res.json()
 }

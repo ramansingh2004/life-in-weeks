@@ -3,20 +3,29 @@ import { getAuthUser } from '@/lib/getUser'
 import { Tag } from '@/models/Tag.model'
 import { Week } from '@/models/Week.model'
 import { connectDB } from '@/lib/mongodb'
-
+import { IWeek } from '@/typesDefined'
 // GET /api/tags/[tagName] - Get tag details + all weeks with this tag
+type WeekQuery = Partial<Omit<IWeek, 'weekIndex'>> & {
+  weekIndex?: number | { $lt?: number }
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { tagName: string } }
 ) {
   try {
     await connectDB()
+
     const user = await getAuthUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(req.url)
     const limit = parseInt(searchParams.get('limit') || '50')
-    const skip = parseInt(searchParams.get('skip') || '0')
+    // const skip = parseInt(searchParams.get('skip') || '0')
+    // cursor-based pagination (better than skip)
+    const lastWeekIndex = searchParams.get("lastWeekIndex")
 
     const tag = await Tag.findOne({
       userId: user.userId,
@@ -27,25 +36,39 @@ export async function GET(
       return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
     }
 
-    // Get all weeks with this tag
-    const weeks = await Week.find({
+    const query: WeekQuery = {
       userId: user.userId,
       tags: tag.name,
-    })
+    }
+
+    if (lastWeekIndex) {
+      query.weekIndex = { $lt: Number(lastWeekIndex) }
+    }
+
+    // Get all weeks with this tag
+    const weeks = await Week.find(query)
       .sort({ weekIndex: -1 })
       .limit(limit)
-      .skip(skip)
+      .lean()
 
-    const total = await Week.countDocuments({
-      userId: user.userId,
-      tags: tag.name,
-    })
+    // Count only when needed (avoid heavy query)
+    let total = null
+    if (!lastWeekIndex) {
+      total = await Week.countDocuments({
+        userId: user.userId,
+        tags: tag.name,
+      })
+    }
 
     return NextResponse.json({
       tag,
       weeks,
       total,
-      hasMore: skip + limit < total,
+      nextCursor:
+        weeks.length > 0
+          ? weeks[weeks.length - 1].weekIndex
+          : null,
+      hasMore: weeks.length === limit,
     })
   } catch (error) {
     console.error('Get tag error:', error)
