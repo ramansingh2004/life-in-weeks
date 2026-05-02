@@ -33,6 +33,8 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
         <Image
           src={photo.url}
           alt={photo.name}
+          width={150}
+          height={150}
           onLoad={() => setIsLoading(false)}
           className={`w-full h-auto object-cover transition-opacity duration-300 ${
             isLoading ? 'opacity-0' : 'opacity-100'

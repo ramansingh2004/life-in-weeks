@@ -42,6 +42,8 @@ export function PhotoViewer({ photo, onClose, onNavigate }: PhotoViewerProps) {
           <Image
             src={photo.url}
             alt={photo.name}
+            width={150}
+            height={150}
             onLoad={() => setIsLoading(false)}
             className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
               isLoading ? 'opacity-0' : 'opacity-100'

@@ -52,6 +52,8 @@ export function ChapterCard({ chapter, onClick, photos = [], videos = [] }: Chap
                   <Image
                     src={photo}
                     alt={`Chapter ${chapter._id} photo ${idx}`}
+                    width={150}
+                    height={150}
                     className="w-full h-full object-cover hover:scale-110 transition-transform"
                   />
                   {/* Count overlay for more photos */}
