@@ -4,6 +4,7 @@ import { Tag } from '@/models/Tag.model'
 import { Week } from '@/models/Week.model'
 import { connectDB } from '@/lib/mongodb'
 import { IWeek } from '@/typesDefined'
+
 // GET /api/tags/[tagName] - Get tag details + all weeks with this tag
 type WeekQuery = Partial<Omit<IWeek, 'weekIndex'>> & {
   weekIndex?: number | { $lt?: number }
@@ -11,7 +12,7 @@ type WeekQuery = Partial<Omit<IWeek, 'weekIndex'>> & {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { tagName: string } }
+  { params }: { params: Promise<{ tagName: string }> }
 ) {
   try {
     await connectDB()
@@ -27,9 +28,12 @@ export async function GET(
     // cursor-based pagination (better than skip)
     const lastWeekIndex = searchParams.get("lastWeekIndex")
 
+    // ✅ Await params since it's now a Promise in Next.js 15
+    const { tagName } = await params
+
     const tag = await Tag.findOne({
       userId: user.userId,
-      name: params.tagName.toLowerCase(),
+      name: tagName.toLowerCase(),
     })
 
     if (!tag) {
@@ -79,7 +83,7 @@ export async function GET(
 // PUT /api/tags/[tagName] - Update tag (rename, color, emoji, description)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { tagName: string } }
+  { params }: { params: Promise<{ tagName: string }> }
 ) {
   try {
     await connectDB()
@@ -88,9 +92,12 @@ export async function PUT(
 
     const { displayName, color, emoji, description } = await req.json()
 
+    // ✅ Await params since it's now a Promise in Next.js 15
+    const { tagName } = await params
+
     const tag = await Tag.findOne({
       userId: user.userId,
-      name: params.tagName.toLowerCase(),
+      name: tagName.toLowerCase(),
     })
 
     if (!tag) {
@@ -115,7 +122,7 @@ export async function PUT(
 // DELETE /api/tags/[tagName] - Delete tag (option: remove from all weeks or keep)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { tagName: string } }
+  { params }: { params: Promise<{ tagName: string }> }
 ) {
   try {
     await connectDB()
@@ -125,9 +132,12 @@ export async function DELETE(
     const { searchParams } = new URL(req.url)
     const removeFromWeeks = searchParams.get('removeFromWeeks') === 'true'
 
+    // ✅ Await params since it's now a Promise in Next.js 15
+    const { tagName } = await params
+
     const tag = await Tag.findOne({
       userId: user.userId,
-      name: params.tagName.toLowerCase(),
+      name: tagName.toLowerCase(),
     })
 
     if (!tag) {

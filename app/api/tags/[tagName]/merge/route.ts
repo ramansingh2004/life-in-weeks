@@ -9,7 +9,7 @@ import { connectDB } from '@/lib/mongodb'
 // This will merge current tag into target tag (delete current, move all weeks)
 export async function POST(
   req: NextRequest,
-  { params }: { params: { tagName: string } }
+  { params }: { params: Promise<{ tagName: string }> }
 ) {
   try {
     await connectDB()
@@ -25,9 +25,12 @@ export async function POST(
       )
     }
 
+    // ✅ Await params since it's now a Promise in Next.js 15
+    const { tagName } = await params
+
     const sourceTag = await Tag.findOne({
       userId: user.userId,
-      name: params.tagName.toLowerCase(),
+      name: tagName.toLowerCase(),
     })
 
     const targetTag = await Tag.findOne({
