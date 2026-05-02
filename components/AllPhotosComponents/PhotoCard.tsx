@@ -30,7 +30,7 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
     >
       {/* Image */}
       <div className="relative aspect-auto bg-zinc-800">
-        <img
+        <Image
           src={photo.url}
           alt={photo.name}
           onLoad={() => setIsLoading(false)}

@@ -29,10 +29,7 @@ export function TagFilter({
   const [debugInfo, setDebugInfo] = useState<string>('')
 
   useEffect(() => {
-    fetchTags()
-  }, [notes])
-
-  async function fetchTags() {
+    async function fetchTags() {
     try {
       setIsLoading(true)
       
@@ -97,6 +94,9 @@ export function TagFilter({
     setAllTags(extractedTags)
     setIsLoading(false)
   }
+
+    fetchTags()
+  }, [notes])
 
   function handleTagClick(tagName: string) {
     if (mode === 'single') {

@@ -26,7 +26,7 @@ export default function JournalPage() {
       .sort((a, b) => b.weekIndex - a.weekIndex)
 
     setEntries(allNotes)
-  }, [notes, router])
+  }, [notes, router, birthDate])
 
   const filtered = entries.filter(entry => {
     const matchesFilter =

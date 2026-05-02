@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { uploadMedia, getWeekMedia, deleteMedia } from "@/lib/api"
+import Image from "next/image"
 
 type MediaItem = {
   _id: string
@@ -25,6 +26,15 @@ export default function MediaUploader({ weekIndex }: Props) {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    async function loadMedia() {
+      try {
+        const { media } = await getWeekMedia(weekIndex)
+        setMediaItems(media || [])
+      } catch (err) {
+        console.error("Failed to load media:", err)
+      }
+    }
+
     loadMedia()
   }, [weekIndex])
 
@@ -34,15 +44,6 @@ export default function MediaUploader({ weekIndex }: Props) {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [])
-
-  async function loadMedia() {
-    try {
-      const { media } = await getWeekMedia(weekIndex)
-      setMediaItems(media || [])
-    } catch (err) {
-      console.error("Failed to load media:", err)
-    }
-  }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || [])
@@ -82,7 +83,15 @@ export default function MediaUploader({ weekIndex }: Props) {
     }
 
     setUploading(false)
-    await loadMedia()
+    
+    // Reload media after uploads
+    try {
+      const { media } = await getWeekMedia(weekIndex)
+      setMediaItems(media || [])
+    } catch (err) {
+      console.error("Failed to reload media:", err)
+    }
+    
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -91,7 +100,9 @@ export default function MediaUploader({ weekIndex }: Props) {
 
     try {
       await deleteMedia(item._id)
-      await loadMedia()
+      // Reload media after deletion
+      const { media } = await getWeekMedia(weekIndex)
+      setMediaItems(media || [])
     } catch (err) {
       console.error("Delete error:", err)
       setError("Failed to delete media")
@@ -123,7 +134,9 @@ export default function MediaUploader({ weekIndex }: Props) {
 
         try {
           await uploadMedia(file, weekIndex, "audio")
-          await loadMedia()
+          // Reload media after recording
+          const { media } = await getWeekMedia(weekIndex)
+          setMediaItems(media || [])
         } catch (err) {
           console.error("Voice upload error:", err)
           setError("Failed to upload voice note")
@@ -219,9 +232,11 @@ export default function MediaUploader({ weekIndex }: Props) {
                   layout
                   className="relative group aspect-square"
                 >
-                  <img
+                  <Image
                     src={item.url}
                     alt={item.name}
+                    width={150}
+                    height={150}
                     className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => setPreview(item)}
                   />

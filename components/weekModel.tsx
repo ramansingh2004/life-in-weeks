@@ -60,7 +60,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
       console.log(`   Tags from store: ${storedNote?.tags?.join(", ") || "none"}`)
       console.log(`   isFuture: ${week.isFuture}`)
     }
-  }, [week?.index, existingData, getNote])
+  }, [week?.index, existingData, getNote, week])
 
   // Prevent background scroll when modal is open
   useEffect(() => {

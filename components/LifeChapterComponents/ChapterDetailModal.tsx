@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Chapter } from '@/typesDefined'
+import Image from 'next/image'
 
 interface ChapterDetailModalProps {
   chapter: Chapter | null
@@ -24,9 +25,6 @@ export function ChapterDetailModal({
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'photos' | 'videos' | 'timeline'>('overview')
 
-  if (!chapter) return null
-
-  const weekCount = chapter.endWeek - chapter.startWeek + 1
 
   // Prevent background scroll when modal is open
     useEffect(() => {
@@ -37,6 +35,12 @@ export function ChapterDetailModal({
         }
       }
     }, [chapter])
+
+      if (!chapter) return null;
+
+  const weekCount = chapter.endWeek - chapter.startWeek + 1
+
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -179,7 +183,7 @@ export function ChapterDetailModal({
                       whileHover={{ scale: 1.05 }}
                       className="relative aspect-square rounded-lg overflow-hidden group bg-zinc-800"
                     >
-                      <img
+                      <Image
                         src={photo}
                         alt={`Chapter moment ${idx}`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform"
@@ -271,7 +275,7 @@ export function ChapterDetailModal({
               exit={{ scale: 0.9 }}
               className="relative max-w-4xl max-h-[90vh]"
             >
-              <img
+              <Image
                 src={selectedPhoto}
                 alt="Full view"
                 className="max-w-full max-h-full rounded-lg"

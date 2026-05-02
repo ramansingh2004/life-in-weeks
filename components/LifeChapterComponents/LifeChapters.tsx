@@ -28,10 +28,7 @@ export function LifeChapters() {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null)
 
   useEffect(() => {
-    generateChapters()
-  }, [notes, milestones])
-
-  async function generateChapters() {
+    async function generateChapters() {
     try {
       setIsLoading(true)
 
@@ -61,6 +58,9 @@ export function LifeChapters() {
       setIsLoading(false)
     }
   }
+  
+    generateChapters()
+  }, [notes, milestones])
 
   async function fetchChapterMedia(chapter: Chapter): Promise<ChapterWithMedia> {
     try {

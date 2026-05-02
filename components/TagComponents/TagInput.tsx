@@ -25,10 +25,7 @@ export function TagInput({ tags, onTagsChange, placeholder = 'Add tags...' }: Ta
       return
     }
 
-    fetchSuggestions()
-  }, [input])
-
-  async function fetchSuggestions() {
+    async function fetchSuggestions() {
     try {
       const res = await fetch(`/api/tags/search?q=${encodeURIComponent(input)}`)
       if (res.ok) {
@@ -40,6 +37,9 @@ export function TagInput({ tags, onTagsChange, placeholder = 'Add tags...' }: Ta
       console.error('Failed to fetch suggestions:', error)
     }
   }
+
+    fetchSuggestions()
+  }, [input])
 
   function handleAddTag(tagName: string) {
     const normalized = tagName.toLowerCase().replace(/^#/, '')

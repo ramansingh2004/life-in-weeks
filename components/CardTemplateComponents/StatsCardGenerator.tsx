@@ -46,10 +46,7 @@ export function StatsCardGenerator() {
   const [stats, setStats] = useState<any>(null)
 
   useEffect(() => {
-    calculateStats()
-  }, [notes, milestones])
-
-  function calculateStats() {
+    function calculateStats() {
     const noteArray = Object.values(notes)
     
     // Basic stats
@@ -119,6 +116,10 @@ export function StatsCardGenerator() {
       longestStreak: maxStreak,
     })
   }
+    calculateStats()
+  }, [notes, milestones])
+
+  
 
   function renderCard() {
     if (!stats) return null

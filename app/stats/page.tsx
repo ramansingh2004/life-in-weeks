@@ -212,7 +212,7 @@ export default function StatsPage() {
       {/* Footer quote */}
       <div className="max-w-2xl mx-auto text-center mt-8">
         <p className="text-zinc-700 text-xs leading-relaxed italic">
-          "The trouble is, you think you have time."
+          &quot;The trouble is, you think you have time.&quot;
         </p>
         <p className="text-zinc-800 text-xs mt-1">— Buddha</p>
       </div>

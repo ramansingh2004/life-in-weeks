@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
+import Image from 'next/image'
 
 type PhotoItem = {
   _id: string
@@ -38,7 +39,7 @@ export function PhotoViewer({ photo, onClose, onNavigate }: PhotoViewerProps) {
       >
         {/* Image */}
         <div className="relative flex-1 flex items-center justify-center bg-black rounded-lg overflow-hidden">
-          <img
+          <Image
             src={photo.url}
             alt={photo.name}
             onLoad={() => setIsLoading(false)}

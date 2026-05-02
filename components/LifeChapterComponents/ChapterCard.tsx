@@ -50,7 +50,7 @@ export function ChapterCard({ chapter, onClick, photos = [], videos = [] }: Chap
                     onClick()
                   }}
                 >
-                  <img
+                  <Image
                     src={photo}
                     alt={`Chapter ${chapter._id} photo ${idx}`}
                     className="w-full h-full object-cover hover:scale-110 transition-transform"

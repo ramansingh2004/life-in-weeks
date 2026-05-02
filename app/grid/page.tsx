@@ -105,7 +105,7 @@ export default function GridPage() {
     const lived = weeks.filter((w) => w.isPast).length
     setStats({ lived, remaining: weeks.length - lived, total: weeks.length })
     setLoading(false)
-  }, [weeks.length])
+  }, [weeks.length, weeks])
 
   const currentAge = birthDateObj
     ? Math.floor(differenceInWeeks(new Date(), birthDateObj) / 52)

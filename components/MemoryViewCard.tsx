@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Week, WeekData } from "@/typesDefined"
 import { MOOD_LABELS, MOOD_COLORS } from "@/typesDefined"
+import Image from "next/image"
 
 type MediaItem = {
   _id: string
@@ -26,22 +27,7 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
 
   // Load media when card opens
   useEffect(() => {
-    if (week) {
-      loadMedia()
-    }
-  }, [week?.index])
-
-  // background scroll stop
-  useEffect(() => {
-      if (week) {
-        document.body.style.overflow = "hidden"
-        return () => {
-          document.body.style.overflow = "unset"
-        }
-      }
-    }, [week])
-
-  async function loadMedia() {
+    async function loadMedia() {
     if (!week) return
     setLoadingMedia(true)
     try {
@@ -56,6 +42,20 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
     }
     setLoadingMedia(false)
   }
+    if (week) {
+      loadMedia()
+    }
+  }, [week?.index, week])
+
+  // background scroll stop
+  useEffect(() => {
+      if (week) {
+        document.body.style.overflow = "hidden"
+        return () => {
+          document.body.style.overflow = "unset"
+        }
+      }
+    }, [week])
 
   if (!week || !data) return null
 
@@ -157,7 +157,7 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
                       onClick={() => setPreview(item)}
                       className="relative group aspect-square cursor-pointer"
                     >
-                      <img
+                      <Image
                         src={item.url}
                         alt={item.name}
                         className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"

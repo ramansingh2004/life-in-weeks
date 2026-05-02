@@ -14,10 +14,7 @@ export function TagCloud({ onTagClick, limit = 20 }: TagCloudProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    fetchTags()
-  }, [limit])
-
-  async function fetchTags() {
+     async function fetchTags() {
     try {
       setIsLoading(true)
       const res = await fetch('/api/tags')
@@ -31,6 +28,9 @@ export function TagCloud({ onTagClick, limit = 20 }: TagCloudProps) {
       setIsLoading(false)
     }
   }
+
+    fetchTags()
+  }, [limit])
 
   if (isLoading) return <div className="text-zinc-400">Loading tags...</div>
 

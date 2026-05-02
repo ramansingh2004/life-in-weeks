@@ -7,8 +7,7 @@ import { useLifeStore } from "@/store/useCapsuleStore"
 import { useAuthStore } from "@/store/useAuthStore"
 import { MOOD_COLORS, MOOD_LABELS } from "@/typesDefined"
 import { TagFilter } from '@/components/TagComponents/TagFilter'
-import { TagPill } from '@/components/TagComponents/TagPill'
-
+import Image from 'next/image'
 
 type MediaItem = {
   _id: string
@@ -49,6 +48,47 @@ export default function TimelinePage() {
   useEffect(() => {
     if (!hydrated) return
 
+    async function loadMemories() {
+      const allMemories: TimelineMemory[] = []
+
+      // Get all weeks - iterate through a reasonable range
+      for (let i = 0; i < 10000; i++) {
+        const note = getNote(i)
+        if (note && note.note && note.note.trim() !== "<p></p>") {
+          const memory: TimelineMemory = {
+            weekIndex: note.weekIndex,
+            date: note.date,
+            note: note.note,
+            mood: note.mood,
+            isPast: note.isPast,
+            isCurrent: note.isCurrent,
+            tags: note.tags || [], // Load tags from note
+          }
+
+          // Load media for this week
+          try {
+            const mediaRes = await fetch(`/api/media?weekIndex=${i}`)
+            if (mediaRes.ok) {
+              const { media } = await mediaRes.json()
+              if (media && Array.isArray(media) && media.length > 0) {
+                memory.media = media
+                console.log(`📸 Loaded ${media.length} media items for week ${i}`)
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to load media for week ${i}:`, err)
+          }
+
+          allMemories.push(memory)
+        }
+      }
+
+      // Sort by weekIndex descending (newest first)
+      allMemories.sort((a, b) => b.weekIndex - a.weekIndex)
+      setMemories(allMemories)
+      console.log(`📜 Loaded ${allMemories.length} memories with media`)
+    }
+
     async function init() {
       try {
         const res = await fetch("/api/auth/me")
@@ -69,48 +109,7 @@ export default function TimelinePage() {
     }
 
     init()
-  }, [hydrated, router])
-
-  async function loadMemories() {
-    const allMemories: TimelineMemory[] = []
-
-    // Get all weeks - iterate through a reasonable range
-    for (let i = 0; i < 10000; i++) {
-      const note = getNote(i)
-      if (note && note.note && note.note.trim() !== "<p></p>") {
-        const memory: TimelineMemory = {
-          weekIndex: note.weekIndex,
-          date: note.date,
-          note: note.note,
-          mood: note.mood,
-          isPast: note.isPast,
-          isCurrent: note.isCurrent,
-          tags: note.tags || [], // Load tags from note
-        }
-
-        // Load media for this week
-        try {
-          const mediaRes = await fetch(`/api/media?weekIndex=${i}`)
-          if (mediaRes.ok) {
-            const { media } = await mediaRes.json()
-            if (media && Array.isArray(media) && media.length > 0) {
-              memory.media = media
-              console.log(`📸 Loaded ${media.length} media items for week ${i}`)
-            }
-          }
-        } catch (err) {
-          console.error(`Failed to load media for week ${i}:`, err)
-        }
-
-        allMemories.push(memory)
-      }
-    }
-
-    // Sort by weekIndex descending (newest first)
-    allMemories.sort((a, b) => b.weekIndex - a.weekIndex)
-    setMemories(allMemories)
-    console.log(`📜 Loaded ${allMemories.length} memories with media`)
-  }
+  }, [hydrated, router, getNote])
 
   // Prevent background scroll when preview is open
   useEffect(() => {
@@ -484,9 +483,11 @@ export default function TimelinePage() {
                         onClick={() => setImagePreview(item.url)}
                         className="relative group aspect-square cursor-pointer"
                       >
-                        <img
+                        <Image
                           src={item.url}
                           alt={item.name}
+                          width={200}
+                          height={200}
                           className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
                         />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">

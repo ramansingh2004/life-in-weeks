@@ -32,80 +32,80 @@ export function PhotoGallery() {
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({})
 
   useEffect(() => {
-    fetchPhotos()
-  }, [])
+    async function fetchPhotos() {
+      try {
+        setIsLoading(true)
+        setError(null)
 
-  async function fetchPhotos() {
-    try {
-      setIsLoading(true)
-      setError(null)
+        console.log('📸 Fetching photos from /api/media?type=image')
+        
+        const res = await fetch('/api/media?type=image')
+        const responseData = await res.json()
+        
+        console.log('📡 API Response:', responseData)
 
-      console.log('📸 Fetching photos from /api/media?type=image')
-      
-      const res = await fetch('/api/media?type=image')
-      const responseData = await res.json()
-      
-      console.log('📡 API Response:', responseData)
+        if (!res.ok) {
+          throw new Error(responseData.error || 'Failed to fetch photos')
+        }
 
-      if (!res.ok) {
-        throw new Error(responseData.error || 'Failed to fetch photos')
-      }
+        const mediaArray = responseData.media || []
+        console.log(`✅ Received ${mediaArray.length} media items`)
 
-      const mediaArray = responseData.media || []
-      console.log(`✅ Received ${mediaArray.length} media items`)
+        if (mediaArray.length === 0) {
+          console.log('⚠️ No photos found')
+          setPhotos([])
+          setFilteredPhotos([])
+          setIsLoading(false)
+          return
+        }
 
-      if (mediaArray.length === 0) {
-        console.log('⚠️ No photos found')
+        // Enrich photos with week date info and ensure proper typing
+        const enrichedPhotos = mediaArray.map((photo: any) => {
+          const note = getNote(photo.weekIndex)
+          
+          // Ensure createdAt is a Date object
+          const createdAt = photo.createdAt 
+            ? new Date(photo.createdAt)
+            : new Date()
+          
+          const enriched: PhotoItem = {
+            _id: photo._id,
+            weekIndex: photo.weekIndex,
+            url: photo.url,
+            name: photo.name,
+            createdAt,
+            weekDate: note?.date || new Date().toISOString(),
+          }
+          
+          console.log(`  📷 Photo: ${photo.name} (week ${photo.weekIndex})`)
+          return enriched
+        })
+
+        console.log(`🔄 Sorting by ${sortBy}...`)
+        
+        // Sort
+        enrichedPhotos.sort((a: PhotoItem, b: PhotoItem) => {
+          const dateA = a.createdAt.getTime()
+          const dateB = b.createdAt.getTime()
+          return sortBy === 'newest' ? dateB - dateA : dateA - dateB
+        })
+
+        console.log(`✅ Total photos enriched: ${enrichedPhotos.length}`)
+        setPhotos(enrichedPhotos)
+        setFilteredPhotos(enrichedPhotos)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        console.error('❌ Failed to fetch photos:', message)
+        setError(message)
         setPhotos([])
         setFilteredPhotos([])
+      } finally {
         setIsLoading(false)
-        return
       }
-
-      // Enrich photos with week date info and ensure proper typing
-      const enrichedPhotos = mediaArray.map((photo: any) => {
-        const note = getNote(photo.weekIndex)
-        
-        // Ensure createdAt is a Date object
-        const createdAt = photo.createdAt 
-          ? new Date(photo.createdAt)
-          : new Date()
-        
-        const enriched: PhotoItem = {
-          _id: photo._id,
-          weekIndex: photo.weekIndex,
-          url: photo.url,
-          name: photo.name,
-          createdAt,
-          weekDate: note?.date || new Date().toISOString(),
-        }
-        
-        console.log(`  📷 Photo: ${photo.name} (week ${photo.weekIndex})`)
-        return enriched
-      })
-
-      console.log(`🔄 Sorting by ${sortBy}...`)
-      
-      // Sort
-      enrichedPhotos.sort((a: PhotoItem, b: PhotoItem) => {
-        const dateA = a.createdAt.getTime()
-        const dateB = b.createdAt.getTime()
-        return sortBy === 'newest' ? dateB - dateA : dateA - dateB
-      })
-
-      console.log(`✅ Total photos enriched: ${enrichedPhotos.length}`)
-      setPhotos(enrichedPhotos)
-      setFilteredPhotos(enrichedPhotos)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      console.error('❌ Failed to fetch photos:', message)
-      setError(message)
-      setPhotos([])
-      setFilteredPhotos([])
-    } finally {
-      setIsLoading(false)
     }
-  }
+
+    fetchPhotos()
+  }, [getNote, sortBy])
 
   // Apply filters whenever search or date range changes
   useEffect(() => {
@@ -145,7 +145,10 @@ export function PhotoGallery() {
           <h1 className="text-3xl font-light mb-4">Error Loading Photos</h1>
           <p className="text-zinc-400 mb-6">{error}</p>
           <button
-            onClick={() => fetchPhotos()}
+            onClick={() => {
+              // Re-trigger the useEffect by updating a dependency
+              setIsLoading(true)
+            }}
             className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition mr-4"
           >
             Try Again
