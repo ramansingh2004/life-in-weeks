@@ -7,13 +7,14 @@ import { connectDB } from '@/lib/mongodb'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { chapterId: string } }
+  context: { params: { chapterId: string } }
 ) {
   try {
     await connectDB()
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+      const { chapterId } = context.params
     const userId = user.userId || user.userId
     const { searchParams } = new URL(req.url)
     const startWeek = parseInt(searchParams.get('startWeek') || '0')
