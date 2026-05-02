@@ -5,7 +5,7 @@ import { getAuthUser } from '@/lib/getUser'
 import { Media } from '@/models/Media.model'
 import { connectDB } from '@/lib/mongodb'
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     await connectDB()
     const user = await getAuthUser()
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     // Show what's in the database
     const sampleMedia = await Media.find().limit(5)
     console.log('Sample media from database:')
-    sampleMedia.forEach((m: any) => {
+    sampleMedia.forEach((m) => {
       console.log(`  - ${m.name} (userId: ${m.userId}, type: ${m.type})`)
     })
 

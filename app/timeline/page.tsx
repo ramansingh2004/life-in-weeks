@@ -30,7 +30,6 @@ type TimelineMemory = {
 export default function TimelinePage() {
   const router = useRouter()
   const { getNote } = useLifeStore()
-  const { user } = useAuthStore()
 
   const [memories, setMemories] = useState<TimelineMemory[]>([])
   const [loading, setLoading] = useState(true)

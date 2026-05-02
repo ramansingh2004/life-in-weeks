@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { ITag } from '@/typesDefined'
-import toast from 'react-hot-toast'
 
 interface TagInputProps {
   tags: string[]                        // Current tag names like ["college", "family"]

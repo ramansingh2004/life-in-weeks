@@ -3,6 +3,11 @@ import { getAuthUser } from '@/lib/getUser'
 import { Media } from '@/models/Media.model'
 import { connectDB } from '@/lib/mongodb'
 
+interface MediaQuery {
+  userId: string
+  weekIndex?: number
+  type?: string
+}
 export async function GET(req: NextRequest) {
   try {
     await connectDB()
@@ -24,7 +29,7 @@ export async function GET(req: NextRequest) {
     console.log(`   Type filter: ${type || 'none'}`)
     console.log(`   Week filter: ${weekIndex || 'none'}`)
 
-    let query: any = { userId }
+    const query: MediaQuery = { userId }
 
     if (weekIndex) {
       query.weekIndex = parseInt(weekIndex)
@@ -40,7 +45,7 @@ export async function GET(req: NextRequest) {
     const media = await Media.find(query).sort({ createdAt: -1 })
 
     console.log(`✅ Found ${media.length} media items`)
-    media.forEach((m: any) => {
+    media.forEach((m) => {
       console.log(`   - ${m.name} (type: ${m.type})`)
     })
 

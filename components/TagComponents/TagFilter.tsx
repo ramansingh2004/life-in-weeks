@@ -65,7 +65,7 @@ export function TagFilter({
     const allNotes = Object.values(notes)
     console.log(`📋 Total weeks in store: ${allNotes.length}`)
 
-    allNotes.forEach((note: any) => {
+    allNotes.forEach((note) => {
       if (note && note.tags && Array.isArray(note.tags)) {
         console.log(`  Week ${note.weekIndex}: tags = ${note.tags.join(', ')}`)
         

@@ -22,26 +22,23 @@ type Props = {
 
 export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
   const [media, setMedia] = useState<MediaItem[]>([])
-  const [loadingMedia, setLoadingMedia] = useState(false)
   const [preview, setPreview] = useState<MediaItem | null>(null)
 
   // Load media when card opens
   useEffect(() => {
     async function loadMedia() {
-    if (!week) return
-    setLoadingMedia(true)
-    try {
-      const res = await fetch(`/api/media?weekIndex=${week.index}`)
-      if (res.ok) {
-        const { media: fetchedMedia } = await res.json()
-        setMedia(fetchedMedia || [])
-        console.log(`📸 Loaded ${fetchedMedia?.length || 0} media items for week ${week.index}`)
+      if (!week) return
+      try {
+        const res = await fetch(`/api/media?weekIndex=${week.index}`)
+        if (res.ok) {
+          const { media: fetchedMedia } = await res.json()
+          setMedia(fetchedMedia || [])
+          console.log(`📸 Loaded ${fetchedMedia?.length || 0} media items for week ${week.index}`)
+        }
+      } catch (err) {
+        console.error("Failed to load media:", err)
       }
-    } catch (err) {
-      console.error("Failed to load media:", err)
     }
-    setLoadingMedia(false)
-  }
     if (week) {
       loadMedia()
     }
@@ -49,13 +46,13 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
 
   // background scroll stop
   useEffect(() => {
-      if (week) {
-        document.body.style.overflow = "hidden"
-        return () => {
-          document.body.style.overflow = "unset"
-        }
+    if (week) {
+      document.body.style.overflow = "hidden"
+      return () => {
+        document.body.style.overflow = "unset"
       }
-    }, [week])
+    }
+  }, [week])
 
   if (!week || !data) return null
 
@@ -160,6 +157,8 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
                       <Image
                         src={item.url}
                         alt={item.name}
+                        width={150}
+                        height={150}
                         className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">

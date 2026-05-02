@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { PhotoGrid } from './PhotoGrid'
 import { PhotoFilters } from './PhotoFilters'
@@ -17,6 +17,14 @@ type PhotoItem = {
   createdAt: Date
   weekDate?: string
 }
+
+interface RawPhotoData {
+     _id: string
+     weekIndex: number
+     url: string
+     name: string
+     createdAt?: string | Date
+   }
 
 export function PhotoGallery() {
   const router = useRouter()
@@ -60,7 +68,7 @@ export function PhotoGallery() {
         }
 
         // Enrich photos with week date info and ensure proper typing
-        const enrichedPhotos = mediaArray.map((photo: any) => {
+        const enrichedPhotos = mediaArray.map((photo: RawPhotoData) => {
           const note = getNote(photo.weekIndex)
           
           // Ensure createdAt is a Date object

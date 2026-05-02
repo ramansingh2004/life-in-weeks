@@ -10,11 +10,24 @@ import { ChapterCard } from './ChapterCard'
 import { ChapterDetailModal } from './ChapterDetailModal'
 import { Chapter } from '@/typesDefined'
 
+interface Milestone {
+  icon: string
+  title: string
+  description: string
+  weekIndex: number
+  category: string
+}
+
+interface Note {
+  weekIndex: number
+  note: string
+}
+
 interface ChapterWithMedia extends Chapter {
   photos: string[]
   videos: string[]
-  milestones: any[]
-  notes: any[]
+  milestones: Milestone[]
+  notes: Note[]
 }
 
 export function LifeChapters() {

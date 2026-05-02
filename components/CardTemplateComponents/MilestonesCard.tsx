@@ -1,9 +1,13 @@
 'use client'
 
+interface MilestoneStats {
+     milestonesByCategory: Map<string, number>
+     totalMilestones: number
+   }
+
 interface MilestonesCardProps {
   theme: 'dark' | 'light' | 'gradient' | 'neon'
-  format: 'square' | 'story' | 'rect'
-  stats: any
+  stats: MilestoneStats
 }
 
 const CATEGORY_EMOJIS = {
@@ -23,7 +27,7 @@ const THEME_CONFIG = {
   neon: { bg: 'bg-black', text: 'text-white', accent: 'text-cyan-400' },
 }
 
-export function MilestonesCard({ theme, format, stats }: MilestonesCardProps) {
+export function MilestonesCard({ theme, stats }: MilestonesCardProps) {
   const config = THEME_CONFIG[theme]
 
   return (

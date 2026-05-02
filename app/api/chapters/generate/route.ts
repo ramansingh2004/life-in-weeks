@@ -7,7 +7,7 @@ import { Media } from '@/models/Media.model'
 import { connectDB } from '@/lib/mongodb'
 import { detectChapterBreaks, generateChapterTitle, generateChapterDescription } from '@/lib/chapterDetection'
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     await connectDB()
     const user = await getAuthUser()

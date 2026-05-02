@@ -1,9 +1,21 @@
 'use client'
 
+interface MoodCounts {
+     amazing: number
+     good: number
+     okay: number
+     bad: number
+     terrible: number
+   }
+
+   interface MoodStats {
+     moodCounts: MoodCounts
+     averageMood: number | String
+   }
+
 interface MoodCardProps {
   theme: 'dark' | 'light' | 'gradient' | 'neon'
-  format: 'square' | 'story' | 'rect'
-  stats: any
+  stats: MoodStats
 }
 
 const THEME_CONFIG = {
@@ -13,7 +25,7 @@ const THEME_CONFIG = {
   neon: { bg: 'bg-black', text: 'text-white', accent: 'text-cyan-400' },
 }
 
-export function MoodCard({ theme, format, stats }: MoodCardProps) {
+export function MoodCard({ theme, stats }: MoodCardProps) {
   const config = THEME_CONFIG[theme]
   const totalMood = (Object.values(stats.moodCounts) as number[]).reduce((a, b) => a + b, 0)
 

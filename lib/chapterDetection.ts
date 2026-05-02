@@ -1,4 +1,3 @@
-import { useLifeStore } from '@/store/useCapsuleStore'
 
 type WeekData = {
   weekIndex: number
@@ -112,7 +111,6 @@ function mergeNearbyBreaks(breaks: DetectedChapter[], threshold = 10): DetectedC
 export function generateChapterTitle(
   tags: string[],
   averageMood: number,
-  weekCount: number
 ): { title: string; emoji: string } {
   const tagSet = new Set(tags.map(t => t.toLowerCase()))
 
@@ -150,7 +148,7 @@ export function generateChapterTitle(
 /**
  * Generates chapter description from top keywords
  */
-export function generateChapterDescription(tags: string[], notes: string[]): string {
+export function generateChapterDescription(tags: string[]): string {
   const keywordMap: { [key: string]: string } = {
     college: 'academic growth, friendships, and learning',
     work: 'professional development and career progress',

@@ -1,9 +1,12 @@
 'use client'
 
+interface ProgressStats {
+     totalMemories: number
+   }
+
 interface ProgressCardProps {
   theme: 'dark' | 'light' | 'gradient' | 'neon'
-  format: 'square' | 'story' | 'rect'
-  stats: any
+  stats: ProgressStats
 }
 
 const THEME_CONFIG = {
@@ -13,7 +16,7 @@ const THEME_CONFIG = {
   neon: { bg: 'bg-black', text: 'text-white', accent: 'text-cyan-400' },
 }
 
-export function ProgressCard({ theme, format, stats }: ProgressCardProps) {
+export function ProgressCard({ theme, stats }: ProgressCardProps) {
   const config = THEME_CONFIG[theme]
   
   // Estimate: 4000 weeks in 80 years

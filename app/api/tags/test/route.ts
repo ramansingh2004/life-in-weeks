@@ -5,7 +5,7 @@ import { getAuthUser } from '@/lib/getUser'
 import { Tag } from '@/models/Tag.model'
 import { connectDB } from '@/lib/mongodb'
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     await connectDB()
     const user = await getAuthUser()
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const tagCount = await Tag.countDocuments({ userId: user.userId })
 
     console.log(`✅ Found ${tags.length} tags`)
-    tags.forEach((tag: any) => {
+    tags.forEach((tag) => {
       console.log(`  - ${tag.name} (${tag.displayName}) - usage: ${tag.usageCount}`)
     })
 
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         userId: user.userId
       },
       tagCount,
-      tags: tags.map((tag: any) => ({
+      tags: tags.map((tag) => ({
         _id: tag._id,
         name: tag.name,
         displayName: tag.displayName,

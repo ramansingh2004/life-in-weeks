@@ -4,13 +4,12 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { useMilestoneStore, Milestone } from "@/store/useMilestoneStore"
-import { useAuthStore } from "@/store/useAuthStore"
 import MilestoneModal from "@/components/MilestoneModal"
 import { CATEGORY_COLORS } from "@/typesDefined"
 
 export default function MilestonesPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
+  //const { user } = useAuthStore()
   const { milestones, syncFromBackend } = useMilestoneStore()
   const [loading, setLoading] = useState(true)
   const [hydrated, setHydrated] = useState(false)

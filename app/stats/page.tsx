@@ -18,7 +18,6 @@ export default function StatsPage() {
   const [birthDateObj, setBirthDateObj] = useState<Date | null>(null)
   const [lifePercent, setLifePercent] = useState(0)
   const [hydrated, setHydrated] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   // Step 1 — hydrate
   useEffect(() => {

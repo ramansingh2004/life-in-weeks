@@ -1,9 +1,16 @@
 'use client'
 
+interface SummaryStats {
+     totalMemories: number
+     averageMood: number | string
+     currentStreak: number
+     totalMilestones: number
+     topTags: string[]
+   }
+
 interface SummaryCardProps {
   theme: 'dark' | 'light' | 'gradient' | 'neon'
-  format: 'square' | 'story' | 'rect'
-  stats: any
+  stats: SummaryStats
 }
 
 const THEME_CONFIG = {
@@ -29,12 +36,11 @@ const THEME_CONFIG = {
   },
 }
 
-export function SummaryCard({ theme, format, stats }: SummaryCardProps) {
+export function SummaryCard({ theme, stats }: SummaryCardProps) {
   const config = THEME_CONFIG[theme]
-  const isPadding = format !== 'rect'
 
   return (
-    <div className={`w-full h-full ${config.bg} ${config.text} flex flex-col items-center justify-center ${isPadding ? 'p-16' : 'p-12'}`}>
+    <div className={`w-full h-full ${config.bg} ${config.text} flex flex-col items-center justify-center`}>
       {/* Logo */}
       <div className={`text-5xl mb-8 ${config.accent}`}>📖</div>
 
@@ -74,7 +80,7 @@ export function SummaryCard({ theme, format, stats }: SummaryCardProps) {
         <div className="mb-8">
           <p className="text-xs opacity-60 mb-3">Top Themes</p>
           <div className="flex gap-2">
-            {stats.topTags.map((tag: string) => (
+            {stats.topTags.map((tag) => (
               <span key={tag} className={`text-xs px-3 py-1 rounded-full ${config.accent} opacity-80`}>
                 #{tag}
               </span>

@@ -5,13 +5,26 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Chapter } from '@/typesDefined'
 import Image from 'next/image'
 
+interface Milestone {
+  icon: string
+  title: string
+  description: string
+  weekIndex: number
+  category: string
+}
+
+interface Note {
+  weekIndex: number
+  note: string
+}
+
 interface ChapterDetailModalProps {
   chapter: Chapter | null
   onClose: () => void
   photos: string[]
   videos: string[]
-  milestones: any[]
-  notes: any[]
+  milestones: Milestone[]
+  notes: Note[]
 }
 
 export function ChapterDetailModal({
@@ -25,21 +38,19 @@ export function ChapterDetailModal({
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'photos' | 'videos' | 'timeline'>('overview')
 
-
   // Prevent background scroll when modal is open
-    useEffect(() => {
-      if (chapter) {
-        document.body.style.overflow = "hidden"
-        return () => {
-          document.body.style.overflow = "unset"
-        }
+  useEffect(() => {
+    if (chapter) {
+      document.body.style.overflow = "hidden"
+      return () => {
+        document.body.style.overflow = "unset"
       }
-    }, [chapter])
+    }
+  }, [chapter])
 
-      if (!chapter) return null;
+  if (!chapter) return null;
 
   const weekCount = chapter.endWeek - chapter.startWeek + 1
-
 
   return (
     <motion.div
@@ -84,7 +95,7 @@ export function ChapterDetailModal({
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'overview' | 'photos' | 'videos' | 'timeline')}
               className={`py-4 px-4 border-b-2 transition-colors text-sm whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-emerald-600 text-white'
@@ -159,7 +170,7 @@ export function ChapterDetailModal({
                 <div>
                   <h3 className="text-lg font-light text-white mb-3">Key Moments</h3>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {notes.slice(0, 5).map((note: any, idx: number) => (
+                    {notes.slice(0, 5).map((note, idx) => (
                       <div key={idx} className="bg-zinc-800 p-3 rounded">
                         <p className="text-xs text-zinc-500 mb-1">Week {note.weekIndex + 1}</p>
                         <p className="text-sm text-zinc-300 line-clamp-2">{note.note}</p>
@@ -186,6 +197,8 @@ export function ChapterDetailModal({
                       <Image
                         src={photo}
                         alt={`Chapter moment ${idx}`}
+                        width={300}
+                        height={300}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -232,7 +245,7 @@ export function ChapterDetailModal({
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               {milestones.length > 0 ? (
                 <div className="space-y-4">
-                  {milestones.map((milestone: any, idx: number) => (
+                  {milestones.map((milestone, idx) => (
                     <div
                       key={idx}
                       className="flex gap-4 pb-4 border-b border-zinc-800 last:border-0"
@@ -278,6 +291,8 @@ export function ChapterDetailModal({
               <Image
                 src={selectedPhoto}
                 alt="Full view"
+                width={800}
+                height={600}
                 className="max-w-full max-h-full rounded-lg"
               />
               <button

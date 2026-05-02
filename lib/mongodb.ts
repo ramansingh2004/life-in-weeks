@@ -7,7 +7,7 @@ if (!MONGODB_URI) {
 }
 
 // Global cache prevents multiple connections during hot reload
-let cached = global as typeof global & {
+const cached = global as typeof global & {
   mongoose?: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null }
 }
 

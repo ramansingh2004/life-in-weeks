@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, numberValueTypes } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useMilestoneStore } from '@/store/useMilestoneStore'
 import { CardPreview } from './CardPreview'
@@ -10,6 +10,38 @@ import { SummaryCard } from './SummaryCard'
 import { MoodCard } from './MoodCard'
 import { MilestonesCard } from './MilestonesCard'
 import { ProgressCard } from './ProgressCard'
+
+interface Note {
+     weekIndex: number
+     note: string
+     mood: number
+     tags?: string[]
+   }
+
+   interface Milestone {
+     category: string
+   }
+
+   interface MoodCounts {
+     amazing: number
+     good: number
+     okay: number
+     bad: number
+     terrible: number
+   }
+
+   interface Stats {
+     totalMemories: number
+     averageMood: number | string
+     currentStreak: number
+     maxStreak: number
+     topTags: string[]
+     moodCounts: MoodCounts
+     milestonesByCategory: Map<string, number>
+     totalMilestones: number
+     moodValues: number[]
+     longestStreak: number
+   }
 
 type CardType = 'summary' | 'mood' | 'milestones' | 'progress'
 type Theme = 'dark' | 'light' | 'gradient' | 'neon'
@@ -43,17 +75,17 @@ export function StatsCardGenerator() {
   const [selectedCard, setSelectedCard] = useState<CardType>('summary')
   const [selectedTheme, setSelectedTheme] = useState<Theme>('dark')
   const [selectedFormat, setSelectedFormat] = useState<Format>('square')
-  const [stats, setStats] = useState<any>(null)
+  const [stats, setStats] = useState<Stats | null>(null)
 
   useEffect(() => {
     function calculateStats() {
-    const noteArray = Object.values(notes)
+    const noteArray = Object.values(notes) as Note[]
     
     // Basic stats
     const totalMemories = noteArray.length
     const moodValues = noteArray
-      .filter((n: any) => n.mood > 0)
-      .map((n: any) => n.mood)
+      .filter((n) => n.mood > 0)
+      .map((n) => n.mood)
     const averageMood = moodValues.length > 0
       ? (moodValues.reduce((a: number, b: number) => a + b, 0) / moodValues.length).toFixed(1)
       : 0
@@ -99,7 +131,7 @@ export function StatsCardGenerator() {
 
     // Milestone categories
     const milestonesByCategory = new Map<string, number>()
-    milestones.forEach((m: any) => {
+    milestones.forEach((m: Milestone) => {
       milestonesByCategory.set(m.category, (milestonesByCategory.get(m.category) || 0) + 1)
     })
 
@@ -119,14 +151,11 @@ export function StatsCardGenerator() {
     calculateStats()
   }, [notes, milestones])
 
-  
-
   function renderCard() {
     if (!stats) return null
 
     const props = {
       theme: selectedTheme,
-      format: selectedFormat,
       stats,
     }
 
