@@ -73,8 +73,13 @@ export interface IUser {
   password: string
   birthDate?: string
   lifeExpectancy: number
+  isEmailVerified: boolean
+  emailVerificationToken?: string | null
+  emailVerificationExpires?: Date | null
   createdAt: Date
+  updatedAt?: Date
 }
+
 
 export interface IWeek {
   _id: string
