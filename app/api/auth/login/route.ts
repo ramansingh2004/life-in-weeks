@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Parse request body
     console.log("📦 [REGISTER] Parsing request body...")
-    const { name, email, password } = await req.json()
-    console.log("📦 [REGISTER] Body parsed:", { name, email, passwordLength: password?.length })
+    const { email, password } = await req.json()
+    console.log("📦 [REGISTER] Body parsed:", { email, passwordLength: password?.length })
 
     // Step 3: Validate input
-    if (!name || !email || !password) {
+    if (!email || !password) {
       console.warn("⚠️ [REGISTER] Missing required fields")
       return NextResponse.json({ error: "All fields required" }, { status: 400 })
     }
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     // Step 6: Create user
     console.log("👤 [REGISTER] Creating user in database...")
-    const user = await User.create({ name, email, password: hashed })
+    const user = await User.create({ email, password: hashed })
     console.log("✅ [REGISTER] User created:", { id: user._id, email: user.email })
 
     // Step 7: Sign JWT token
