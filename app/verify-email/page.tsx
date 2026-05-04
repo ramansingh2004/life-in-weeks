@@ -1,11 +1,10 @@
-// app/verify-email/page.tsx
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { motion } from 'framer-motion'
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const verified = searchParams.get('verified')
@@ -86,5 +85,26 @@ export default function VerifyEmailPage() {
         </button>
       </motion.div>
     </main>
+  )
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-black text-white flex items-center justify-center px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-md"
+          >
+            <div className="text-4xl mb-4">⏳</div>
+            <p className="text-zinc-400">Loading...</p>
+          </motion.div>
+        </main>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   )
 }
