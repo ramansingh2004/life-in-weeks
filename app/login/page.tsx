@@ -62,6 +62,7 @@ function LoginContent() {
         router.push("/")
       }
     } catch (err) {
+      console.log("network error", err);
       setError("Network error. Please try again.")
       setLoading(false)
     }
