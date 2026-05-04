@@ -56,6 +56,7 @@ export default function RegisterPage() {
       // User will verify their email before logging in
       router.push("/verify-email")
     } catch (err) {
+      console.log("network error", err);
       setError("Network error. Please try again.")
       setLoading(false)
     }

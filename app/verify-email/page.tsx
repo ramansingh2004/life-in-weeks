@@ -64,12 +64,12 @@ export default function VerifyEmailPage() {
         <div className="text-6xl mb-4">📧</div>
         <h1 className="text-3xl font-light mb-2">Verify Your Email</h1>
         <p className="text-zinc-400 mb-6">
-          We've sent a verification link to your email address. Please click the link to verify your account and complete registration.
+          We&apos;ve sent a verification link to your email address. Please click the link to verify your account and complete registration.
         </p>
         
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
           <p className="text-sm text-zinc-300">
-            <strong>Didn't receive the email?</strong>
+            <strong>Didn&apos;t receive the email?</strong>
           </p>
           <ul className="text-xs text-zinc-400 mt-3 text-left space-y-2">
             <li>✓ Check your spam folder</li>

@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
     // Create user with unverified email
-    const user = await User.create({
+    await User.create({
       name,
       email: email.toLowerCase(),
       password: hashed,
