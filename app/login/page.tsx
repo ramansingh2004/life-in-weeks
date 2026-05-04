@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { useAuthStore } from "@/store/useAuthStore"
-import { log } from "console"
 
 export default function LoginPage() {
   const router = useRouter()
