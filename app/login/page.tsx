@@ -1,46 +1,77 @@
 "use client"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { useAuthStore } from "@/store/useAuthStore"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { setUser } = useAuthStore()
-  const [form, setForm] = useState({ email: "", password: "" })
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  })
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Show success message if email was verified
+    if (searchParams.get('verified') === 'true') {
+      setSuccess("✅ Email verified! You can now log in.")
+    }
+  }, [searchParams])
 
   async function handleSubmit() {
     setError("")
+    setSuccess("")
+
     if (!form.email || !form.password) {
-      setError("All fields are required"); return
+      setError("Email and password are required")
+      return
     }
 
     setLoading(true)
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(form),
-    })
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      })
 
-    const data = await res.json()
- 
-    if (!res.ok) {
-      setError(data.error || "Invalid email or password")
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || "Login failed")
+        setLoading(false)
+        return
+      }
+
+      // Check if email is verified
+      if (!data.user?.isEmailVerified) {
+        setError("❌ Please verify your email before logging in. Check your inbox for the verification link.")
+        setLoading(false)
+        return
+      }
+
+      // Email is verified - user can log in
+      setUser(data.user)
+
+      if (data.user?.birthDate) {
+        router.push("/grid")
+      } else {
+        router.push("/")
+      }
+    } catch (err) {
+      setError("Network error. Please try again.")
       setLoading(false)
-      return
     }
-
-    setUser(data.user)
-    if (data.user?.birthDate) {
-    router.push("/grid")
-     } else {
-       router.push("/")
-     }
   }
 
   return (
@@ -68,7 +99,6 @@ export default function LoginPage() {
             placeholder="Email address"
             value={form.email}
             onChange={e => setForm({ ...form, email: e.target.value })}
-            onKeyDown={e => e.key === "Enter" && handleSubmit()}
             className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600"
           />
           <input
@@ -76,7 +106,6 @@ export default function LoginPage() {
             placeholder="Password"
             value={form.password}
             onChange={e => setForm({ ...form, password: e.target.value })}
-            onKeyDown={e => e.key === "Enter" && handleSubmit()}
             className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600"
           />
 
@@ -87,6 +116,16 @@ export default function LoginPage() {
               className="text-red-400 text-xs"
             >
               {error}
+            </motion.p>
+          )}
+
+          {success && (
+            <motion.p
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-green-400 text-xs"
+            >
+              {success}
             </motion.p>
           )}
 
@@ -108,15 +147,20 @@ export default function LoginPage() {
           <div className="flex-1 h-px bg-zinc-800" />
         </div>
 
-        {/* Register link */}
+        {/* Sign up link */}
         <p className="text-zinc-600 text-xs text-center">
-          No account?{" "}
+          No account yet?{" "}
           <Link
             href="/register"
             className="text-zinc-400 hover:text-white transition-colors"
           >
             Create one free
           </Link>
+        </p>
+
+        {/* Privacy */}
+        <p className="text-zinc-800 text-xs text-center mt-6">
+          Your data is stored securely in the cloud
         </p>
       </motion.div>
     </main>

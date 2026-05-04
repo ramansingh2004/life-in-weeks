@@ -3,11 +3,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { useAuthStore } from "@/store/useAuthStore"
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { setUser } = useAuthStore()
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -21,45 +19,46 @@ export default function RegisterPage() {
     setError("")
 
     if (!form.name || !form.email || !form.password) {
-      setError("All fields are required"); return
+      setError("All fields are required")
+      return
     }
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match"); return
+      setError("Passwords do not match")
+      return
     }
     if (form.password.length < 6) {
-      setError("Password must be at least 6 characters"); return
+      setError("Password must be at least 6 characters")
+      return
     }
 
     setLoading(true)
 
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-      }),
-    })
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        }),
+      })
 
-    const data = await res.json()
+      const data = await res.json()
 
-    if (!res.ok) {
-      setError(data.error || "Something went wrong")
+      if (!res.ok) {
+        setError(data.error || "Something went wrong")
+        setLoading(false)
+        return
+      }
+
+      // Success - redirect to verification page
+      // User will verify their email before logging in
+      router.push("/verify-email")
+    } catch (err) {
+      setError("Network error. Please try again.")
       setLoading(false)
-      return
     }
-
-    // Fetch user after registration
-    const meRes = await fetch("/api/auth/me")
-    const meData = await meRes.json()
-    setUser(meData.user)
-
-   if (meData.user?.birthDate) {
-  router.push("/grid")
-} else {
-  router.push("/")
-}
   }
 
   return (
