@@ -148,18 +148,18 @@ export default function GridPage() {
       <Sidebar />
 
       {/* Main Content with padding to avoid hamburger overlap */}
-      <div className="pt-10 px-4 py-10">
+      <div className="pt-14 sm:pt-10 px-4 sm:px-6 py-10">
         <div className="max-w-5xl mx-auto">
           {/* Simplified Header with left padding */}
           <div className="mb-8 pl-0">
-            <h1 className="text-3xl font-light tracking-tight mb-2">Life in Weeks</h1>
+            <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">Life in Weeks</h1>
             <p className="text-zinc-600 text-sm">
               Age {currentAge} · {stats.lived.toLocaleString()} weeks lived · {milestones.length} milestones
             </p>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-3 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
             {[
               { label: "Weeks lived", value: animatedLived.toLocaleString() },
               { label: "Weeks remaining", value: animatedRemaining.toLocaleString() },

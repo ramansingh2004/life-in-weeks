@@ -160,7 +160,7 @@ export default function TimelinePage() {
   const audios = preview?.media?.filter((m) => m.type === "audio") || []
 
   return (
-    <main className="min-h-screen bg-black text-white pt-10 px-4 py-10">
+    <main className="min-h-screen bg-black text-white pt-16 sm:pt-10 px-4 sm:px-6 pb-10">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -170,7 +170,7 @@ export default function TimelinePage() {
           >
             ← Back to grid
           </button>
-          <h1 className="text-3xl font-light tracking-tight mb-2">Your Memory Timeline</h1>
+          <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">Your Memory Timeline</h1>
           <p className="text-zinc-600 text-sm">
             {filtered.length} memory/memories · Browse your life chronologically
           </p>

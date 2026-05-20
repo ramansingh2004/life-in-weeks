@@ -138,7 +138,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto"
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-4 sm:p-6 overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
 
@@ -243,7 +243,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 sticky bottom-0 bg-zinc-900 -mx-6 -mb-6 px-6 py-4 border-t border-zinc-800">
+            <div className="flex gap-3 sticky bottom-0 bg-zinc-900 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 py-4 border-t border-zinc-800">
               <button
                 onClick={onClose}
                 disabled={isSaving}

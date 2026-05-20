@@ -79,7 +79,7 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto"
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-4 sm:p-6 overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -146,7 +146,7 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
                 <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
                   Photos ({images.length})
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {images.map((item) => (
                     <motion.div
                       key={item._id}
@@ -247,7 +247,7 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
             </AnimatePresence>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 sticky bottom-0 bg-zinc-900 -mx-6 -mb-6 px-6 py-4 border-t border-zinc-800">
+            <div className="flex gap-3 sticky bottom-0 bg-zinc-900 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 py-4 border-t border-zinc-800">
               <button
                 onClick={onClose}
                 className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-zinc-600 transition-colors"

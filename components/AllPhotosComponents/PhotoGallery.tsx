@@ -147,10 +147,10 @@ export function PhotoGallery() {
   // Show error state
   if (error) {
     return (
-      <main className="min-h-screen bg-black text-white pt-20 px-4 py-10">
+      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
         <div className="max-w-6xl mx-auto text-center py-20">
           <div className="text-6xl mb-4">⚠️</div>
-          <h1 className="text-3xl font-light mb-4">Error Loading Photos</h1>
+          <h1 className="text-2xl sm:text-3xl font-light mb-4">Error Loading Photos</h1>
           <p className="text-zinc-400 mb-6">{error}</p>
           <button
             onClick={() => {
@@ -175,7 +175,7 @@ export function PhotoGallery() {
   // Show loading state
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-black text-white pt-20 px-4 py-10">
+      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
         <div className="max-w-6xl mx-auto text-center py-20">
           <div className="text-6xl mb-4 animate-bounce">📸</div>
           <h1 className="text-2xl font-light">Loading your photos...</h1>
@@ -187,10 +187,10 @@ export function PhotoGallery() {
   // Show empty state
   if (photos.length === 0) {
     return (
-      <main className="min-h-screen bg-black text-white pt-20 px-4 py-10">
+      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
         <div className="max-w-6xl mx-auto text-center py-20">
           <div className="text-6xl mb-4">📸</div>
-          <h1 className="text-3xl font-light mb-4">No photos yet</h1>
+          <h1 className="text-2xl sm:text-3xl font-light mb-4">No photos yet</h1>
           <p className="text-zinc-400 mb-6">
             Add photos to your weeks to see them here in a beautiful gallery
           </p>
@@ -206,7 +206,7 @@ export function PhotoGallery() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white pt-20 px-4 py-10">
+    <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -216,7 +216,7 @@ export function PhotoGallery() {
           >
             ← Back to grid
           </button>
-          <h1 className="text-4xl font-light tracking-tight mb-2">All Photos</h1>
+          <h1 className="text-2xl sm:text-4xl font-light tracking-tight mb-2">All Photos</h1>
           <p className="text-zinc-600">
             {filteredPhotos.length} photo{filteredPhotos.length !== 1 ? 's' : ''} from your life
           </p>

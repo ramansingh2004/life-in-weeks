@@ -78,11 +78,11 @@ export default function StatsPage() {
   if (!hydrated) return null
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 py-10">
+    <main className="min-h-screen bg-black text-white px-4 sm:px-6 pt-16 sm:pt-10 pb-10">
 
       {/* Header */}
       <div className="max-w-2xl mx-auto mb-8">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
           <h1 className="text-xl font-light tracking-tight">Your Stats</h1>
           <button
             onClick={() => router.push("/grid")}
@@ -120,7 +120,7 @@ export default function StatsPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="max-w-2xl mx-auto grid grid-cols-2 gap-3 mb-10">
+      <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
         {stats.map((stat, i) => (
           <motion.div
             key={stat.label}

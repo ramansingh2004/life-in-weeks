@@ -116,7 +116,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4 sm:px-6 relative overflow-hidden">
       {/* Background grid decoration */}
       <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -143,14 +143,14 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
             transition={{ duration: 0.7, ease: "easeOut" }}
-            className="w-full max-w-md relative z-10"
+            className="w-full max-w-md relative z-10 px-1"
           >
             {/* Mini grid preview */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="flex flex-wrap gap-[3px] justify-center mb-10"
+              className="flex flex-wrap gap-[3px] justify-center mb-10 max-w-full overflow-hidden"
             >
               {Array.from({ length: 80 * 4 }, (_, i) => (
                 <div
@@ -183,7 +183,7 @@ export default function Home() {
               transition={{ delay: 0.2 }}
               className="text-center mb-10"
             >
-              <h1 className="text-6xl font-light text-white tracking-tight mb-3">
+              <h1 className="text-4xl sm:text-6xl font-light text-white tracking-tight mb-3">
                 Life in Weeks
               </h1>
               <p className="text-zinc-500 text-sm leading-relaxed">
@@ -263,7 +263,7 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
-              className="flex justify-center gap-6 mt-10"
+              className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-10"
             >
               {[
                 { icon: "◈", label: "Grid view" },

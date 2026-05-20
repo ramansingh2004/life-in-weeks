@@ -47,11 +47,11 @@ export default function JournalPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 py-10">
+    <main className="min-h-screen bg-black text-white px-4 sm:px-6 pt-16 sm:pt-10 pb-10">
 
       {/* Header */}
       <div className="max-w-2xl mx-auto mb-8">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
           <h1 className="text-xl font-light tracking-tight">Journal</h1>
           <button
             onClick={() => router.push("/grid")}
@@ -66,7 +66,7 @@ export default function JournalPage() {
       </div>
 
       {/* Search */}
-      <div className="max-w-2xl mx-auto mb-4">
+      <div className="max-w-2xl mx-auto mb-4 w-full">
         <input
           type="text"
           placeholder="Search your memories and dreams..."

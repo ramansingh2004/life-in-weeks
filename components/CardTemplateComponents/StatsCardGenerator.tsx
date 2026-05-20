@@ -173,7 +173,7 @@ export function StatsCardGenerator() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white pt-20 px-4 py-10">
+    <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-12">
@@ -183,7 +183,7 @@ export function StatsCardGenerator() {
           >
             ← Back to grid
           </button>
-          <h1 className="text-5xl font-light tracking-tight mb-2">Stats Cards</h1>
+          <h1 className="text-3xl sm:text-5xl font-light tracking-tight mb-2">Stats Cards</h1>
           <p className="text-zinc-600">Create and share your life statistics</p>
         </div>
 

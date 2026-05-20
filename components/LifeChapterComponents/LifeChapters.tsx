@@ -115,7 +115,7 @@ export function LifeChapters() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-black text-white pt-20 px-4 py-10">
+      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
         <div className="max-w-6xl mx-auto text-center py-20">
           <div className="text-6xl mb-4 animate-bounce">📖</div>
           <h1 className="text-2xl font-light">Generating your life story...</h1>
@@ -126,10 +126,10 @@ export function LifeChapters() {
 
   if (chapters.length === 0) {
     return (
-      <main className="min-h-screen bg-black text-white pt-20 px-4 py-10">
+      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
         <div className="max-w-6xl mx-auto text-center py-20">
           <div className="text-6xl mb-4">📖</div>
-          <h1 className="text-3xl font-light mb-4">No chapters yet</h1>
+          <h1 className="text-2xl sm:text-3xl font-light mb-4">No chapters yet</h1>
           <p className="text-zinc-400 mb-6">
             Add memories and tags to your weeks to unlock your life story
           </p>
@@ -145,7 +145,7 @@ export function LifeChapters() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white pt-20 px-4 py-10">
+    <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-12">
@@ -155,7 +155,7 @@ export function LifeChapters() {
           >
             ← Back to grid
           </button>
-          <h1 className="text-5xl font-light tracking-tight mb-2">Your Life Story</h1>
+          <h1 className="text-3xl sm:text-5xl font-light tracking-tight mb-2">Your Life Story</h1>
           <p className="text-zinc-600">
             {chapters.length} chapter{chapters.length !== 1 ? 's' : ''} of your journey
           </p>

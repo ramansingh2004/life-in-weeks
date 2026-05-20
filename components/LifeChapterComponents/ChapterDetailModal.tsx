@@ -68,9 +68,9 @@ export function ChapterDetailModal({
         className="bg-zinc-900 border border-zinc-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 p-6 flex items-start justify-between">
+        <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 p-4 sm:p-6 flex items-start justify-between">
           <div>
-            <h2 className="text-4xl mb-2">
+            <h2 className="text-2xl sm:text-4xl mb-2">
               {chapter.emoji} {chapter.title}
             </h2>
             <p className="text-zinc-400">
@@ -86,7 +86,7 @@ export function ChapterDetailModal({
         </div>
 
         {/* Tabs */}
-        <div className="sticky top-20 bg-zinc-950 border-b border-zinc-800 px-6 flex gap-4">
+        <div className="sticky top-20 bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 flex gap-2 sm:gap-4 overflow-x-auto">
           {[
             { id: 'overview', label: '📋 Overview', count: null },
             { id: 'photos', label: '📸 Photos', count: photos.length },
@@ -108,7 +108,7 @@ export function ChapterDetailModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <motion.div
