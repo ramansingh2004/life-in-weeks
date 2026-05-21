@@ -13,6 +13,14 @@ const UserSchema = new Schema<IUser>({
     lowercase: true,
     trim: true
   },
+  googleId: { 
+    type: String,
+    default: null 
+  },
+  image: { 
+  type: String,
+  default: null 
+  },
   password: { 
     type: String,
     required: true

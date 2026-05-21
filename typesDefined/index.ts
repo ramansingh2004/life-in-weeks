@@ -71,6 +71,8 @@ export interface IUser {
   name: string
   email: string
   password: string
+  googleId?: string | null
+  image?: string | null
   birthDate?: string
   lifeExpectancy: number
   isEmailVerified: boolean
