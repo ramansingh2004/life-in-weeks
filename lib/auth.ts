@@ -1,10 +1,23 @@
 // lib/auth.ts
-import { NextAuthOptions } from "next-auth"
+import { NextAuthOptions, DefaultSession } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/models/User.model"
 import bcrypt from "bcryptjs"
+
+declare module "next-auth" {
+  interface Session extends DefaultSession {
+    user: {
+      id: string
+    } & DefaultSession["user"]
+  }
+
+  interface JWT {
+    id?: string
+    provider?: string
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -110,21 +123,28 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (session.user) {
-        const sessionUser = session.user as {
-          id?: string
-          name?: string | null
-          email?: string | null
-          image?: string | null
-        }
-        sessionUser.id = token.id as string
+        session.user.id = token.id as string
       }
       return session
     },
 
     async redirect({ url, baseUrl }) {
-      // Redirect to /grid after successful login
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      else if (new URL(url).origin === baseUrl) return url
+      console.log("🔀 Redirect callback:", { url, baseUrl })
+      
+      // If the callback URL is a relative path, prepend baseUrl
+      if (url.startsWith("/")) {
+        console.log("📍 Relative URL, redirecting to:", `${baseUrl}${url}`)
+        return `${baseUrl}${url}`
+      }
+      
+      // If the URL is from the same domain, allow it
+      if (new URL(url).origin === baseUrl) {
+        console.log("📍 Same origin, allowing:", url)
+        return url
+      }
+
+      // Default redirect to /grid (or / if no birthDate)
+      console.log("📍 Default redirect to /grid")
       return `${baseUrl}/grid`
     },
   },
@@ -142,4 +162,6 @@ export const authOptions: NextAuthOptions = {
   jwt: {
     maxAge: 7 * 24 * 60 * 60, // 7 days
   },
+
+  debug: true, // Enable debug logs (disable in production)
 }

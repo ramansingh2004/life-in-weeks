@@ -1,32 +1,46 @@
+import { getToken } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
 
-const PROTECTED = ["/grid", "/journal", "/stats"]
-const AUTH_PAGES = ["/login", "/register"]
+export async function middleware(request: NextRequest) {
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  })
 
-export function middleware(req: NextRequest) {
-  const token = req.cookies.get("token")?.value
-  const { pathname } = req.nextUrl
+  const pathname = request.nextUrl.pathname
 
-  const isProtected = PROTECTED.some(p => pathname.startsWith(p))
-  const isAuthPage = AUTH_PAGES.some(p => pathname.startsWith(p))
+  // List of protected routes
+  const protectedRoutes = ["/grid", "/timeline", "/journal", "/stats", "/milestone", "/memory"]
 
-  // Just check if token EXISTS, don't verify it
-  const hasToken = !!token
+  // Check if current route is protected
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
-  // Protected route → must have token
-  if (isProtected && !hasToken) {
-    console.log(`[Middleware] ❌ No token, redirecting to /login`)
-    return NextResponse.redirect(new URL("/login", req.url))
+  // If trying to access protected route without token, redirect to login
+  if (isProtectedRoute && !token) {
+    return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // Auth pages → if has token, let pages decide what to do
-  if (isAuthPage && hasToken) {
-    console.log(`[Middleware] 📝 Has token on auth page, allowing access`)
+  // If user is logged in and tries to access login/register, redirect to grid
+  if ((pathname === "/login" || pathname === "/register") && token) {
+    return NextResponse.redirect(new URL("/grid", request.url))
   }
 
+  // Allow the request to proceed
   return NextResponse.next()
 }
 
+// Only run middleware on these routes
 export const config = {
-  matcher: ["/grid/:path*", "/journal/:path*", "/stats/:path*", "/login", "/register"],
+  matcher: [
+    // Protected routes
+    "/grid/:path*",
+    "/timeline/:path*",
+    "/journal/:path*",
+    "/stats/:path*",
+    "/milestone/:path*",
+    "/memory/:path*",
+    // Auth routes
+    "/login",
+    "/register",
+  ],
 }
