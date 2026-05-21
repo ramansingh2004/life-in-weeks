@@ -36,6 +36,7 @@ function LoginContent() {
         router.push("/grid")
       }
     } catch (err) {
+      console.error("Network error:", err)
       setError("Network error. Please try again.")
     } finally {
       setLoading(false)
@@ -64,6 +65,7 @@ function LoginContent() {
         router.push("/grid")
       }
     } catch (err) {
+      console.error("Network error.", err)
       setError("Network error. Please try again.")
     } finally {
       setLoading(false)

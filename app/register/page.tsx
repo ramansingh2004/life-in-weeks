@@ -32,6 +32,7 @@ export default function RegisterPage() {
         router.push("/")
       }
     } catch (err) {
+      console.error("Network error.", err)
       setError("Network error. Please try again.")
     } finally {
       setLoading(false)
@@ -78,6 +79,7 @@ export default function RegisterPage() {
       // Success - redirect to verification page
       router.push("/verify-email")
     } catch (err) {
+      console.error("Network error.", err)
       setError("Network error. Please try again.")
     } finally {
       setLoading(false)
