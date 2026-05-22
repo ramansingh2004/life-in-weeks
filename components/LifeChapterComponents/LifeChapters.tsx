@@ -9,6 +9,8 @@ import { ChapterTimeline } from './ChapterTimeline'
 import { ChapterCard } from './ChapterCard'
 import { ChapterDetailModal } from './ChapterDetailModal'
 import { Chapter } from '@/typesDefined'
+import Sidebar from '@/components/Sidebar'
+
 
 interface Milestone {
   icon: string
@@ -127,6 +129,8 @@ export function LifeChapters() {
   if (chapters.length === 0) {
     return (
       <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
+        {/* Sidebar */}
+        <Sidebar />
         <div className="max-w-6xl mx-auto text-center py-20">
           <div className="text-6xl mb-4">📖</div>
           <h1 className="text-2xl sm:text-3xl font-light mb-4">No chapters yet</h1>
@@ -146,6 +150,8 @@ export function LifeChapters() {
 
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
+      {/* Sidebar */}
+      <Sidebar />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-12">

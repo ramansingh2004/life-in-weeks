@@ -8,6 +8,8 @@ import { PhotoGrid } from './PhotoGrid'
 import { PhotoFilters } from './PhotoFilters'
 import { PhotoStats } from './PhotoStats'
 import { PhotoViewer } from './PhotoViewer'
+import Sidebar from '@/components/Sidebar'
+
 
 type PhotoItem = {
   _id: string
@@ -207,7 +209,10 @@ export function PhotoGallery() {
 
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
+      {/* Sidebar */}
+      <Sidebar />
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
         <div className="mb-8">
           <button

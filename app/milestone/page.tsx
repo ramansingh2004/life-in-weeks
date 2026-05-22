@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { useMilestoneStore, Milestone } from "@/store/useMilestoneStore"
 import MilestoneModal from "@/components/MilestoneModal"
+import Sidebar from "@/components/Sidebar"
 import { CATEGORY_COLORS } from "@/typesDefined"
+
 
 export default function MilestonesPage() {
   const router = useRouter()
@@ -59,7 +61,10 @@ export default function MilestonesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 py-10">
+    <main className="min-h-screen bg-black text-white pt-14 sm:pt-10 px-4 py-10">
+      {/* Sidebar */}
+      <Sidebar />
+
       {/* Header */}
       <div className="max-w-3xl mx-auto mb-8">
         <div className="flex items-center justify-between">

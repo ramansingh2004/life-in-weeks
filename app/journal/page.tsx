@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { useLifeStore } from "@/store/useCapsuleStore"
 import { WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from "@/typesDefined"
+import Sidebar from "@/components/Sidebar"
+
 
 type Filter = "all" | "memories" | "dreams"
 
@@ -48,6 +50,9 @@ export default function JournalPage() {
 
   return (
     <main className="min-h-screen bg-black text-white px-4 sm:px-6 pt-16 sm:pt-10 pb-10">
+      {/* Sidebar */}
+      <Sidebar />
+
 
       {/* Header */}
       <div className="max-w-2xl mx-auto mb-8">

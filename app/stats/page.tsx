@@ -6,6 +6,8 @@ import { differenceInWeeks, differenceInYears, format } from "date-fns"
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { MOOD_LABELS } from "@/typesDefined"
 import { useLifeStore } from "@/store/useCapsuleStore"
+import Sidebar from "@/components/Sidebar"
+
 
 type StatCard = { label: string; value: string; sub?: string }
 
@@ -79,6 +81,9 @@ export default function StatsPage() {
 
   return (
     <main className="min-h-screen bg-black text-white px-4 sm:px-6 pt-16 sm:pt-10 pb-10">
+      {/* Sidebar */}
+      <Sidebar />
+
 
       {/* Header */}
       <div className="max-w-2xl mx-auto mb-8">

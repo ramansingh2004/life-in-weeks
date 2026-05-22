@@ -9,6 +9,8 @@ import { SummaryCard } from './SummaryCard'
 import { MoodCard } from './MoodCard'
 import { MilestonesCard } from './MilestonesCard'
 import { ProgressCard } from './ProgressCard'
+import Sidebar from '@/components/Sidebar'
+
 
 interface Note {
      weekIndex: number
@@ -174,7 +176,10 @@ export function StatsCardGenerator() {
 
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
+      {/* Sidebar */}
+      <Sidebar />
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
         <div className="mb-12">
           <button

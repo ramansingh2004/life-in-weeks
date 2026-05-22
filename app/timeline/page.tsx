@@ -7,6 +7,8 @@ import { useLifeStore } from "@/store/useCapsuleStore"
 import { MOOD_COLORS, MOOD_LABELS } from "@/typesDefined"
 import { TagFilter } from '@/components/TagComponents/TagFilter'
 import Image from 'next/image'
+import Sidebar from "@/components/Sidebar"
+
 
 type MediaItem = {
   _id: string
@@ -161,6 +163,9 @@ export default function TimelinePage() {
 
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-10 px-4 sm:px-6 pb-10">
+      {/* Sidebar */}
+      <Sidebar />
+
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">
