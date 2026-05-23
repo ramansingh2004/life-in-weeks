@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
+import {  NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/models/User.model"
 import { getAuthUser } from "@/lib/getUser"
 import mongoose from "mongoose"
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const auth = await getAuthUser()
     if (!auth || !auth.userId) {
