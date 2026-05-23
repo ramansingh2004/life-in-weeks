@@ -35,3 +35,8 @@ export const TagSearchSchema = z.object({
   query: z.string().min(1).max(50),
   limit: z.number().int().positive().default(10),
 });
+
+export type TagCreate = z.infer<typeof TagCreateSchema>;
+export type TagUpdate = z.infer<typeof TagUpdateSchema>;
+export type TagResponse = z.infer<typeof TagResponseSchema>;
+export type TagMerge = z.infer<typeof TagMergeSchema>;

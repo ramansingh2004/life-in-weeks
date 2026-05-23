@@ -46,3 +46,5 @@ export const MediaTypeSchema = z.enum(['image', 'video', 'audio']);
 export const VerifyEmailSchema = z.object({
   token: z.string().min(1, 'Verification token is required').min(64, 'Invalid token format')
 })
+
+export type VerifyEmail = z.infer<typeof VerifyEmailSchema>

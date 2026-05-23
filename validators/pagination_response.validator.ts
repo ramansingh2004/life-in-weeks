@@ -30,3 +30,7 @@ export const PaginatedResponseSchema = z.object({
     hasMore: z.boolean(),
   }),
 });
+
+export type SuccessResponse = z.infer<typeof SuccessResponseSchema>;
+export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
+export type PaginatedResponse = z.infer<typeof PaginatedResponseSchema>;

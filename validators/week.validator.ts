@@ -47,3 +47,8 @@ export const WeekFilterSchema = z.object({
 }, {
   message: 'startWeek must be less than or equal to endWeek',
 });
+
+export type WeekData = z.infer<typeof WeekDataSchema>;
+export type WeekUpdate = z.infer<typeof WeekUpdateSchema>;
+export type WeekResponse = z.infer<typeof WeekResponseSchema>;
+export type WeekFilter = z.infer<typeof WeekFilterSchema>;

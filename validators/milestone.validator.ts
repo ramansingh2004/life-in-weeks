@@ -36,3 +36,8 @@ export const MilestoneFilterSchema = z.object({
   limit: z.number().int().positive().default(20),
   skip: z.number().int().nonnegative().default(0),
 });
+
+export type MilestoneCreate = z.infer<typeof MilestoneCreateSchema>;
+export type MilestoneUpdate = z.infer<typeof MilestoneUpdateSchema>;
+export type MilestoneResponse = z.infer<typeof MilestoneResponseSchema>;
+export type MilestoneFilter = z.infer<typeof MilestoneFilterSchema>;

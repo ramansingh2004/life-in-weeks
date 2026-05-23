@@ -6,31 +6,56 @@ import { Milestone } from '@/models/Milestone.model'
 import { Media } from '@/models/Media.model'
 import { connectDB } from '@/lib/mongodb'
 import { detectChapterBreaks, generateChapterTitle, generateChapterDescription } from '@/lib/chapterDetection'
+import { LifeChapterCreateSchema, type LifeChapterCreate } from '@/validators/chapter.validator'
 
 export async function POST() {
   try {
+    console.log('🎬 [GENERATE_CHAPTERS] Chapter generation started')
+
     await connectDB()
+    console.log('✅ [GENERATE_CHAPTERS] Database connected')
+
     const user = await getAuthUser()
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      console.warn('⚠️ [GENERATE_CHAPTERS] Unauthorized')
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Unauthorized',
+            code: 'UNAUTHORIZED'
+          }
+        },
+        { status: 401 }
+      )
     }
 
     const userId = user.userId || user.userId
 
     // Fetch all weeks for user
+    console.log('🔍 [GENERATE_CHAPTERS] Fetching weeks for user')
     const weeks = await Week.find({ userId }).sort({ weekIndex: 1 })
 
     if (weeks.length === 0) {
-      return NextResponse.json({ chapters: [] })
+      console.log('⚠️ [GENERATE_CHAPTERS] No weeks found')
+      return NextResponse.json({
+        success: true,
+        data: {
+          chapters: []
+        },
+        message: 'No weeks found'
+      })
     }
+
+    console.log(`📊 [GENERATE_CHAPTERS] Found ${weeks.length} weeks`)
 
     // Detect chapter breaks
     const breaks = detectChapterBreaks(weeks)
-    console.log(`🎬 Detected ${breaks.length} chapter breaks`)
+    console.log(`🎬 [GENERATE_CHAPTERS] Detected ${breaks.length} chapter breaks`)
 
     // Create chapters from breaks
-    const chapters = []
+    const chapters: typeof LifeChapter[] = []
     let chapterStart = 0
 
     const breakPoints = breaks.map(b => b.startWeek).filter((v, i, a) => a.indexOf(v) === i)
@@ -44,6 +69,8 @@ export async function POST() {
       const chapterWeeks = weeks.filter(w => w.weekIndex >= chapterStart && w.weekIndex < endWeek)
 
       if (chapterWeeks.length === 0) continue
+
+      console.log(`📝 [GENERATE_CHAPTERS] Creating chapter: weeks ${chapterStart} to ${endWeek}`)
 
       // Get stats
       const tags = new Set<string>()
@@ -76,11 +103,10 @@ export async function POST() {
 
       // Generate title and emoji
       const { title, emoji } = generateChapterTitle(Array.from(tags), averageMood)
-      const description = generateChapterDescription( Array.from(tags) )
+      const description = generateChapterDescription(Array.from(tags))
 
-      // Create chapter
-      const chapter = new LifeChapter({
-        userId,
+      // ✅ VALIDATE CHAPTER DATA WITH ZOD
+      const chapterData: LifeChapterCreate = {
         startWeek: chapterStart,
         endWeek: endWeek - 1,
         title,
@@ -90,21 +116,62 @@ export async function POST() {
         averageMood,
         photoCount: photos,
         milestoneCount: milestonesCount,
-      })
+      }
 
+      const parsed = LifeChapterCreateSchema.safeParse(chapterData)
+
+      if (!parsed.success) {
+        console.warn('⚠️ [GENERATE_CHAPTERS] Chapter validation failed:', parsed.error.issues)
+        continue // Skip this chapter if validation fails
+      }
+
+      // Create chapter
+      const chapter = new LifeChapter(parsed.data)
       await chapter.save()
       chapters.push(chapter)
+
+      console.log(`✅ [GENERATE_CHAPTERS] Chapter created:`, {
+        title: chapter.title,
+        weeks: `${chapter.startWeek}-${chapter.endWeek}`
+      })
 
       chapterStart = endWeek
     }
 
-    console.log(`✅ Created ${chapters.length} chapters`)
+    console.log(`✅ [GENERATE_CHAPTERS] Created ${chapters.length} chapters`)
 
-    return NextResponse.json({ chapters })
-  } catch (error) {
-    console.error('Generate chapters error:', error)
     return NextResponse.json(
-      { error: 'Failed to generate chapters' },
+      {
+        success: true,
+        data: {
+          chapters,
+          count: chapters.length
+        },
+        message: `Successfully generated ${chapters.length} chapters`
+      },
+      { status: 201 }
+    )
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : 'No stack'
+
+    console.error('❌ [GENERATE_CHAPTERS] Generate chapters error:', errorMessage)
+    console.error('   Stack:', errorStack)
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: 'Failed to generate chapters',
+          code: 'GENERATION_FAILED',
+          ...(process.env.NODE_ENV !== "production" && {
+            details: {
+              message: errorMessage,
+              stack: errorStack
+            }
+          })
+        }
+      },
       { status: 500 }
     )
   }

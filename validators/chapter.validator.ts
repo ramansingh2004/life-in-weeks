@@ -8,6 +8,9 @@ export const LifeChapterCreateSchema = z.object({
   emoji: z.string().emoji('Must be a valid emoji'),
   description: z.string().max(500).optional(),
   keyTags: z.array(z.string()).default([]),
+  averageMood: z.number().default(0),
+  photoCount: z.number().int().nonnegative().default(0),
+  milestoneCount: z.number().int().nonnegative().default(0),
 }).refine((data) => data.startWeek <= data.endWeek, {
   message: 'startWeek must be less than or equal to endWeek',
   path: ['endWeek'],
@@ -36,3 +39,8 @@ export const LifeChapterFilterSchema = z.object({
   skip: z.number().int().nonnegative().default(0),
   sort: z.enum(['newest', 'oldest']).default('newest'),
 });
+
+export type LifeChapterCreate = z.infer<typeof LifeChapterCreateSchema>;
+export type LifeChapterUpdate = z.infer<typeof LifeChapterUpdateSchema>;
+export type LifeChapterResponse = z.infer<typeof LifeChapterResponseSchema>;
+export type LifeChapterFilter = z.infer<typeof LifeChapterFilterSchema>;

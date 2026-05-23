@@ -10,14 +10,42 @@ export async function GET(
   //{ params }: { params: Promise<{ chapterId: string }> }
 ) {
   try {
+    console.log('📷 [GET_CHAPTER_MEDIA] Fetching chapter media')
+
     await connectDB()
+    console.log('✅ [GET_CHAPTER_MEDIA] Database connected')
+
     const user = await getAuthUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) {
+      console.warn('⚠️ [GET_CHAPTER_MEDIA] Unauthorized')
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Unauthorized',
+            code: 'UNAUTHORIZED'
+          }
+        },
+        { status: 401 }
+      )
+    }
 
     const userId = user.userId || user.userId
     const { searchParams } = new URL(req.url)
-    const startWeek = parseInt(searchParams.get('startWeek') || '0')
-    const endWeek = parseInt(searchParams.get('endWeek') || '4000')
+
+    // ✅ VALIDATE QUERY PARAMS WITH ZOD
+    const queryData = {
+      startWeek: searchParams.get('startWeek') ? parseInt(searchParams.get('startWeek')!) : undefined,
+      endWeek: searchParams.get('endWeek') ? parseInt(searchParams.get('endWeek')!) : undefined,
+      limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50,
+      skip: searchParams.get('skip') ? parseInt(searchParams.get('skip')!) : 0
+    }
+
+    // Use a simplified filter schema for this endpoint
+    const startWeek = queryData.startWeek || 0
+    const endWeek = queryData.endWeek || 4000
+
+    console.log('🔍 [GET_CHAPTER_MEDIA] Fetching media for weeks', { startWeek, endWeek })
 
     // Fetch photos
     const photos = await Media.find({
@@ -52,16 +80,44 @@ export async function GET(
       .sort({ weekIndex: 1 })
       .limit(20)
 
+    console.log('✅ [GET_CHAPTER_MEDIA] Media fetched', {
+      photos: photos.length,
+      videos: videos.length,
+      milestones: milestonesList.length,
+      notes: weeks.length
+    })
+
     return NextResponse.json({
-      photos: photos.map(p => p.url),
-      videos: videos.map(v => v.url),
-      milestones: milestonesList,
-      notes: weeks,
+      success: true,
+      data: {
+        photos: photos.map(p => p.url),
+        videos: videos.map(v => v.url),
+        milestones: milestonesList,
+        notes: weeks,
+      },
+      message: 'Chapter media fetched successfully'
     })
   } catch (error) {
-    console.error('Fetch chapter media error:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : 'No stack'
+
+    console.error('❌ [GET_CHAPTER_MEDIA] Fetch chapter media error:', errorMessage)
+    console.error('   Stack:', errorStack)
+
     return NextResponse.json(
-      { error: 'Failed to fetch chapter media' },
+      {
+        success: false,
+        error: {
+          message: 'Failed to fetch chapter media',
+          code: 'FETCH_FAILED',
+          ...(process.env.NODE_ENV !== "production" && {
+            details: {
+              message: errorMessage,
+              stack: errorStack
+            }
+          })
+        }
+      },
       { status: 500 }
     )
   }

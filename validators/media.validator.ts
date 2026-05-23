@@ -41,3 +41,7 @@ export const MediaFilterSchema = z.object({
   limit: z.number().int().positive().default(20),
   skip: z.number().int().nonnegative().default(0),
 });
+
+export type MediaUpload = z.infer<typeof MediaUploadSchema>;
+export type MediaResponse = z.infer<typeof MediaResponseSchema>;
+export type MediaFilter = z.infer<typeof MediaFilterSchema>;

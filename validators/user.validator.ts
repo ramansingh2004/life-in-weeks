@@ -51,3 +51,9 @@ export const ChangePasswordSchema = z.object({
   message: 'New password must be different from current password',
   path: ['newPassword'],
 });
+
+export type UserRegister = z.infer<typeof UserRegisterSchema>;
+export type UserLogin = z.infer<typeof UserLoginSchema>;
+export type UserProfileUpdate = z.infer<typeof UserProfileUpdateSchema>;
+export type UserResponse = z.infer<typeof UserResponseSchema>;
+export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
