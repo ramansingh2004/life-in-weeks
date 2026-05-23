@@ -1,17 +1,25 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/models/User.model"
 import { getAuthUser } from "@/lib/getUser"
+import mongoose from "mongoose"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const auth = await getAuthUser()
-    if (!auth) {
+    if (!auth || !auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     await connectDB()
-    const user = await User.findById(auth.userId).select("-password")
+    
+    let user = null
+    if (mongoose.Types.ObjectId.isValid(auth.userId)) {
+      user = await User.findById(auth.userId).select("-password")
+    } else {
+      user = await User.findOne({ googleId: auth.userId }).select("-password")
+    }
+
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }

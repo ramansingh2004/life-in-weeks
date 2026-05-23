@@ -118,6 +118,20 @@ export const authOptions: NextAuthOptions = {
       if (account) {
         token.provider = account.provider
       }
+
+      // If user logs in via Google (or another OAuth provider), look up their MongoDB user id
+      if (token.email) {
+        try {
+          await connectDB()
+          const dbUser = await User.findOne({ email: token.email })
+          if (dbUser) {
+            token.id = dbUser._id.toString()
+          }
+        } catch (err) {
+          console.error("Error in jwt callback fetching user:", err)
+        }
+      }
+
       return token
     },
 
