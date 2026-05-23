@@ -3,6 +3,7 @@ import { getAuthUser } from '@/lib/getUser'
 import { Media } from '@/models/Media.model'
 import { connectDB } from '@/lib/mongodb'
 import cloudinary from '@/lib/cloudinary'
+import { UploadApiResponse } from 'cloudinary'
 
 interface MediaQuery {
   userId: string
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    const uploadResult = await new Promise<any>((resolve, reject) => {
+    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
           folder: "life-in-weeks",
@@ -110,8 +111,10 @@ export async function POST(req: NextRequest) {
           if (error) {
             console.error("Cloudinary upload error:", error)
             reject(error)
-          } else {
+          } else if (res) {
             resolve(res)
+          } else {
+            reject(new Error("Cloudinary upload returned no result"))
           }
         }
       ).end(buffer)
