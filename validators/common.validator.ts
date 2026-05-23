@@ -42,4 +42,7 @@ export const CategorySchema = z.enum([
  
 export const MediaTypeSchema = z.enum(['image', 'video', 'audio']);
 
-
+// ✅ VERIFY EMAIL SCHEMA
+export const VerifyEmailSchema = z.object({
+  token: z.string().min(1, 'Verification token is required').min(64, 'Invalid token format')
+})

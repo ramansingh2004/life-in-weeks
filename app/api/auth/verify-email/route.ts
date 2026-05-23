@@ -1,8 +1,8 @@
-// app/api/auth/verify-email/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { connectDB } from '@/lib/mongodb'
 import { User } from '@/models/User.model'
+import { VerifyEmailSchema } from '@/validators/common.validator'
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,16 +11,35 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const token = searchParams.get('token')
 
-    if (!token) {
-      console.warn('⚠️ [VERIFY] No token provided')
-      return NextResponse.json({ error: 'Token required' }, { status: 400 })
+    // ✅ VALIDATE INPUT WITH ZOD
+    const parsed = VerifyEmailSchema.safeParse({ token })
+
+    if (!parsed.success) {
+      console.warn('⚠️ [VERIFY] Validation failed:', parsed.error.issues)
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Invalid verification token',
+            code: 'INVALID_TOKEN',
+            details: parsed.error.issues.map(err => ({
+              field: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            }))
+          }
+        },
+        { status: 400 }
+      )
     }
+
+    const { token: validToken } = parsed.data
 
     await connectDB()
     console.log('✅ [VERIFY] Database connected')
 
     // Hash the token to match what's in the database
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+    const tokenHash = crypto.createHash('sha256').update(validToken).digest('hex')
     console.log('🔍 [VERIFY] Searching for token match...')
 
     // Find user with matching token and check if it's not expired
@@ -32,7 +51,13 @@ export async function GET(req: NextRequest) {
     if (!user) {
       console.warn('⚠️ [VERIFY] Invalid or expired token')
       return NextResponse.json(
-        { error: 'Invalid or expired verification link' },
+        {
+          success: false,
+          error: {
+            message: 'Invalid or expired verification link',
+            code: 'VERIFICATION_FAILED'
+          }
+        },
         { status: 400 }
       )
     }
@@ -54,10 +79,25 @@ export async function GET(req: NextRequest) {
     )
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : 'No stack'
+
     console.error('❌ [VERIFY] Email verification error:', errorMessage)
+    console.error('   Stack:', errorStack)
 
     return NextResponse.json(
-      { error: 'Failed to verify email' },
+      {
+        success: false,
+        error: {
+          message: 'Failed to verify email',
+          code: 'SERVER_ERROR',
+          ...(process.env.NODE_ENV !== "production" && {
+            details: {
+              message: errorMessage,
+              stack: errorStack
+            }
+          })
+        }
+      },
       { status: 500 }
     )
   }

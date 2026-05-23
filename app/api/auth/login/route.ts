@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb"
 import { User } from "@/models/User.model"
 import { signToken } from "@/lib/jwt"
 import bcrypt from "bcryptjs"
+import { UserLoginSchema, UserResponseSchema } from "@/validators/user.validator"
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,17 +12,32 @@ export async function POST(req: NextRequest) {
     await connectDB()
     console.log("✅ [LOGIN] Database connected")
 
-    const { email, password } = await req.json()
-    console.log("📦 [LOGIN] Body parsed:", { email })
+    const body = await req.json()
+    console.log("📦 [LOGIN] Body parsed:", { email: body.email })
 
-    // Validate input
-    if (!email || !password) {
-      console.warn("⚠️ [LOGIN] Missing required fields")
+    // ✅ VALIDATE INPUT WITH ZOD
+    const parsed = UserLoginSchema.safeParse(body)
+    
+    if (!parsed.success) {
+      console.warn("⚠️ [LOGIN] Validation failed:", parsed.error.issues)
       return NextResponse.json(
-        { error: "Email and password required" },
-        { status: 400 }
+        {
+          success: false,
+          error: {
+            message: 'Validation failed',
+            code: 'VALIDATION_ERROR',
+            details: parsed.error.issues.map(err => ({
+              field: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            }))
+          }
+        },
+        { status: 422 }
       )
     }
+
+    const { email, password } = parsed.data
 
     // Find user
     console.log("🔍 [LOGIN] Finding user...")
@@ -29,7 +45,13 @@ export async function POST(req: NextRequest) {
     if (!user) {
       console.warn("⚠️ [LOGIN] User not found:", email)
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        {
+          success: false,
+          error: {
+            message: 'Invalid credentials',
+            code: 'AUTH_FAILED'
+          }
+        },
         { status: 401 }
       )
     }
@@ -39,7 +61,13 @@ export async function POST(req: NextRequest) {
     if (!user.isEmailVerified) {
       console.warn("⚠️ [LOGIN] Email not verified for user:", email)
       return NextResponse.json(
-        { error: "Please verify your email before logging in. Check your inbox for the verification link." },
+        {
+          success: false,
+          error: {
+            message: 'Please verify your email before logging in. Check your inbox for the verification link.',
+            code: 'EMAIL_NOT_VERIFIED'
+          }
+        },
         { status: 403 }
       )
     }
@@ -51,7 +79,13 @@ export async function POST(req: NextRequest) {
     if (!isPasswordValid) {
       console.warn("⚠️ [LOGIN] Invalid password for user:", email)
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        {
+          success: false,
+          error: {
+            message: 'Invalid credentials',
+            code: 'AUTH_FAILED'
+          }
+        },
         { status: 401 }
       )
     }
@@ -62,19 +96,28 @@ export async function POST(req: NextRequest) {
     const token = signToken(user._id.toString())
     console.log("✅ [LOGIN] Token signed")
 
+    // ✅ VALIDATE RESPONSE WITH ZOD
+    const userResponse = UserResponseSchema.parse({
+      _id: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      birthDate: user.birthDate,
+      lifeExpectancy: user.lifeExpectancy,
+      image: user.image,
+      isEmailVerified: user.isEmailVerified,
+      createdAt: user.createdAt,
+    })
+
     // Create response with cookie
     console.log("🍪 [LOGIN] Setting auth cookie...")
     const res = NextResponse.json(
       {
         success: true,
-        user: {
-          _id: user._id,
-          email: user.email,
-          name: user.name,
-          birthDate: user.birthDate,
-          lifeExpectancy: user.lifeExpectancy,
-          isEmailVerified: user.isEmailVerified,
+        data: {
+          user: userResponse,
+          token: token
         },
+        message: 'Login successful'
       },
       { status: 200 }
     )
@@ -99,9 +142,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        error: "Server error",
-        message: errorMessage,
-        ...(process.env.NODE_ENV !== "production" && { stack: errorStack }),
+        success: false,
+        error: {
+          message: 'Server error',
+          code: 'SERVER_ERROR',
+          ...(process.env.NODE_ENV !== "production" && {
+            details: {
+              message: errorMessage,
+              stack: errorStack
+            }
+          })
+        }
       },
       { status: 500 }
     )

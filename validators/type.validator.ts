@@ -6,6 +6,7 @@ import { MilestoneCreateSchema, MilestoneUpdateSchema, MilestoneResponseSchema, 
 import {MediaUploadSchema, MediaResponseSchema, MediaFilterSchema} from './media.validator'
 import {LifeChapterCreateSchema, LifeChapterUpdateSchema, LifeChapterFilterSchema, LifeChapterResponseSchema} from './chapter.validator'
 import { SuccessResponseSchema, ErrorResponseSchema, PaginatedResponseSchema } from './pagination_response.validator';
+import { VerifyEmailSchema } from './common.validator';
 
 export type UserRegister = z.infer<typeof UserRegisterSchema>;
 export type UserLogin = z.infer<typeof UserLoginSchema>;
@@ -40,3 +41,5 @@ export type LifeChapterFilter = z.infer<typeof LifeChapterFilterSchema>;
 export type SuccessResponse = z.infer<typeof SuccessResponseSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 export type PaginatedResponse = z.infer<typeof PaginatedResponseSchema>;
+
+export type VerifyEmail = z.infer<typeof VerifyEmailSchema>

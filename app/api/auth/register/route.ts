@@ -4,28 +4,51 @@ import crypto from "crypto"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/models/User.model"
 import { sendVerificationEmail } from "@/lib/sendEmail"
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { UserRegisterSchema } from "@/validators/user.validator"
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
-    const { name, email, password } = await req.json()
-
-    // Validate required fields
-    if (!name || !email || !password) {
-      return NextResponse.json({ error: "All fields required" }, { status: 400 })
+    
+    // Get request body
+    const body = await req.json()
+    
+    // ✅ VALIDATE INPUT WITH ZOD
+    const parsed = UserRegisterSchema.safeParse(body)
+    
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Validation failed',
+            code: 'VALIDATION_ERROR',
+            details: parsed.error.issues.map(err => ({
+              field: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            }))
+          }
+        },
+        { status: 422 }
+      )
     }
 
-    // Validate email format
-    if (!EMAIL_REGEX.test(email)) {
-      return NextResponse.json({ error: "Please enter a valid email address" }, { status: 400 })
-    }
+    const { name, email, password, lifeExpectancy = 80 } = parsed.data
 
     // Check if email already exists
     const existing = await User.findOne({ email: email.toLowerCase() })
     if (existing) {
-      return NextResponse.json({ error: "Email already in use" }, { status: 400 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Email already registered',
+            code: 'EMAIL_EXISTS'
+          }
+        },
+        { status: 409 }
+      )
     }
 
     // Hash password
@@ -37,10 +60,11 @@ export async function POST(req: NextRequest) {
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
     // Create user with unverified email
-    await User.create({
+    const newUser = await User.create({
       name,
       email: email.toLowerCase(),
       password: hashed,
+      lifeExpectancy,
       isEmailVerified: false,
       emailVerificationToken: tokenHash,
       emailVerificationExpires: verificationExpires,
@@ -55,19 +79,42 @@ export async function POST(req: NextRequest) {
 
     if (!emailSent) {
       return NextResponse.json(
-        { error: "Failed to send verification email. Please try again." },
+        {
+          success: false,
+          error: {
+            message: 'Failed to send verification email. Please try again.',
+            code: 'EMAIL_SEND_FAILED'
+          }
+        },
         { status: 500 }
       )
     }
 
-    // Return success with redirect URL to verification page
-    return NextResponse.json({
-      success: true,
-      message: "Registration successful! Please check your email to verify your account.",
-      redirectUrl: "/verify-email"
-    }, { status: 201 })
+    // ✅ RETURN VALIDATED RESPONSE
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: newUser._id.toString(),
+          email: newUser.email,
+          name: newUser.name,
+          message: 'Registration successful! Please check your email to verify your account.'
+        },
+        redirectUrl: "/verify-email"
+      },
+      { status: 201 }
+    )
   } catch (error) {
     console.error("Registration error:", error)
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: 'Server error',
+          code: 'SERVER_ERROR'
+        }
+      },
+      { status: 500 }
+    )
   }
 }
