@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/models/User.model"
-import { verifyToken } from "@/lib/jwt"
+import { getAuthUser } from "@/lib/getUser"
 
 export async function GET(req: NextRequest) {
   try {
-    // Read token directly from request instead of using getAuthUser
-    const token = req.cookies.get("token")?.value
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const auth = verifyToken(token)
+    const auth = await getAuthUser()
     if (!auth) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     await connectDB()

@@ -24,6 +24,7 @@ export default function Sidebar({ onLogout }: Props) {
   const { user, logout } = useAuthStore()
   const { milestones } = useMilestoneStore()
   const [isOpen, setIsOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   //const [theme, setTheme] = useState<"light" | "dark">("dark")
 
   // Prevent background scroll when sidebar is open
@@ -37,9 +38,18 @@ export default function Sidebar({ onLogout }: Props) {
   }, [isOpen])
 
   async function handleLogout() {
-    await logout()
-    onLogout?.()
-    router.push("/login")
+    try {
+      setIsLoggingOut(true)
+      await logout()
+      onLogout?.()
+      // Delay navigation slightly to ensure logout completes
+      setTimeout(() => {
+        router.push("/login")
+      }, 100)
+    } catch (error) {
+      console.error("Logout failed:", error)
+      setIsLoggingOut(false)
+    }
   }
 
   const navItems: NavItem[] = [
@@ -143,12 +153,21 @@ export default function Sidebar({ onLogout }: Props) {
           {/* Logout */}
           <motion.button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:bg-red-900/30 hover:text-red-400 transition-all"
-            whileHover={{ x: 4 }}
-            whileTap={{ scale: 0.95 }}
+            disabled={isLoggingOut}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              isLoggingOut
+                ? "text-zinc-600 bg-zinc-900/50 cursor-not-allowed"
+                : "text-zinc-400 hover:bg-red-900/30 hover:text-red-400"
+            }`}
+            whileHover={isLoggingOut ? {} : { x: 4 }}
+            whileTap={isLoggingOut ? {} : { scale: 0.95 }}
           >
-            <span className="text-lg flex-shrink-0">🚪</span>
-            <span className="text-sm flex-1 text-left">Sign out</span>
+            <span className="text-lg flex-shrink-0">
+              {isLoggingOut ? "⏳" : "🚪"}
+            </span>
+            <span className="text-sm flex-1 text-left">
+              {isLoggingOut ? "Signing out..." : "Sign out"}
+            </span>
           </motion.button>
         </div>
 
