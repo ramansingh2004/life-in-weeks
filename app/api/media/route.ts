@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/getUser'
 import { Media } from '@/models/Media.model'
 import { connectDB } from '@/lib/mongodb'
+import cloudinary from '@/lib/cloudinary'
 
 interface MediaQuery {
   userId: string
@@ -77,27 +78,57 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { url, name, type, weekIndex, publicId } = await req.json()
+    // Parse FormData instead of JSON
+    const formData = await req.formData()
+    const file = formData.get('file') as File | null
+    const weekIndexStr = formData.get('weekIndex') as string | null
+    const typeStr = formData.get('type') as string | null
 
-    if (!url || !name || !type || weekIndex === undefined) {
+    if (!file || !weekIndexStr || !typeStr) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields (file, weekIndex, or type)' },
         { status: 400 }
       )
     }
+
+    const weekIndex = parseInt(weekIndexStr)
+    if (isNaN(weekIndex)) {
+      return NextResponse.json({ error: 'Invalid weekIndex' }, { status: 400 })
+    }
+
+    // Upload to Cloudinary using upload_stream
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+
+    const uploadResult = await new Promise<any>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: "life-in-weeks",
+          resource_type: "auto",
+        },
+        (error, res) => {
+          if (error) {
+            console.error("Cloudinary upload error:", error)
+            reject(error)
+          } else {
+            resolve(res)
+          }
+        }
+      ).end(buffer)
+    })
 
     const userId = user.userId
 
     const media = await Media.create({
       userId,
-      url,
-      name,
-      type,
+      url: uploadResult.secure_url,
+      name: file.name || 'unnamed',
+      type: typeStr,
       weekIndex,
-      publicId,
+      publicId: uploadResult.public_id,
     })
 
-    console.log(`✅ Created media: ${name} for user ${userId}`)
+    console.log(`✅ Created media: ${file.name} for user ${userId}`)
 
     return NextResponse.json({ media }, { status: 201 })
   } catch (error) {
@@ -128,22 +159,36 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    const result = await Media.deleteOne({ 
+    // Find the item first to get Cloudinary publicId
+    const mediaItem = await Media.findOne({ 
       _id: mediaId,
       userId: user.userId
     })
 
-    if (result.deletedCount === 0) {
+    if (!mediaItem) {
       return NextResponse.json(
         { error: 'Media not found' },
         { status: 404 }
       )
     }
 
+    // Delete from Cloudinary if publicId exists
+    if (mediaItem.publicId) {
+      try {
+        const resourceType = mediaItem.type === 'video' ? 'video' : mediaItem.type === 'audio' ? 'video' : 'image'
+        await cloudinary.uploader.destroy(mediaItem.publicId, { resource_type: resourceType })
+        console.log(`🗑️ Deleted from Cloudinary: ${mediaItem.publicId}`)
+      } catch (cloudinaryErr) {
+        console.error("Failed to delete from Cloudinary:", cloudinaryErr)
+      }
+    }
+
+    await Media.deleteOne({ _id: mediaId })
+
     console.log(`✅ Deleted media: ${mediaId}`)
     return NextResponse.json({ 
       success: true,
-      "message": "Media deleted successfully"
+      message: "Media deleted successfully"
     })
 
   } catch (error) {
