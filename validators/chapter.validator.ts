@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { ObjectIdSchema } from './common.validator';
 
-export const LifeChapterCreateSchema = z.object({
+// ✅ Base object schema
+const BaseLifeChapterSchema = z.object({
   startWeek: z.number().int().nonnegative(),
   endWeek: z.number().int().nonnegative(),
   title: z.string().min(1).max(100, 'Title must be 100 characters or less'),
@@ -11,13 +12,20 @@ export const LifeChapterCreateSchema = z.object({
   averageMood: z.number().default(0),
   photoCount: z.number().int().nonnegative().default(0),
   milestoneCount: z.number().int().nonnegative().default(0),
-}).refine((data) => data.startWeek <= data.endWeek, {
-  message: 'startWeek must be less than or equal to endWeek',
-  path: ['endWeek'],
 });
- 
-export const LifeChapterUpdateSchema = LifeChapterCreateSchema.partial();
- 
+
+// ✅ Create schema with refinement
+export const LifeChapterCreateSchema = BaseLifeChapterSchema.refine(
+  (data) => data.startWeek <= data.endWeek,
+  {
+    message: 'startWeek must be less than or equal to endWeek',
+    path: ['endWeek'],
+  }
+);
+
+// ✅ Update schema from BASE schema
+export const LifeChapterUpdateSchema = BaseLifeChapterSchema.partial();
+
 export const LifeChapterResponseSchema = z.object({
   _id: ObjectIdSchema,
   userId: ObjectIdSchema,
@@ -33,7 +41,7 @@ export const LifeChapterResponseSchema = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
 });
- 
+
 export const LifeChapterFilterSchema = z.object({
   limit: z.number().int().positive().default(20),
   skip: z.number().int().nonnegative().default(0),
