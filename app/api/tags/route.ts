@@ -238,7 +238,9 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT /api/tags/[name] - Update a tag
-export async function PUT(req: NextRequest, { params }: { params: { name: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ name: string }> }) {
+
+  const { name } = await params;
   try {
     console.log('✏️ [PUT_TAG] Updating tag')
 
@@ -261,10 +263,10 @@ export async function PUT(req: NextRequest, { params }: { params: { name: string
     }
 
     // ✅ VALIDATE TAG NAME WITH ZOD
-    const nameParsed = TagNameSchema.safeParse({ name: params.name })
+    const nameParsed = TagNameSchema.safeParse({ name: name })
 
     if (!nameParsed.success) {
-      console.warn('⚠️ [PUT_TAG] Invalid tag name:', params.name)
+      console.warn('⚠️ [PUT_TAG] Invalid tag name:', name)
       return NextResponse.json(
         {
           success: false,
@@ -309,16 +311,16 @@ export async function PUT(req: NextRequest, { params }: { params: { name: string
 
     const updateData = updateParsed.data
 
-    console.log(`🔍 [PUT_TAG] Finding tag: ${params.name}`)
+    console.log(`🔍 [PUT_TAG] Finding tag: ${name}`)
 
     const tag = await Tag.findOneAndUpdate(
-      { userId: user.userId, name: params.name },
+      { userId: user.userId, name: name },
       updateData,
       { new: true }
     )
 
     if (!tag) {
-      console.warn('⚠️ [PUT_TAG] Tag not found:', params.name)
+      console.warn('⚠️ [PUT_TAG] Tag not found:', name)
       return NextResponse.json(
         {
           success: false,
@@ -331,7 +333,7 @@ export async function PUT(req: NextRequest, { params }: { params: { name: string
       )
     }
 
-    console.log(`✅ [PUT_TAG] Updated tag: ${params.name}`)
+    console.log(`✅ [PUT_TAG] Updated tag: ${name}`)
 
     // ✅ VALIDATE RESPONSE WITH ZOD
     const validatedResponse = TagResponseSchema.parse({
@@ -381,7 +383,9 @@ export async function PUT(req: NextRequest, { params }: { params: { name: string
 }
 
 // DELETE /api/tags/[name] - Delete a tag
-export async function DELETE(req: NextRequest, { params }: { params: { name: string } }) {
+export async function DELETE( req: NextRequest, { params }: { params: Promise<{ name: string }> }) {
+
+  const { name } = await params
   try {
     console.log('🗑️ [DELETE_TAG] Deleting tag')
 
@@ -404,10 +408,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { name: str
     }
 
     // ✅ VALIDATE TAG NAME WITH ZOD
-    const nameParsed = TagNameSchema.safeParse({ name: params.name })
+    const nameParsed = TagNameSchema.safeParse({ name: name })
 
     if (!nameParsed.success) {
-      console.warn('⚠️ [DELETE_TAG] Invalid tag name:', params.name)
+      console.warn('⚠️ [DELETE_TAG] Invalid tag name:', name)
       return NextResponse.json(
         {
           success: false,
@@ -425,15 +429,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { name: str
       )
     }
 
-    console.log(`🔍 [DELETE_TAG] Finding tag: ${params.name}`)
+    console.log(`🔍 [DELETE_TAG] Finding tag: ${name}`)
 
     const result = await Tag.deleteOne({
       userId: user.userId,
-      name: params.name,
+      name: name,
     })
 
     if (result.deletedCount === 0) {
-      console.warn('⚠️ [DELETE_TAG] Tag not found:', params.name)
+      console.warn('⚠️ [DELETE_TAG] Tag not found:', name)
       return NextResponse.json(
         {
           success: false,
@@ -446,12 +450,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { name: str
       )
     }
 
-    console.log(`✅ [DELETE_TAG] Deleted tag: ${params.name}`)
+    console.log(`✅ [DELETE_TAG] Deleted tag: ${name}`)
 
     return NextResponse.json({
       success: true,
       data: {
-        name: params.name,
+        name: name,
         message: 'Tag deleted successfully'
       },
       message: 'Tag deleted successfully'
