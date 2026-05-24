@@ -9,9 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.100.14",
     "@tiptap/pm": "^3.22.2",
     "@tiptap/react": "^3.22.2",
     "@tiptap/starter-kit": "^3.22.2",
+    "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "date-fns": "^4.1.0",
