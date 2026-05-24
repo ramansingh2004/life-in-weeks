@@ -1,23 +1,25 @@
-"use client"
-import { useEffect, useState, useMemo } from "react"
-import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { differenceInWeeks, addWeeks, format, getYear } from "date-fns"
-import Sidebar from "@/components/Sidebar"
-import WeekModal from "@/components/weekModel"
-import MemoryViewCard from "@/components/MemoryViewCard"
-import MilestoneModal from "@/components/MilestoneModal"
-import { Week, WeekData, MOOD_COLORS } from "@/typesDefined"
-import { useLifeStore } from "@/store/useCapsuleStore"
-import { useCountUp } from "@/hooks/useCountUp"
-import { useMilestoneStore } from "@/store/useMilestoneStore"
+'use client'
+import { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { differenceInWeeks, addWeeks, format, getYear } from 'date-fns'
+import Sidebar from '@/components/Sidebar'
+import WeekModal from '@/components/weekModel'
+import MemoryViewCard from '@/components/MemoryViewCard'
+import MilestoneModal from '@/components/MilestoneModal'
+import { Week, WeekData, MOOD_COLORS } from '@/typesDefined'
+import { useLifeStore } from '@/store/useCapsuleStore'
+import { useCountUp } from '@/hooks/useCountUp'
+import { useMilestoneStore } from '@/store/useMilestoneStore'
+// ✅ IMPORT REACT QUERY HOOKS
+import { useAuth, useWeeks } from '@/hooks/useQuery'
 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
   const totalWeeks = lifeExpectancy * 52
   const weeksLived = differenceInWeeks(new Date(), birthDate)
   return Array.from({ length: totalWeeks }, (_, i) => ({
     index: i,
-    date: format(addWeeks(birthDate, i), "MMM d, yyyy"),
+    date: format(addWeeks(birthDate, i), 'MMM d, yyyy'),
     year: getYear(addWeeks(birthDate, i)),
     isPast: i < weeksLived,
     isCurrent: i === weeksLived,
@@ -27,6 +29,11 @@ function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
 
 export default function GridPage() {
   const router = useRouter()
+  
+  // ✅ REPLACE: getMe() + getAllWeeks() with React Query hooks
+  const { user, isLoading: isLoadingUser } = useAuth()
+  const { weeks: backendWeeks, isLoading: isLoadingWeeks } = useWeeks()
+  
   const {
     birthDate: storedDate,
     lifeExpectancy,
@@ -50,7 +57,6 @@ export default function GridPage() {
   const [viewMode, setViewMode] = useState(true)
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false)
   const [selectedMilestoneWeek, setSelectedMilestoneWeek] = useState<Week | null>(null)
-  const [loading, setLoading] = useState(true)
   const [hydrated, setHydrated] = useState(false)
 
   const animatedLived = useCountUp(stats.lived)
@@ -61,37 +67,31 @@ export default function GridPage() {
     setHydrated(true)
   }, [])
 
+  // ✅ SIMPLIFIED: useAuth hook handles user fetching
+  //    No more manual getMe() call and loading state
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || isLoadingUser) return
 
-    async function init() {
-      try {
-        const res = await fetch("/api/auth/me")
-        const data = await res.json()
-
-        if (!res.ok || !data?.user) {
-          router.push("/login")
-          return
-        }
-
-        if (!data.user.birthDate) {
-          router.push("/")
-          return
-        }
-
-        setBirthDate(data.user.birthDate)
-        setLifeExpectancy(data.user.lifeExpectancy || 80)
-
-        if (!isSynced) await syncFromBackend()
-        await syncMilestones()
-      } catch (err) {
-        console.error("Init error:", err)
-        router.push("/login")
-      }
+    // User not authenticated
+    if (!user) {
+      router.push('/login')
+      return
     }
 
-    init()
-  }, [hydrated, setBirthDate, setLifeExpectancy, syncFromBackend, syncMilestones, isSynced, router])
+    // User doesn't have birth date set
+    if (!user.birthDate) {
+      router.push('/')
+      return
+    }
+
+    // Sync Zustand with backend user data
+    setBirthDate(user.birthDate)
+    setLifeExpectancy(user.lifeExpectancy || 80)
+
+    // Sync weeks and milestones from backend
+    if (!isSynced) syncFromBackend()
+    syncMilestones()
+  }, [hydrated, user, isLoadingUser, setBirthDate, setLifeExpectancy, syncFromBackend, syncMilestones, isSynced, router])
 
   const birthDateObj = storedDate ? new Date(storedDate) : null
 
@@ -104,7 +104,6 @@ export default function GridPage() {
     if (weeks.length === 0) return
     const lived = weeks.filter((w) => w.isPast).length
     setStats({ lived, remaining: weeks.length - lived, total: weeks.length })
-    setLoading(false)
   }, [weeks.length, weeks])
 
   const currentAge = birthDateObj
@@ -122,7 +121,8 @@ export default function GridPage() {
     setViewMode(!!data)
   }
 
-  if (!hydrated || loading) {
+  // ✅ IMPROVED: Check both user loading AND weeks loading
+  if (!hydrated || isLoadingUser || isLoadingWeeks) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
@@ -161,9 +161,9 @@ export default function GridPage() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
             {[
-              { label: "Weeks lived", value: animatedLived.toLocaleString() },
-              { label: "Weeks remaining", value: animatedRemaining.toLocaleString() },
-              { label: "Total weeks", value: animatedTotal.toLocaleString() },
+              { label: 'Weeks lived', value: animatedLived.toLocaleString() },
+              { label: 'Weeks remaining', value: animatedRemaining.toLocaleString() },
+              { label: 'Total weeks', value: animatedTotal.toLocaleString() },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -185,7 +185,7 @@ export default function GridPage() {
                     key={y}
                     className="text-zinc-700 text-[8px] w-6 h-[14px] flex items-center justify-end pr-2"
                   >
-                    {y % 5 === 0 ? y : ""}
+                    {y % 5 === 0 ? y : ''}
                   </div>
                 ))}
               </div>
@@ -216,8 +216,8 @@ export default function GridPage() {
                                 text: milestone
                                   ? `${milestone.title} ✦ (right-click to edit)`
                                   : noted
-                                  ? `Week ${week.index + 1} ✦ (click to view)`
-                                  : `Week ${week.index + 1} (right-click for milestone)`,
+                                    ? `Week ${week.index + 1} ✦ (click to view)`
+                                    : `Week ${week.index + 1} (right-click for milestone)`,
                                 x: rect.left,
                                 y: rect.top - 32,
                               })
@@ -227,12 +227,12 @@ export default function GridPage() {
                               transition-all duration-150 hover:scale-150 hover:z-10 relative
                               ${
                                 week.isCurrent
-                                  ? "bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse"
+                                  ? 'bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse'
                                   : week.isPast
-                                  ? moodColor || "bg-zinc-500"
-                                  : noted
-                                  ? "bg-zinc-600"
-                                  : "bg-zinc-800 hover:bg-zinc-600"
+                                    ? moodColor || 'bg-zinc-500'
+                                    : noted
+                                      ? 'bg-zinc-600'
+                                      : 'bg-zinc-800 hover:bg-zinc-600'
                               }
                             `}
                           />
@@ -265,7 +265,7 @@ export default function GridPage() {
             <div className="flex gap-[4px] mt-3 ml-8">
               {Array.from({ length: 52 }, (_, i) => (
                 <div key={i} className="text-zinc-700 text-[8px] w-[14px] text-center flex-shrink-0">
-                  {(i + 1) % 13 === 0 ? i + 1 : ""}
+                  {(i + 1) % 13 === 0 ? i + 1 : ''}
                 </div>
               ))}
             </div>
@@ -337,7 +337,7 @@ export default function GridPage() {
           setSelectedMilestoneWeek(null)
         }}
         weekIndex={selectedMilestoneWeek?.index || 0}
-        date={selectedMilestoneWeek?.date || ""}
+        date={selectedMilestoneWeek?.date || ''}
         existingMilestone={
           selectedMilestoneWeek ? getMilestone(selectedMilestoneWeek.index) : undefined
         }

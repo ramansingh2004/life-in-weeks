@@ -1,12 +1,14 @@
-"use client"
-import { useEffect, useState, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { uploadMedia, getWeekMedia, deleteMedia } from "@/lib/api"
-import Image from "next/image"
+'use client'
+import { useEffect, useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
+import toast from 'react-hot-toast'
+// ✅ IMPORT REACT QUERY HOOKS
+import { useMedia } from '@/hooks/useQuery'
 
 type MediaItem = {
   _id: string
-  type: "image" | "video" | "audio"
+  type: 'image' | 'video' | 'audio'
   url: string
   name: string
 }
@@ -14,9 +16,17 @@ type MediaItem = {
 type Props = { weekIndex: number }
 
 export default function MediaUploader({ weekIndex }: Props) {
-  const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState("")
+  // ✅ USE useMedia hook for all media operations
+  const {
+    media: mediaItems,
+    upload,
+    isUploading,
+    delete: deleteMedia,
+    isDeleting,
+    uploadError,
+  } = useMedia(weekIndex)
+
+  const [error, setError] = useState('')
   const [preview, setPreview] = useState<MediaItem | null>(null)
   const [recording, setRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
@@ -25,18 +35,12 @@ export default function MediaUploader({ weekIndex }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Show upload errors from React Query
   useEffect(() => {
-    async function loadMedia() {
-      try {
-        const { media } = await getWeekMedia(weekIndex)
-        setMediaItems(media || [])
-      } catch (err) {
-        console.error("Failed to load media:", err)
-      }
+    if (uploadError) {
+      setError(uploadError.message)
     }
-
-    loadMedia()
-  }, [weekIndex])
+  }, [uploadError])
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -45,12 +49,14 @@ export default function MediaUploader({ weekIndex }: Props) {
     }
   }, [])
 
+  // ✅ SIMPLIFIED: No manual getWeekMedia() call needed
+  //    useMedia hook handles fetching and caching automatically
+
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
 
-    setError("")
-    setUploading(true)
+    setError('')
 
     for (const file of files) {
       const sizeMB = file.size / (1024 * 1024)
@@ -59,13 +65,13 @@ export default function MediaUploader({ weekIndex }: Props) {
         continue
       }
 
-      const type = file.type.startsWith("image")
-        ? "image"
-        : file.type.startsWith("video")
-        ? "video"
-        : file.type.startsWith("audio")
-        ? "audio"
-        : null
+      const type = file.type.startsWith('image')
+        ? 'image'
+        : file.type.startsWith('video')
+          ? 'video'
+          : file.type.startsWith('audio')
+            ? 'audio'
+            : null
 
       if (!type) {
         setError(`${file.name}: Unsupported file type`)
@@ -74,39 +80,47 @@ export default function MediaUploader({ weekIndex }: Props) {
 
       try {
         console.log(`📤 Uploading ${type}: ${file.name}`)
-        await uploadMedia(file, weekIndex, type)
-        console.log(`✅ ${file.name} uploaded`)
+        
+        // ✅ USE React Query mutation
+        // - Auto loading state (isUploading)
+        // - Auto error handling
+        // - Auto cache invalidation
+        upload(
+          { file, weekIndex, type },
+          {
+            onSuccess: () => {
+              console.log(`✅ ${file.name} uploaded`)
+              toast.success(`${file.name} uploaded`)
+            },
+            onError: (error) => {
+              console.error('Upload error:', error)
+              setError(`Failed to upload ${file.name}`)
+              toast.error(`Failed to upload ${file.name}`)
+            },
+          }
+        )
       } catch (err) {
-        console.error("Upload error:", err)
+        console.error('Upload error:', err)
         setError(`Failed to upload ${file.name}`)
       }
     }
 
-    setUploading(false)
-    
-    // Reload media after uploads
-    try {
-      const { media } = await getWeekMedia(weekIndex)
-      setMediaItems(media || [])
-    } catch (err) {
-      console.error("Failed to reload media:", err)
-    }
-    
-    if (fileInputRef.current) fileInputRef.current.value = ""
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  // ✅ USE React Query mutation for deletion
   async function handleDelete(item: MediaItem) {
     if (!confirm(`Delete ${item.name}?`)) return
 
-    try {
-      await deleteMedia(item._id)
-      // Reload media after deletion
-      const { media } = await getWeekMedia(weekIndex)
-      setMediaItems(media || [])
-    } catch (err) {
-      console.error("Delete error:", err)
-      setError("Failed to delete media")
-    }
+    deleteMedia(item._id, {
+      onSuccess: () => {
+        toast.success('Media deleted')
+      },
+      onError: (error) => {
+        setError('Failed to delete media')
+        toast.error('Failed to delete media')
+      },
+    })
   }
 
   async function startRecording() {
@@ -118,7 +132,7 @@ export default function MediaUploader({ weekIndex }: Props) {
 
       // Start timer
       timerRef.current = setInterval(() => {
-        setRecordingTime(t => t + 1)
+        setRecordingTime((t) => t + 1)
       }, 1000)
 
       recorder.ondataavailable = (e) => audioChunks.current.push(e.data)
@@ -127,19 +141,28 @@ export default function MediaUploader({ weekIndex }: Props) {
         if (timerRef.current) clearInterval(timerRef.current)
         setRecordingTime(0)
 
-        const blob = new Blob(audioChunks.current, { type: "audio/webm" })
+        const blob = new Blob(audioChunks.current, { type: 'audio/webm' })
         const file = new File([blob], `Voice note ${new Date().toLocaleString()}.webm`, {
-          type: "audio/webm",
+          type: 'audio/webm',
         })
 
         try {
-          await uploadMedia(file, weekIndex, "audio")
-          // Reload media after recording
-          const { media } = await getWeekMedia(weekIndex)
-          setMediaItems(media || [])
+          // ✅ USE React Query mutation for voice upload
+          upload(
+            { file, weekIndex, type: 'audio' },
+            {
+              onSuccess: () => {
+                toast.success('Voice note uploaded')
+              },
+              onError: (error) => {
+                setError('Failed to upload voice note')
+                toast.error('Failed to upload voice note')
+              },
+            }
+          )
         } catch (err) {
-          console.error("Voice upload error:", err)
-          setError("Failed to upload voice note")
+          console.error('Voice upload error:', err)
+          setError('Failed to upload voice note')
         }
 
         stream.getTracks().forEach((t) => t.stop())
@@ -148,10 +171,10 @@ export default function MediaUploader({ weekIndex }: Props) {
       recorder.start()
       setMediaRecorder(recorder)
       setRecording(true)
-      setError("")
+      setError('')
     } catch (err) {
-      console.error("Microphone error:", err)
-      setError("Microphone access denied or unavailable")
+      console.error('Microphone error:', err)
+      setError('Microphone access denied or unavailable')
     }
   }
 
@@ -164,12 +187,12 @@ export default function MediaUploader({ weekIndex }: Props) {
   function formatTime(seconds: number) {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, "0")}`
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const images = mediaItems.filter((m) => m.type === "image")
-  const videos = mediaItems.filter((m) => m.type === "video")
-  const audios = mediaItems.filter((m) => m.type === "audio")
+  const images = mediaItems.filter((m: MediaItem) => m.type === 'image')
+  const videos = mediaItems.filter((m: MediaItem) => m.type === 'video')
+  const audios = mediaItems.filter((m: MediaItem) => m.type === 'audio')
 
   return (
     <div className="mt-4 space-y-4">
@@ -183,23 +206,24 @@ export default function MediaUploader({ weekIndex }: Props) {
           onChange={handleFileUpload}
           className="hidden"
         />
+        {/* ✅ DISABLE while uploading or recording */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading || recording}
+          disabled={isUploading || recording}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 text-xs hover:border-zinc-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {uploading ? "Uploading..." : "＋ Photo / Video"}
+          {isUploading ? 'Uploading...' : '＋ Photo / Video'}
         </button>
         <button
           onClick={recording ? stopRecording : startRecording}
-          disabled={uploading}
+          disabled={isUploading}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
             recording
-              ? "border-red-500 text-red-400 animate-pulse"
-              : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
+              ? 'border-red-500 text-red-400 animate-pulse'
+              : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
           }`}
         >
-          {recording ? `⏹ ${formatTime(recordingTime)}` : "🎙 Record audio"}
+          {recording ? `⏹ ${formatTime(recordingTime)}` : '🎙 Record audio'}
         </button>
       </div>
 
@@ -219,19 +243,15 @@ export default function MediaUploader({ weekIndex }: Props) {
         {images.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
           >
             <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">
               Photos ({images.length})
             </p>
             <div className="grid grid-cols-3 gap-2">
-              {images.map((item) => (
-                <motion.div
-                  key={item._id}
-                  layout
-                  className="relative group aspect-square"
-                >
+              {images.map((item: MediaItem) => (
+                <motion.div key={item._id} layout className="relative group aspect-square">
                   <Image
                     src={item.url}
                     alt={item.name}
@@ -240,9 +260,11 @@ export default function MediaUploader({ weekIndex }: Props) {
                     className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => setPreview(item)}
                   />
+                  {/* ✅ DISABLE delete button while deleting */}
                   <button
                     onClick={() => handleDelete(item)}
-                    className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                    disabled={isDeleting}
+                    className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     ×
                   </button>
@@ -258,27 +280,21 @@ export default function MediaUploader({ weekIndex }: Props) {
         {videos.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
           >
             <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">
               Videos ({videos.length})
             </p>
             <div className="space-y-2">
-              {videos.map((item) => (
-                <motion.div
-                  key={item._id}
-                  layout
-                  className="relative group"
-                >
-                  <video
-                    src={item.url}
-                    controls
-                    className="w-full rounded-lg max-h-48 bg-zinc-900"
-                  />
+              {videos.map((item: MediaItem) => (
+                <motion.div key={item._id} layout className="relative group">
+                  <video src={item.url} controls className="w-full rounded-lg max-h-48 bg-zinc-900" />
+                  {/* ✅ DISABLE delete button while deleting */}
                   <button
                     onClick={() => handleDelete(item)}
-                    className="absolute top-2 right-2 w-6 h-6 bg-black/70 rounded-full text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                    disabled={isDeleting}
+                    className="absolute top-2 right-2 w-6 h-6 bg-black/70 rounded-full text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     ×
                   </button>
@@ -294,23 +310,25 @@ export default function MediaUploader({ weekIndex }: Props) {
         {audios.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
           >
             <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">
               Audio ({audios.length})
             </p>
             <div className="space-y-2">
-              {audios.map((item) => (
+              {audios.map((item: MediaItem) => (
                 <motion.div
                   key={item._id}
                   layout
                   className="flex items-center gap-3 bg-zinc-800/50 rounded-lg px-3 py-2 group hover:bg-zinc-800/70 transition-colors"
                 >
                   <audio src={item.url} controls className="flex-1 h-8" />
+                  {/* ✅ DISABLE delete button while deleting */}
                   <button
                     onClick={() => handleDelete(item)}
-                    className="text-zinc-600 hover:text-red-400 text-lg transition-colors flex-shrink-0"
+                    disabled={isDeleting}
+                    className="text-zinc-600 hover:text-red-400 text-lg transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     ×
                   </button>

@@ -1,15 +1,16 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useEditor, EditorContent } from "@tiptap/react"
-import StarterKit from "@tiptap/starter-kit"
-import { Week, WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from "@/typesDefined"
-import { useLifeStore } from "@/store/useCapsuleStore"
-import MediaUploader from "./mediaUploader"
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { Week, WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from '@/typesDefined'
+import { useLifeStore } from '@/store/useCapsuleStore'
+import MediaUploader from './mediaUploader'
 import { TagInput } from './TagComponents/TagInput'
 import toast from 'react-hot-toast'
-
+// ✅ IMPORT REACT QUERY HOOK
+import { useWeeks } from '@/hooks/useQuery'
 
 type Props = {
   week: Week | null
@@ -20,20 +21,23 @@ type Props = {
 
 export default function WeekModal({ week, onClose, onSave, existingData }: Props) {
   const { getNote } = useLifeStore()
+  
+  // ✅ USE useSaveWeek hook for mutation
+  const { save: saveWeekMutation, isSaving } = useWeeks()
+  
   const [tags, setTags] = useState<string[]>([])
   const [mood, setMood] = useState(0)
   const [editorKey, setEditorKey] = useState(0) // Force editor re-mount
-  const [isSaving, setIsSaving] = useState(false)
 
   // Create editor with key to force remount when week changes
   const editor = useEditor(
     {
       immediatelyRender: false,
       extensions: [StarterKit],
-      content: existingData?.note || "",
+      content: existingData?.note || '',
       editorProps: {
         attributes: {
-          class: "prose prose-invert prose-sm max-w-none focus:outline-none min-h-[120px] text-zinc-300 leading-relaxed",
+          class: 'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[120px] text-zinc-300 leading-relaxed',
         },
       },
     },
@@ -45,19 +49,19 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
     if (week) {
       // Get note from Zustand store
       const storedNote = getNote(week.index)
-      
+
       // Reset mood
       setMood(storedNote?.mood || existingData?.mood || 0)
-      
+
       // Load tags from Zustand store
       setTags(storedNote?.tags || existingData?.tags || [])
-      
+
       // Force editor to remount with new content
-      setEditorKey(prev => prev + 1)
-      
+      setEditorKey((prev) => prev + 1)
+
       console.log(`📝 Opening week ${week.index + 1}`)
       console.log(`   Stored note: ${storedNote ? '✓' : '✗'}`)
-      console.log(`   Tags from store: ${storedNote?.tags?.join(", ") || "none"}`)
+      console.log(`   Tags from store: ${storedNote?.tags?.join(', ') || 'none'}`)
       console.log(`   isFuture: ${week.isFuture}`)
     }
   }, [week?.index, existingData, getNote, week])
@@ -65,62 +69,59 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
   // Prevent background scroll when modal is open
   useEffect(() => {
     if (week) {
-      document.body.style.overflow = "hidden"
+      document.body.style.overflow = 'hidden'
       return () => {
-        document.body.style.overflow = "unset"
+        document.body.style.overflow = 'unset'
       }
     }
   }, [week])
 
+  // ✅ SIMPLIFIED: Use React Query mutation instead of manual fetch
   async function handleSave() {
     if (!week) return
-    
-    setIsSaving(true)
-    try {
-      // Prepare week data
-      const weekData: WeekData = {
-        weekIndex: week.index,
-        date: week.date,
-        isPast: week.isPast,
-        isCurrent: week.isCurrent,
-        note: editor?.getHTML() || "",
-        mood,
-        tags,
-      }
 
-      // Save to backend
-      const response = await fetch('/api/weeks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(weekData),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to save week')
-      }
-
-      // Call parent onSave with data including tags
-      onSave(weekData)
-
-      toast.success(`Week ${week.index + 1} saved with ${tags.length} tag${tags.length !== 1 ? 's' : ''}`)
-      onClose()
-    } catch (error) {
-      console.error('Save error:', error)
-      toast.error('Failed to save week')
-    } finally {
-      setIsSaving(false)
+    // Prepare week data
+    const weekData: WeekData = {
+      weekIndex: week.index,
+      date: week.date,
+      isPast: week.isPast,
+      isCurrent: week.isCurrent,
+      note: editor?.getHTML() || '',
+      mood,
+      tags,
     }
+
+    // ✅ USE React Query mutation
+    // - Automatic error handling
+    // - Automatic loading state (isSaving)
+    // - Automatic cache invalidation
+    // - Automatic retry on failure
+    saveWeekMutation(weekData, {
+      onSuccess: () => {
+        // Call parent onSave with data including tags
+        onSave(weekData)
+
+        toast.success(
+          `Week ${week.index + 1} saved with ${tags.length} tag${tags.length !== 1 ? 's' : ''}`
+        )
+        onClose()
+      },
+      onError: (error) => {
+        console.error('Save error:', error)
+        toast.error('Failed to save week')
+      },
+    })
   }
 
   const title = week?.isCurrent
-    ? "This week"
+    ? 'This week'
     : week?.isPast
-    ? "Memory"
-    : "Dream"
+      ? 'Memory'
+      : 'Dream'
 
   const placeholder = week?.isPast
-    ? "What happened this week? What did you feel, learn, experience?"
-    : "What do you dream of doing in this week of your life?"
+    ? 'What happened this week? What did you feel, learn, experience?'
+    : 'What do you dream of doing in this week of your life?'
 
   return (
     <AnimatePresence>
@@ -137,20 +138,15 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-4 sm:p-6 overflow-y-auto"
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-
             {/* Header */}
             <div className="flex items-start justify-between mb-5">
               <div>
-                <span className="text-zinc-500 text-xs uppercase tracking-widest">
-                  {title}
-                </span>
-                <h2 className="text-white text-lg font-light mt-1">
-                  Week {week.index + 1}
-                </h2>
+                <span className="text-zinc-500 text-xs uppercase tracking-widest">{title}</span>
+                <h2 className="text-white text-lg font-light mt-1">Week {week.index + 1}</h2>
                 <p className="text-zinc-600 text-xs mt-0.5">{week.date}</p>
               </div>
               <button
@@ -164,19 +160,18 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             {/* Mood selector — only for past/current weeks */}
             {(week.isPast || week.isCurrent) && (
               <div className="mb-4">
-                <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
-                  Mood
-                </p>
+                <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Mood</p>
                 <div className="flex gap-2 flex-wrap">
-                  {[1, 2, 3, 4, 5].map(m => (
+                  {[1, 2, 3, 4, 5].map((m) => (
                     <button
                       key={m}
                       onClick={() => setMood(m)}
                       className={`
                         w-8 h-8 rounded-full border text-xs font-medium transition-all
-                        ${mood === m
-                          ? "border-white bg-white text-black"
-                          : "border-zinc-700 text-zinc-500 hover:border-zinc-500"
+                        ${
+                          mood === m
+                            ? 'border-white bg-white text-black'
+                            : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
                         }
                       `}
                     >
@@ -194,9 +189,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
 
             {/* Tags Input */}
             <div className="mb-5 pb-5 border-b border-zinc-700">
-              <p className="text-zinc-500 text-xs uppercase tracking-widest mb-3">
-                Tags
-              </p>
+              <p className="text-zinc-500 text-xs uppercase tracking-widest mb-3">Tags</p>
               <TagInput
                 tags={tags}
                 onTagsChange={setTags}
@@ -207,7 +200,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             {/* Editor — for all weeks (past, current, and future) */}
             <div className="mb-5">
               <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
-                {week.isPast || week.isCurrent ? "Memory" : "Dream"}
+                {week.isPast || week.isCurrent ? 'Memory' : 'Dream'}
               </p>
               <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-3 min-h-[120px]">
                 {editor ? (
@@ -222,7 +215,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
             {(week.isPast || week.isCurrent || week.isFuture) && (
               <div className="mb-5 border-t border-zinc-800 pt-5">
                 <p className="text-zinc-500 text-xs uppercase tracking-widest mb-3">
-                  {week.isPast || week.isCurrent ? "Memories & Voice Notes" : "Voice Notes & Dreams"}
+                  {week.isPast || week.isCurrent ? 'Memories & Voice Notes' : 'Voice Notes & Dreams'}
                 </p>
                 <MediaUploader weekIndex={week.index} />
                 {week.isFuture && (
@@ -251,6 +244,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
               >
                 Cancel
               </button>
+              {/* ✅ DISABLE BUTTON WHILE SAVING */}
               <button
                 onClick={handleSave}
                 disabled={isSaving}
@@ -263,12 +257,11 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
                   </>
                 ) : (
                   <>
-                    Save {week.isPast ? "memory" : "dream"} →
+                    Save {week.isPast ? 'memory' : 'dream'} →
                   </>
                 )}
               </button>
             </div>
-
           </motion.div>
         </motion.div>
       )}
