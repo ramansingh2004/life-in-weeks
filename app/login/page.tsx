@@ -1,59 +1,66 @@
-"use client"
-import { useState, Suspense } from "react"
-import { signIn, useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import Link from "next/link"
-import { useEffect } from "react"
+'use client'
+import { useState, Suspense } from 'react'
+import { signIn, useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
+import { useEffect } from 'react'
+// ✅ IMPORT REACT QUERY HOOK
+import { useAuth } from '@/hooks/useQuery'
 
 function LoginContent() {
   const router = useRouter()
   const { data: session, status } = useSession()
-  const [form, setForm] = useState({ email: "", password: "" })
+  
+  // ✅ USE useAuth HOOK - auto-fetches current user and manages loading
+  const { user, isLoading: isLoadingUser } = useAuth()
+  
+  const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [tab, setTab] = useState<"oauth" | "email">("oauth")
+  const [error, setError] = useState('')
+  const [tab, setTab] = useState<'oauth' | 'email'>('oauth')
 
-  // If already logged in, redirect to grid
+  // ✅ SIMPLIFIED: Check both session (NextAuth) and user (React Query)
+  //    If either indicates logged in, redirect
   useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      router.push("/grid")
+    if ((status === 'authenticated' && session?.user) || (user && !isLoadingUser)) {
+      router.push('/grid')
     }
-  }, [status, session, router])
+  }, [status, session, user, isLoadingUser, router])
 
   async function handleGoogleSignIn() {
-    setError("")
+    setError('')
     setLoading(true)
     try {
-      const result = await signIn("google", {
+      const result = await signIn('google', {
         redirect: false,
-        callbackUrl: "/grid",
+        callbackUrl: '/grid',
       })
 
       if (result?.error) {
-        setError("Failed to sign in with Google")
+        setError('Failed to sign in with Google')
       } else if (result?.ok) {
-        router.push("/grid")
+        router.push('/grid')
       }
     } catch (err) {
-      console.error("Network error:", err)
-      setError("Network error. Please try again.")
+      console.error('Network error:', err)
+      setError('Network error. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   async function handleEmailSignIn() {
-    setError("")
+    setError('')
 
     if (!form.email || !form.password) {
-      setError("Email and password are required")
+      setError('Email and password are required')
       return
     }
 
     setLoading(true)
     try {
-      const result = await signIn("credentials", {
+      const result = await signIn('credentials', {
         email: form.email,
         password: form.password,
         redirect: false,
@@ -62,17 +69,18 @@ function LoginContent() {
       if (result?.error) {
         setError(result.error)
       } else if (result?.ok) {
-        router.push("/grid")
+        router.push('/grid')
       }
     } catch (err) {
-      console.error("Network error.", err)
-      setError("Network error. Please try again.")
+      console.error('Network error.', err)
+      setError('Network error. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  if (status === "loading") {
+  // ✅ IMPROVED: Check both NextAuth session AND React Query user
+  if (status === 'loading' || isLoadingUser) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-4">
         <p className="text-zinc-400">Loading...</p>
@@ -90,32 +98,30 @@ function LoginContent() {
       >
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-light text-white mb-2">
-            Welcome back
-          </h1>
-          <p className="text-zinc-500 text-sm">
-            Sign in to your life grid
-          </p>
+          <h1 className="text-3xl font-light text-white mb-2">Welcome back</h1>
+          <p className="text-zinc-500 text-sm">Sign in to your life grid</p>
         </div>
 
         {/* Tab Switcher */}
         <div className="flex gap-2 mb-6 bg-zinc-900 p-1 rounded-lg">
           <button
-            onClick={() => { setTab("oauth"); setError("") }}
+            onClick={() => {
+              setTab('oauth')
+              setError('')
+            }}
             className={`flex-1 py-2 rounded text-sm font-medium transition-colors ${
-              tab === "oauth"
-                ? "bg-white text-black"
-                : "text-zinc-400 hover:text-white"
+              tab === 'oauth' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'
             }`}
           >
             Google
           </button>
           <button
-            onClick={() => { setTab("email"); setError("") }}
+            onClick={() => {
+              setTab('email')
+              setError('')
+            }}
             className={`flex-1 py-2 rounded text-sm font-medium transition-colors ${
-              tab === "email"
-                ? "bg-white text-black"
-                : "text-zinc-400 hover:text-white"
+              tab === 'email' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'
             }`}
           >
             Email
@@ -123,7 +129,7 @@ function LoginContent() {
         </div>
 
         {/* Google OAuth Tab */}
-        {tab === "oauth" && (
+        {tab === 'oauth' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -148,7 +154,7 @@ function LoginContent() {
               className="w-full bg-white text-black rounded-xl py-3 text-sm font-medium hover:bg-zinc-100 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
-                "Signing in..."
+                'Signing in...'
               ) : (
                 <>
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -181,7 +187,7 @@ function LoginContent() {
         )}
 
         {/* Email/Password Tab */}
-        {tab === "email" && (
+        {tab === 'email' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -221,7 +227,7 @@ function LoginContent() {
               disabled={loading}
               className="w-full bg-white text-black rounded-xl py-3 text-sm font-medium hover:bg-zinc-100 transition-colors disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign in →"}
+              {loading ? 'Signing in...' : 'Sign in →'}
             </motion.button>
 
             <p className="text-zinc-600 text-xs text-center">
@@ -239,11 +245,8 @@ function LoginContent() {
 
         {/* Sign up link */}
         <p className="text-zinc-600 text-xs text-center">
-          No account yet?{" "}
-          <Link
-            href="/register"
-            className="text-zinc-400 hover:text-white transition-colors"
-          >
+          No account yet?{' '}
+          <Link href="/register" className="text-zinc-400 hover:text-white transition-colors">
             Create one free
           </Link>
         </p>

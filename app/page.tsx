@@ -1,16 +1,18 @@
-"use client"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
-import { useLifeStore } from "@/store/useCapsuleStore"
-import { useAuthStore } from "@/store/useAuthStore"
-import { getMe } from "@/lib/api"
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useLifeStore } from '@/store/useCapsuleStore'
+import { useAuthStore } from '@/store/useAuthStore'
+// ✅ IMPORT REACT QUERY HOOKS
+import { useAuth } from '@/hooks/useQuery'
 
 const QUOTES = [
-  "The average person lives just 4,000 weeks.",
-  "Most of your Mondays are already behind you.",
-  "You have lived more weeks than you think.",
+  'The average person lives just 4,000 weeks.',
+  'Most of your Mondays are already behind you.',
+  'You have lived more weeks than you think.',
   "Time is the only currency that can't be earned back.",
 ]
 
@@ -18,8 +20,20 @@ export default function Home() {
   const router = useRouter()
   const { birthDate, lifeExpectancy, setBirthDate, setLifeExpectancy } = useLifeStore()
   const { user, setUser } = useAuthStore()
-  
-  const [error, setError] = useState("")
+
+  // ✅ REPLACE: const [error, setError] = useState("")
+  //    with useAuth hook that auto-manages loading state
+  const {
+    user: backendUser,
+    isLoading: isLoadingUser,
+    isError,
+    updateProfile,
+    isUpdatingProfile,
+    updateProfileError,
+  } = useAuth()
+  const authError = isError ? new Error('Authentication failed') : null
+
+  const [error, setError] = useState('')
   const [started, setStarted] = useState(false)
   const [quoteIndex, setQuoteIndex] = useState<number | null>(null)
   const [hydrated, setHydrated] = useState(false)
@@ -29,30 +43,24 @@ export default function Home() {
     setHydrated(true)
   }, [])
 
-  // Step 2: Load user from backend if hydrated
+  // ✅ REPLACED: async loadUser() { await getMe() }
+  //    with: useAuth hook that auto-fetches and caches user
+  //    Benefits: Auto caching, auto refetch on focus, built-in loading state
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || isLoadingUser) return
 
-    async function loadUser() {
-      try {
-        const data = await getMe()
-        if (data?.user) {
-          setUser(data.user)
-          // Sync birthDate & lifeExpectancy from backend
-          if (data.user.birthDate) {
-            setBirthDate(data.user.birthDate)
-          }
-          if (data.user.lifeExpectancy) {
-            setLifeExpectancy(data.user.lifeExpectancy)
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load user:", err)
+    // When backendUser is fetched, sync to Zustand store
+    if (backendUser) {
+      setUser(backendUser)
+      // Sync birthDate & lifeExpectancy from backend
+      if (backendUser.birthDate) {
+        setBirthDate(backendUser.birthDate)
+      }
+      if (backendUser.lifeExpectancy) {
+        setLifeExpectancy(backendUser.lifeExpectancy)
       }
     }
-
-    loadUser()
-  }, [hydrated, setUser, setBirthDate, setLifeExpectancy])
+  }, [hydrated, backendUser, isLoadingUser, setUser, setBirthDate, setLifeExpectancy])
 
   // Set random quote
   useEffect(() => {
@@ -61,53 +69,51 @@ export default function Home() {
 
   async function handleStart() {
     if (!birthDate) {
-      setError("Please enter your birth date")
+      setError('Please enter your birth date')
       return
     }
 
     if (new Date(birthDate) > new Date()) {
-      setError("Birth date cannot be in the future")
+      setError('Birth date cannot be in the future')
       return
     }
 
     // If NOT logged in → go to login
     if (!user) {
       localStorage.setItem(
-        "tempLifeData",
+        'tempLifeData',
         JSON.stringify({ birthDate, lifeExpectancy })
       )
-      router.push("/login")
+      router.push('/login')
       return
     }
 
-    // If logged in → save to backend first
-    try {
-      const res = await fetch("/api/auth/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ birthDate, lifeExpectancy }),
-      })
+    // ✅ REPLACED: try/catch with fetch("/api/auth/profile")
+    //    with: updateProfile mutation
+    //    Benefits: Auto cache update, built-in error handling, stale time aware
+    updateProfile(
+      { birthDate, lifeExpectancy },
+      {
+        onSuccess: () => {
+          // Update local store
+          setBirthDate(birthDate)
+          setLifeExpectancy(lifeExpectancy)
 
-      if (!res.ok) {
-        setError("Failed to save profile")
-        return
+          // Navigate to grid with animation
+          setStarted(true)
+          setTimeout(() => router.push('/grid'), 600)
+        },
+        onError: (error) => {
+          console.error('Error saving profile:', error)
+          setError('Failed to save profile')
+        },
       }
-
-      // Update local store
-      setBirthDate(birthDate)
-      setLifeExpectancy(lifeExpectancy)
-
-      // Navigate to grid with animation
-      setStarted(true)
-      setTimeout(() => router.push("/grid"), 600)
-    } catch (err) {
-      console.error("Error saving profile:", err)
-      setError("Failed to save profile")
-    }
+    )
   }
 
-  if (!hydrated) {
+  // ✅ REPLACED: if (!hydrated)
+  //    Now also checks isLoadingUser from useAuth
+  if (!hydrated || isLoadingUser) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-zinc-600 text-xs">Loading...</div>
@@ -122,7 +128,7 @@ export default function Home() {
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
           backgroundImage: `radial-gradient(circle, #ffffff 1px, transparent 1px)`,
-          backgroundSize: "24px 24px",
+          backgroundSize: '24px 24px',
         }}
       />
 
@@ -131,7 +137,7 @@ export default function Home() {
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{
           background:
-            "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)",
+            'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)',
         }}
       />
 
@@ -142,7 +148,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
             className="w-full max-w-md relative z-10 px-1"
           >
             {/* Mini grid preview */}
@@ -157,10 +163,10 @@ export default function Home() {
                   key={i}
                   className={`w-[6px] h-[6px] rounded-[1px] ${
                     i < 80
-                      ? "bg-zinc-500"
+                      ? 'bg-zinc-500'
                       : i === 80
-                      ? "bg-white animate-pulse"
-                      : "bg-zinc-800"
+                        ? 'bg-white animate-pulse'
+                        : 'bg-zinc-800'
                   }`}
                 />
               ))}
@@ -209,7 +215,7 @@ export default function Home() {
                   value={birthDate}
                   onChange={(e) => {
                     setBirthDate(e.target.value)
-                    setError("")
+                    setError('')
                   }}
                   className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors backdrop-blur-sm"
                 />
@@ -237,24 +243,26 @@ export default function Home() {
                 </div>
               </div>
 
-              {error && (
+              {/* ✅ SHOW ERRORS FROM MULTIPLE SOURCES */}
+              {(error || updateProfileError || authError) && (
                 <motion.p
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="text-red-400 text-xs"
                 >
-                  {error}
+                  {error || updateProfileError?.message || authError?.message}
                 </motion.p>
               )}
 
-              {/* CTA Button */}
+              {/* ✅ DISABLE BUTTON WHILE UPDATING */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleStart}
-                className="w-full bg-white text-black rounded-xl py-3.5 text-sm font-medium hover:bg-zinc-100 transition-colors mt-2"
+                disabled={isUpdatingProfile}
+                className="w-full bg-white text-black rounded-xl py-3.5 text-sm font-medium hover:bg-zinc-100 transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                See my life →
+                {isUpdatingProfile ? 'Saving...' : 'See my life →'}
               </motion.button>
             </motion.div>
 
@@ -266,9 +274,9 @@ export default function Home() {
               className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-10"
             >
               {[
-                { icon: "◈", label: "Grid view" },
-                { icon: "◎", label: "Journal" },
-                { icon: "◉", label: "Stats" },
+                { icon: '◈', label: 'Grid view' },
+                { icon: '◎', label: 'Journal' },
+                { icon: '◉', label: 'Stats' },
               ].map((f) => (
                 <div key={f.label} className="flex flex-col items-center gap-1.5">
                   <span className="text-zinc-600 text-sm">{f.icon}</span>
@@ -290,7 +298,6 @@ export default function Home() {
                   <button
                     onClick={async () => {
                       await useAuthStore.getState().logout()
-                      setUser(null)
                     }}
                     className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
                   >
