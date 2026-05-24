@@ -12,8 +12,6 @@ const TagNameSchema = z.object({
   }),
 })
 
-type TagName = z.infer<typeof TagNameSchema>
-
 // GET /api/tags - Get all tags for user
 export async function GET(req: NextRequest) {
   try {

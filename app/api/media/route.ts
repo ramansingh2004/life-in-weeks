@@ -13,6 +13,12 @@ interface MediaQuery {
   type?: string
 }
 
+interface MongoQuery {
+  userId: string
+  weekIndex?: number | { $gte?: number; $lte?: number }
+  type?: string
+}
+
 export async function GET(req: NextRequest) {
   try {
     console.log('📷 [GET_MEDIA] Fetching media')
@@ -41,7 +47,7 @@ export async function GET(req: NextRequest) {
     // ✅ VALIDATE QUERY PARAMS WITH ZOD
     const queryData = {
       weekIndex: searchParams.get('weekIndex') ? parseInt(searchParams.get('weekIndex')!) : undefined,
-      type: searchParams.get('type') as any,
+      type: searchParams.get('type') as 'image' | 'video' | 'audio' | undefined,
       startWeek: searchParams.get('startWeek') ? parseInt(searchParams.get('startWeek')!) : undefined,
       endWeek: searchParams.get('endWeek') ? parseInt(searchParams.get('endWeek')!) : undefined,
       limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20,
@@ -87,7 +93,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Build MongoDB query with range if needed
-    const mongoQuery: any = query
+    const mongoQuery: MongoQuery = query
     if (startWeek !== undefined && endWeek !== undefined) {
       mongoQuery.weekIndex = { $gte: startWeek, $lte: endWeek }
     } else if (weekIndex !== undefined) {

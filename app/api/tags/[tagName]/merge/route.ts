@@ -13,8 +13,6 @@ const TagNameSchema = z.object({
   }),
 })
 
-type TagName = z.infer<typeof TagNameSchema>
-
 // POST /api/tags/[tagName]/merge - Merge two tags into one
 // Body: { targetTagName: "college" }
 // This will merge current tag into target tag (delete current, move all weeks)

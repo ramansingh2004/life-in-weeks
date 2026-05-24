@@ -3,7 +3,7 @@ import { getAuthUser } from '@/lib/getUser'
 import { Tag } from '@/models/Tag.model'
 import { Week } from '@/models/Week.model'
 import { connectDB } from '@/lib/mongodb'
-import { TagUpdateSchema, TagResponseSchema, TagMergeSchema } from '@/validators/tag.validator'
+import { TagUpdateSchema, TagResponseSchema } from '@/validators/tag.validator'
 import { WeekResponseSchema } from '@/validators/week.validator'
 import { z } from 'zod'
 import { IWeek } from '@/typesDefined'
@@ -15,7 +15,6 @@ const TagNameSchema = z.object({
   }),
 })
 
-type TagName = z.infer<typeof TagNameSchema>
 type WeekQuery = Partial<Omit<IWeek, 'weekIndex'>> & {
   weekIndex?: number | { $lt?: number }
 }

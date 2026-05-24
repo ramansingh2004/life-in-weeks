@@ -10,10 +10,8 @@ const MilestoneIdSchema = z.object({
   milestoneId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid milestone ID format'),
 })
 
-type MilestoneId = z.infer<typeof MilestoneIdSchema>
-
 // GET — fetch all milestones for user
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     console.log('📋 [GET_MILESTONES] Fetching milestones')
 

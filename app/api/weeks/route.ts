@@ -2,15 +2,21 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/getUser"
 import { connectDB } from "@/lib/mongodb"
 import { Week } from "@/models/Week.model"
-import { WeekDataSchema, WeekUpdateSchema, WeekResponseSchema, WeekFilterSchema } from "@/validators/week.validator"
+import { WeekDataSchema, WeekResponseSchema, WeekFilterSchema } from "@/validators/week.validator"
 import { z } from "zod"
+
+interface WeekQuery {
+  userId: string
+  weekIndex?: number | { $gte?: number; $lte?: number }
+  tags?: { $in: string[] }
+  mood?: { $gte?: number; $lte?: number }
+  type?: string
+}
 
 // ✅ WEEK INDEX VALIDATOR
 const WeekIndexSchema = z.object({
   weekIndex: z.number().int().nonnegative(),
 })
-
-type WeekIndex = z.infer<typeof WeekIndexSchema>
 
 export async function POST(req: NextRequest) {
   try {
@@ -254,7 +260,7 @@ export async function GET(req: NextRequest) {
     // Multiple weeks query with filters
     console.log('🔍 [GET_WEEK] Fetching multiple weeks with filters')
 
-    const query: any = { userId: user.userId }
+    const query: WeekQuery = { userId: user.userId }
 
     if (filters.startWeek !== undefined && filters.endWeek !== undefined) {
       query.weekIndex = { $gte: filters.startWeek, $lte: filters.endWeek }
