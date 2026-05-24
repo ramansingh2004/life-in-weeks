@@ -3,33 +3,79 @@ import { getAuthUser } from '@/lib/getUser'
 import { Tag } from '@/models/Tag.model'
 import { Week } from '@/models/Week.model'
 import { connectDB } from '@/lib/mongodb'
+import { TagUpdateSchema, TagResponseSchema, TagMergeSchema } from '@/validators/tag.validator'
+import { WeekResponseSchema } from '@/validators/week.validator'
+import { z } from 'zod'
 import { IWeek } from '@/typesDefined'
 
-// GET /api/tags/[tagName] - Get tag details + all weeks with this tag
+// ✅ TAG NAME VALIDATOR
+const TagNameSchema = z.object({
+  tagName: z.string().toLowerCase().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'Invalid tag name format',
+  }),
+})
+
+type TagName = z.infer<typeof TagNameSchema>
 type WeekQuery = Partial<Omit<IWeek, 'weekIndex'>> & {
   weekIndex?: number | { $lt?: number }
 }
 
+// GET /api/tags/[tagName] - Get tag details + all weeks with this tag
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ tagName: string }> }
 ) {
   try {
+    console.log('🏷️ [GET_TAG_DETAIL] Fetching tag details')
+
     await connectDB()
+    console.log('✅ [GET_TAG_DETAIL] Database connected')
 
     const user = await getAuthUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.warn('⚠️ [GET_TAG_DETAIL] Unauthorized')
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Unauthorized',
+            code: 'UNAUTHORIZED'
+          }
+        },
+        { status: 401 }
+      )
+    }
+
+    // ✅ Await params since it's now a Promise in Next.js 15
+    const { tagName } = await params
+
+    // ✅ VALIDATE TAG NAME WITH ZOD
+    const nameParsed = TagNameSchema.safeParse({ tagName })
+
+    if (!nameParsed.success) {
+      console.warn('⚠️ [GET_TAG_DETAIL] Invalid tag name:', tagName)
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Invalid tag name',
+            code: 'INVALID_NAME',
+            details: nameParsed.error.issues.map(err => ({
+              field: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            }))
+          }
+        },
+        { status: 400 }
+      )
     }
 
     const { searchParams } = new URL(req.url)
     const limit = parseInt(searchParams.get('limit') || '50')
-    // const skip = parseInt(searchParams.get('skip') || '0')
-    // cursor-based pagination (better than skip)
     const lastWeekIndex = searchParams.get("lastWeekIndex")
 
-    // ✅ Await params since it's now a Promise in Next.js 15
-    const { tagName } = await params
+    console.log(`🔍 [GET_TAG_DETAIL] Finding tag: ${tagName}`)
 
     const tag = await Tag.findOne({
       userId: user.userId,
@@ -37,8 +83,20 @@ export async function GET(
     })
 
     if (!tag) {
-      return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
+      console.warn('⚠️ [GET_TAG_DETAIL] Tag not found:', tagName)
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Tag not found',
+            code: 'NOT_FOUND'
+          }
+        },
+        { status: 404 }
+      )
     }
+
+    console.log(`✅ [GET_TAG_DETAIL] Tag found: ${tag.displayName}`)
 
     const query: WeekQuery = {
       userId: user.userId,
@@ -50,6 +108,7 @@ export async function GET(
     }
 
     // Get all weeks with this tag
+    console.log('📖 [GET_TAG_DETAIL] Fetching weeks with this tag')
     const weeks = await Week.find(query)
       .sort({ weekIndex: -1 })
       .limit(limit)
@@ -64,19 +123,73 @@ export async function GET(
       })
     }
 
+    console.log(`✅ [GET_TAG_DETAIL] Found ${weeks.length} weeks with tag`)
+
+    // ✅ VALIDATE TAG RESPONSE WITH ZOD
+    const validatedTag = TagResponseSchema.parse({
+      _id: tag._id.toString(),
+      userId: tag.userId,
+      name: tag.name,
+      displayName: tag.displayName,
+      color: tag.color,
+      emoji: tag.emoji,
+      description: tag.description,
+      usageCount: tag.usageCount,
+      createdAt: tag.createdAt,
+      updatedAt: tag.updatedAt,
+    })
+
+    // ✅ VALIDATE WEEKS RESPONSE WITH ZOD
+    const validatedWeeks = weeks.map(w =>
+      WeekResponseSchema.parse({
+        _id: w._id.toString(),
+        userId: w.userId,
+        weekIndex: w.weekIndex,
+        note: w.note,
+        mood: w.mood,
+        tags: w.tags,
+        date: w.date,
+        isPast: w.isPast,
+        isCurrent: w.isCurrent,
+        createdAt: w.createdAt,
+        updatedAt: w.updatedAt,
+      })
+    )
+
     return NextResponse.json({
-      tag,
-      weeks,
-      total,
-      nextCursor:
-        weeks.length > 0
-          ? weeks[weeks.length - 1].weekIndex
-          : null,
-      hasMore: weeks.length === limit,
+      success: true,
+      data: {
+        tag: validatedTag,
+        weeks: validatedWeeks,
+        total,
+        nextCursor: weeks.length > 0 ? weeks[weeks.length - 1].weekIndex : null,
+        hasMore: weeks.length === limit,
+      },
+      message: `Found tag with ${weeks.length} weeks`
     })
   } catch (error) {
-    console.error('Get tag error:', error)
-    return NextResponse.json({ error: 'Failed to fetch tag' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : 'No stack'
+
+    console.error('❌ [GET_TAG_DETAIL] Get tag error:', errorMessage)
+    console.error('   Stack:', errorStack)
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: 'Failed to fetch tag',
+          code: 'FETCH_FAILED',
+          ...(process.env.NODE_ENV !== "production" && {
+            details: {
+              message: errorMessage,
+              stack: errorStack
+            }
+          })
+        }
+      },
+      { status: 500 }
+    )
   }
 }
 
@@ -86,14 +199,79 @@ export async function PUT(
   { params }: { params: Promise<{ tagName: string }> }
 ) {
   try {
-    await connectDB()
-    const user = await getAuthUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    console.log('✏️ [PUT_TAG_DETAIL] Updating tag')
 
-    const { displayName, color, emoji, description } = await req.json()
+    await connectDB()
+    console.log('✅ [PUT_TAG_DETAIL] Database connected')
+
+    const user = await getAuthUser()
+    if (!user) {
+      console.warn('⚠️ [PUT_TAG_DETAIL] Unauthorized')
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Unauthorized',
+            code: 'UNAUTHORIZED'
+          }
+        },
+        { status: 401 }
+      )
+    }
 
     // ✅ Await params since it's now a Promise in Next.js 15
     const { tagName } = await params
+
+    // ✅ VALIDATE TAG NAME WITH ZOD
+    const nameParsed = TagNameSchema.safeParse({ tagName })
+
+    if (!nameParsed.success) {
+      console.warn('⚠️ [PUT_TAG_DETAIL] Invalid tag name:', tagName)
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Invalid tag name',
+            code: 'INVALID_NAME',
+            details: nameParsed.error.issues.map(err => ({
+              field: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            }))
+          }
+        },
+        { status: 400 }
+      )
+    }
+
+    const body = await req.json()
+    console.log('📦 [PUT_TAG_DETAIL] Body parsed')
+
+    // ✅ VALIDATE UPDATE DATA WITH ZOD
+    const updateParsed = TagUpdateSchema.safeParse(body)
+
+    if (!updateParsed.success) {
+      console.warn('⚠️ [PUT_TAG_DETAIL] Update validation failed:', updateParsed.error.issues)
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Validation failed',
+            code: 'VALIDATION_ERROR',
+            details: updateParsed.error.issues.map(err => ({
+              field: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            }))
+          }
+        },
+        { status: 422 }
+      )
+    }
+
+    const updateData = updateParsed.data
+
+    console.log(`🔍 [PUT_TAG_DETAIL] Finding tag: ${tagName}`)
 
     const tag = await Tag.findOne({
       userId: user.userId,
@@ -101,21 +279,73 @@ export async function PUT(
     })
 
     if (!tag) {
-      return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
+      console.warn('⚠️ [PUT_TAG_DETAIL] Tag not found:', tagName)
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Tag not found',
+            code: 'NOT_FOUND'
+          }
+        },
+        { status: 404 }
+      )
     }
 
     // Update fields
-    if (displayName) tag.displayName = displayName.trim()
-    if (color) tag.color = color
-    if (emoji !== undefined) tag.emoji = emoji
-    if (description !== undefined) tag.description = description
+    if (updateData.displayName) tag.displayName = updateData.displayName.trim()
+    if (updateData.color) tag.color = updateData.color
+    if (updateData.emoji !== undefined) tag.emoji = updateData.emoji
+    if (updateData.description !== undefined) tag.description = updateData.description
 
     await tag.save()
 
-    return NextResponse.json({ tag })
+    console.log(`✅ [PUT_TAG_DETAIL] Updated tag: ${tagName}`)
+
+    // ✅ VALIDATE RESPONSE WITH ZOD
+    const validatedResponse = TagResponseSchema.parse({
+      _id: tag._id.toString(),
+      userId: tag.userId,
+      name: tag.name,
+      displayName: tag.displayName,
+      color: tag.color,
+      emoji: tag.emoji,
+      description: tag.description,
+      usageCount: tag.usageCount,
+      createdAt: tag.createdAt,
+      updatedAt: tag.updatedAt,
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        tag: validatedResponse
+      },
+      message: 'Tag updated successfully'
+    })
   } catch (error) {
-    console.error('Update tag error:', error)
-    return NextResponse.json({ error: 'Failed to update tag' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : 'No stack'
+
+    console.error('❌ [PUT_TAG_DETAIL] Update tag error:', errorMessage)
+    console.error('   Stack:', errorStack)
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: 'Failed to update tag',
+          code: 'UPDATE_FAILED',
+          ...(process.env.NODE_ENV !== "production" && {
+            details: {
+              message: errorMessage,
+              stack: errorStack
+            }
+          })
+        }
+      },
+      { status: 500 }
+    )
   }
 }
 
@@ -125,15 +355,55 @@ export async function DELETE(
   { params }: { params: Promise<{ tagName: string }> }
 ) {
   try {
+    console.log('🗑️ [DELETE_TAG_DETAIL] Deleting tag')
+
     await connectDB()
+    console.log('✅ [DELETE_TAG_DETAIL] Database connected')
+
     const user = await getAuthUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) {
+      console.warn('⚠️ [DELETE_TAG_DETAIL] Unauthorized')
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Unauthorized',
+            code: 'UNAUTHORIZED'
+          }
+        },
+        { status: 401 }
+      )
+    }
+
+    // ✅ Await params since it's now a Promise in Next.js 15
+    const { tagName } = await params
+
+    // ✅ VALIDATE TAG NAME WITH ZOD
+    const nameParsed = TagNameSchema.safeParse({ tagName })
+
+    if (!nameParsed.success) {
+      console.warn('⚠️ [DELETE_TAG_DETAIL] Invalid tag name:', tagName)
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Invalid tag name',
+            code: 'INVALID_NAME',
+            details: nameParsed.error.issues.map(err => ({
+              field: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            }))
+          }
+        },
+        { status: 400 }
+      )
+    }
 
     const { searchParams } = new URL(req.url)
     const removeFromWeeks = searchParams.get('removeFromWeeks') === 'true'
 
-    // ✅ Await params since it's now a Promise in Next.js 15
-    const { tagName } = await params
+    console.log(`🔍 [DELETE_TAG_DETAIL] Finding tag: ${tagName}`)
 
     const tag = await Tag.findOne({
       userId: user.userId,
@@ -141,11 +411,24 @@ export async function DELETE(
     })
 
     if (!tag) {
-      return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
+      console.warn('⚠️ [DELETE_TAG_DETAIL] Tag not found:', tagName)
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Tag not found',
+            code: 'NOT_FOUND'
+          }
+        },
+        { status: 404 }
+      )
     }
+
+    console.log(`✅ [DELETE_TAG_DETAIL] Tag found: ${tag.displayName}`)
 
     // Option 1: Remove tag from all weeks
     if (removeFromWeeks) {
+      console.log('📝 [DELETE_TAG_DETAIL] Removing tag from all weeks')
       await Week.updateMany(
         { userId: user.userId, tags: tag.name },
         { $pull: { tags: tag.name } }
@@ -155,9 +438,38 @@ export async function DELETE(
     // Delete tag
     await Tag.deleteOne({ _id: tag._id })
 
-    return NextResponse.json({ success: true })
+    console.log(`✅ [DELETE_TAG_DETAIL] Deleted tag: ${tagName}`)
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        name: tag.name,
+        message: 'Tag deleted successfully'
+      },
+      message: `Tag deleted ${removeFromWeeks ? 'and removed from all weeks' : ''}`
+    })
   } catch (error) {
-    console.error('Delete tag error:', error)
-    return NextResponse.json({ error: 'Failed to delete tag' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : 'No stack'
+
+    console.error('❌ [DELETE_TAG_DETAIL] Delete tag error:', errorMessage)
+    console.error('   Stack:', errorStack)
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: 'Failed to delete tag',
+          code: 'DELETE_FAILED',
+          ...(process.env.NODE_ENV !== "production" && {
+            details: {
+              message: errorMessage,
+              stack: errorStack
+            }
+          })
+        }
+      },
+      { status: 500 }
+    )
   }
 }

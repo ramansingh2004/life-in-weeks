@@ -1,5 +1,3 @@
-// app/api/tags/test/route.ts
-
 import { NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/getUser'
 import { Tag } from '@/models/Tag.model'
