@@ -3,6 +3,7 @@ import { ObjectIdSchema } from './common.validator';
 
 // ✅ Base object schema
 const BaseLifeChapterSchema = z.object({
+  userId: ObjectIdSchema,
   startWeek: z.number().int().nonnegative(),
   endWeek: z.number().int().nonnegative(),
   title: z.string().min(1).max(100, 'Title must be 100 characters or less'),

@@ -107,6 +107,7 @@ export async function POST() {
 
       // ✅ VALIDATE CHAPTER DATA WITH ZOD
       const chapterData: LifeChapterCreate = {
+        userId,
         startWeek: chapterStart,
         endWeek: endWeek - 1,
         title,
