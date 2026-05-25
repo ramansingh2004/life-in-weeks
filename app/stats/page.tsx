@@ -1,18 +1,23 @@
-"use client"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { differenceInWeeks, differenceInYears, format } from "date-fns"
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
-import { MOOD_LABELS } from "@/typesDefined"
-import { useLifeStore } from "@/store/useCapsuleStore"
-import Sidebar from "@/components/Sidebar"
-
+'use client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { differenceInWeeks, differenceInYears, format } from 'date-fns'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { MOOD_LABELS } from '@/typesDefined'
+import { useLifeStore } from '@/store/useCapsuleStore'
+import Sidebar from '@/components/Sidebar'
+// ✅ IMPORT REACT QUERY HOOKS
+import { useAuth } from '@/hooks/useQuery'
 
 type StatCard = { label: string; value: string; sub?: string }
 
 export default function StatsPage() {
   const router = useRouter()
+  
+  // ✅ USE useAuth to verify user is authenticated
+  const { user, isLoading: isLoadingUser } = useAuth()
+  
   const { notes, birthDate: storedDate, lifeExpectancy } = useLifeStore()
   const [stats, setStats] = useState<StatCard[]>([])
   const [moodData, setMoodData] = useState<{ week: number; mood: number }[]>([])
@@ -26,10 +31,19 @@ export default function StatsPage() {
     setHydrated(true)
   }, [])
 
-  // Step 2 — calculate stats after hydration
+  // Step 2 — check auth and calculate stats after hydration
   useEffect(() => {
-    if (!hydrated) return
-    if (!storedDate) { router.push("/"); return }
+    if (!hydrated || isLoadingUser) return
+
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    if (!storedDate) {
+      router.push('/')
+      return
+    }
 
     const birth = new Date(storedDate)
     setBirthDateObj(birth)
@@ -42,40 +56,58 @@ export default function StatsPage() {
     setLifePercent(percent)
 
     setStats([
-      { label: "Weeks lived", value: weeksLived.toLocaleString(), sub: `${Math.round(weeksLived / 52)} years` },
-      { label: "Weeks remaining", value: weeksRemaining.toLocaleString(), sub: `${Math.round(weeksRemaining / 52)} years left` },
-      { label: "Days lived", value: (weeksLived * 7).toLocaleString(), sub: "days on earth" },
-      { label: "Hours lived", value: (weeksLived * 7 * 24).toLocaleString(), sub: "hours so far" },
-      { label: "Seasons lived", value: (age * 4).toLocaleString(), sub: "summers, winters" },
-      { label: "Sunrises seen", value: (weeksLived * 7).toLocaleString(), sub: "approximately" },
-      { label: "Mondays survived", value: weeksLived.toLocaleString(), sub: "every single one" },
-      { label: "Life progress", value: `${percent}%`, sub: "of your journey" },
+      { label: 'Weeks lived', value: weeksLived.toLocaleString(), sub: `${Math.round(weeksLived / 52)} years` },
+      {
+        label: 'Weeks remaining',
+        value: weeksRemaining.toLocaleString(),
+        sub: `${Math.round(weeksRemaining / 52)} years left`,
+      },
+      { label: 'Days lived', value: (weeksLived * 7).toLocaleString(), sub: 'days on earth' },
+      { label: 'Hours lived', value: (weeksLived * 7 * 24).toLocaleString(), sub: 'hours so far' },
+      { label: 'Seasons lived', value: (age * 4).toLocaleString(), sub: 'summers, winters' },
+      { label: 'Sunrises seen', value: (weeksLived * 7).toLocaleString(), sub: 'approximately' },
+      { label: 'Mondays survived', value: weeksLived.toLocaleString(), sub: 'every single one' },
+      { label: 'Life progress', value: `${percent}%`, sub: 'of your journey' },
     ])
 
     const moodEntries = Object.values(notes)
-      .filter(n => n.mood > 0)
-      .sort((a, b) => a.weekIndex - b.weekIndex)
-      .map(n => ({ week: n.weekIndex, mood: n.mood }))
+      .filter((n: any) => n.mood > 0)
+      .sort((a: any, b: any) => a.weekIndex - b.weekIndex)
+      .map((n: any) => ({ week: n.weekIndex, mood: n.mood }))
     setMoodData(moodEntries)
 
     const moodCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-    moodEntries.forEach(m => moodCounts[m.mood]++)
+    moodEntries.forEach((m) => moodCounts[m.mood]++)
 
     const moodColors: Record<number, string> = {
-      1: "bg-red-500", 2: "bg-orange-500", 3: "bg-yellow-500",
-      4: "bg-green-500", 5: "bg-emerald-400",
+      1: 'bg-red-500',
+      2: 'bg-orange-500',
+      3: 'bg-yellow-500',
+      4: 'bg-green-500',
+      5: 'bg-emerald-400',
     }
 
     setTopMoods(
-      [5, 4, 3, 2, 1].map(m => ({
+      [5, 4, 3, 2, 1].map((m) => ({
         label: MOOD_LABELS[m],
         count: moodCounts[m],
         color: moodColors[m],
       }))
     )
-  }, [hydrated, storedDate, lifeExpectancy, notes, router])
+  }, [hydrated, isLoadingUser, user, storedDate, lifeExpectancy, notes, router])
 
   const totalMoodEntries = topMoods.reduce((sum, m) => sum + m.count, 0)
+
+  // ✅ Show loading while checking auth
+  if (isLoadingUser) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-zinc-400">Loading...</p>
+        </div>
+      </main>
+    )
+  }
 
   if (!hydrated) return null
 
@@ -84,22 +116,19 @@ export default function StatsPage() {
       {/* Sidebar */}
       <Sidebar />
 
-
       {/* Header */}
       <div className="max-w-2xl mx-auto mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
           <h1 className="text-xl font-light tracking-tight">Your Stats</h1>
           <button
-            onClick={() => router.push("/grid")}
+            onClick={() => router.push('/grid')}
             className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
           >
             ← Back to grid
           </button>
         </div>
         {birthDateObj && (
-          <p className="text-zinc-600 text-xs">
-            Born {format(birthDateObj, "MMMM d, yyyy")}
-          </p>
+          <p className="text-zinc-600 text-xs">Born {format(birthDateObj, 'MMMM d, yyyy')}</p>
         )}
       </div>
 
@@ -113,7 +142,7 @@ export default function StatsPage() {
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${lifePercent}%` }}
-            transition={{ duration: 1.2, ease: "easeOut" }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
             className="bg-white h-2 rounded-full"
           />
         </div>
@@ -131,14 +160,12 @@ export default function StatsPage() {
             key={stat.label}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1, type: "spring", stiffness: 100, damping: 15 }}
+            transition={{ delay: i * 0.1, type: 'spring', stiffness: 100, damping: 15 }}
             className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-4"
           >
             <p className="text-zinc-500 text-xs mb-1">{stat.label}</p>
             <p className="text-white text-2xl font-light">{stat.value}</p>
-            {stat.sub && (
-              <p className="text-zinc-600 text-xs mt-1">{stat.sub}</p>
-            )}
+            {stat.sub && <p className="text-zinc-600 text-xs mt-1">{stat.sub}</p>}
           </motion.div>
         ))}
       </div>
@@ -148,9 +175,7 @@ export default function StatsPage() {
         <div className="max-w-2xl mx-auto mb-10">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
             <p className="text-zinc-400 text-sm mb-1">Mood over time</p>
-            <p className="text-zinc-600 text-xs mb-5">
-              Based on {moodData.length} rated weeks
-            </p>
+            <p className="text-zinc-600 text-xs mb-5">Based on {moodData.length} rated weeks</p>
             <ResponsiveContainer width="100%" height={160}>
               <AreaChart data={moodData}>
                 <defs>
@@ -159,17 +184,38 @@ export default function StatsPage() {
                     <stop offset="95%" stopColor="#ffffff" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="week" tick={{ fill: "#52525b", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `Wk ${v}`} />
-                <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fill: "#52525b", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => MOOD_LABELS[v] || ""} width={55} />
-                <Tooltip
-                  contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8, fontSize: 12 }}
-                  formatter={(value) => {
-                    const moodLabel = typeof value === "number" ? MOOD_LABELS[value] : ""
-                    return [moodLabel, "Mood"] as const
-                  }}
-                  labelFormatter={v => `Week ${v}`}
+                <XAxis
+                  dataKey="week"
+                  tick={{ fill: '#52525b', fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `Wk ${v}`}
                 />
-                <Area type="monotone" dataKey="mood" stroke="#ffffff" strokeWidth={1.5} fill="url(#moodGrad)" dot={{ fill: "#ffffff", r: 3 }} />
+                <YAxis
+                  domain={[1, 5]}
+                  ticks={[1, 2, 3, 4, 5]}
+                  tick={{ fill: '#52525b', fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => MOOD_LABELS[v] || ''}
+                  width={55}
+                />
+                <Tooltip
+                  contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8, fontSize: 12 }}
+                  formatter={(value) => {
+                    const moodLabel = typeof value === 'number' ? MOOD_LABELS[value] : ''
+                    return [moodLabel, 'Mood'] as const
+                  }}
+                  labelFormatter={(v) => `Week ${v}`}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="mood"
+                  stroke="#ffffff"
+                  strokeWidth={1.5}
+                  fill="url(#moodGrad)"
+                  dot={{ fill: '#ffffff', r: 3 }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -182,14 +228,14 @@ export default function StatsPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
             <p className="text-zinc-400 text-sm mb-5">Mood breakdown</p>
             <div className="space-y-3">
-              {topMoods.map(mood => (
+              {topMoods.map((mood) => (
                 <div key={mood.label} className="flex items-center gap-3">
                   <span className="text-zinc-500 text-xs w-16">{mood.label}</span>
                   <div className="flex-1 bg-zinc-800 rounded-full h-1.5">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: totalMoodEntries > 0 ? `${(mood.count / totalMoodEntries) * 100}%` : "0%" }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      animate={{ width: totalMoodEntries > 0 ? `${(mood.count / totalMoodEntries) * 100}%` : '0%' }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
                       className={`h-1.5 rounded-full ${mood.color}`}
                     />
                   </div>
@@ -207,7 +253,10 @@ export default function StatsPage() {
           <p className="text-zinc-600 text-sm">
             No mood data yet. Rate your weeks on the grid to see your emotional timeline.
           </p>
-          <button onClick={() => router.push("/grid")} className="mt-3 text-zinc-500 text-xs underline hover:text-zinc-300 transition-colors">
+          <button
+            onClick={() => router.push('/grid')}
+            className="mt-3 text-zinc-500 text-xs underline hover:text-zinc-300 transition-colors"
+          >
             Go to grid →
           </button>
         </div>
@@ -220,7 +269,6 @@ export default function StatsPage() {
         </p>
         <p className="text-zinc-800 text-xs mt-1">— Buddha</p>
       </div>
-
     </main>
   )
 }

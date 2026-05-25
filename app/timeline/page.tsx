@@ -1,18 +1,19 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
-import { useLifeStore } from "@/store/useCapsuleStore"
-import { MOOD_COLORS, MOOD_LABELS } from "@/typesDefined"
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useLifeStore } from '@/store/useCapsuleStore'
+import { MOOD_COLORS, MOOD_LABELS } from '@/typesDefined'
 import { TagFilter } from '@/components/TagComponents/TagFilter'
 import Image from 'next/image'
-import Sidebar from "@/components/Sidebar"
-
+import Sidebar from '@/components/Sidebar'
+// ✅ IMPORT REACT QUERY HOOKS
+import { useAuth } from '@/hooks/useQuery'
 
 type MediaItem = {
   _id: string
-  type: "image" | "video" | "audio"
+  type: 'image' | 'video' | 'audio'
   url: string
   name: string
 }
@@ -30,12 +31,16 @@ type TimelineMemory = {
 
 export default function TimelinePage() {
   const router = useRouter()
+  
+  // ✅ USE useAuth to verify user is authenticated
+  const { user, isLoading: isLoadingUser } = useAuth()
+  
   const { getNote } = useLifeStore()
 
   const [memories, setMemories] = useState<TimelineMemory[]>([])
   const [loading, setLoading] = useState(true)
   const [hydrated, setHydrated] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('')
   const [moodFilter, setMoodFilter] = useState<number | null>(null)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [preview, setPreview] = useState<TimelineMemory | null>(null)
@@ -45,8 +50,14 @@ export default function TimelinePage() {
     setHydrated(true)
   }, [])
 
+  // ✅ IMPROVED: Check auth status with React Query before loading memories
   useEffect(() => {
-    if (!hydrated) return
+    if (!hydrated || isLoadingUser) return
+
+    if (!user) {
+      router.push('/login')
+      return
+    }
 
     async function loadMemories() {
       const allMemories: TimelineMemory[] = []
@@ -54,7 +65,7 @@ export default function TimelinePage() {
       // Get all weeks - iterate through a reasonable range
       for (let i = 0; i < 10000; i++) {
         const note = getNote(i)
-        if (note && note.note && note.note.trim() !== "<p></p>") {
+        if (note && note.note && note.note.trim() !== '<p></p>') {
           const memory: TimelineMemory = {
             weekIndex: note.weekIndex,
             date: note.date,
@@ -89,34 +100,15 @@ export default function TimelinePage() {
       console.log(`📜 Loaded ${allMemories.length} memories with media`)
     }
 
-    async function init() {
-      try {
-        const res = await fetch("/api/auth/me")
-        const data = await res.json()
-
-        if (!res.ok || !data?.user) {
-          router.push("/login")
-          return
-        }
-
-        // Load all memories from Zustand store with media
-        await loadMemories()
-        setLoading(false)
-      } catch (err) {
-        console.error("Init error:", err)
-        router.push("/login")
-      }
-    }
-
-    init()
-  }, [hydrated, router, getNote])
+    loadMemories().finally(() => setLoading(false))
+  }, [hydrated, isLoadingUser, user, router, getNote])
 
   // Prevent background scroll when preview is open
   useEffect(() => {
     if (preview || imagePreview) {
-      document.body.style.overflow = "hidden"
+      document.body.style.overflow = 'hidden'
       return () => {
-        document.body.style.overflow = "unset"
+        document.body.style.overflow = 'unset'
       }
     }
   }, [preview, imagePreview])
@@ -124,18 +116,38 @@ export default function TimelinePage() {
   // Filter memories: search + mood + tags
   const filtered = memories.filter((mem) => {
     const matchesSearch =
-      searchTerm === "" ||
+      searchTerm === '' ||
       mem.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mem.date.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesMood = moodFilter === null || mem.mood === moodFilter
 
     // Tag filtering: AND logic (must have ALL selected tags)
-    const matchesTags = selectedTags.length === 0 || 
-      selectedTags.every(tag => mem.tags?.includes(tag))
+    const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => mem.tags?.includes(tag))
 
     return matchesSearch && matchesMood && matchesTags
   })
+
+  // ✅ Show loading while checking auth
+  if (isLoadingUser) {
+    return (
+      <main className="min-h-screen bg-black flex items-center justify-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+          <div className="flex gap-1 justify-center mb-4">
+            {[0, 1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ opacity: [0.2, 1, 0.2] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                className="w-2 h-2 bg-zinc-600 rounded-[1px]"
+              />
+            ))}
+          </div>
+          <p className="text-zinc-600 text-xs">Loading...</p>
+        </motion.div>
+      </main>
+    )
+  }
 
   if (!hydrated || loading) {
     return (
@@ -157,9 +169,9 @@ export default function TimelinePage() {
     )
   }
 
-  const images = preview?.media?.filter((m) => m.type === "image") || []
-  const videos = preview?.media?.filter((m) => m.type === "video") || []
-  const audios = preview?.media?.filter((m) => m.type === "audio") || []
+  const images = preview?.media?.filter((m) => m.type === 'image') || []
+  const videos = preview?.media?.filter((m) => m.type === 'video') || []
+  const audios = preview?.media?.filter((m) => m.type === 'audio') || []
 
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-10 px-4 sm:px-6 pb-10">
@@ -170,7 +182,7 @@ export default function TimelinePage() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => router.push("/grid")}
+            onClick={() => router.push('/grid')}
             className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors mb-4"
           >
             ← Back to grid
@@ -194,11 +206,7 @@ export default function TimelinePage() {
 
         {/* Tag Filter */}
         <div className="mb-6 bg-zinc-900 rounded-lg border border-zinc-800 p-4">
-          <TagFilter
-            selectedTags={selectedTags}
-            onTagsChange={setSelectedTags}
-            mode="multiple"
-          />
+          <TagFilter selectedTags={selectedTags} onTagsChange={setSelectedTags} mode="multiple" />
         </div>
 
         {/* Mood Filter */}
@@ -208,8 +216,8 @@ export default function TimelinePage() {
             onClick={() => setMoodFilter(null)}
             className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
               moodFilter === null
-                ? "border-white bg-white text-black"
-                : "border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                ? 'border-white bg-white text-black'
+                : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
             }`}
           >
             All
@@ -223,7 +231,7 @@ export default function TimelinePage() {
                 onClick={() => setMoodFilter(moodFilter === mood ? null : mood)}
                 className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
                   moodFilter === mood
-                    ? "border-white bg-white text-black"
+                    ? 'border-white bg-white text-black'
                     : `border-zinc-700 text-zinc-400 hover:border-zinc-600 ${colors}`
                 }`}
               >
@@ -237,7 +245,8 @@ export default function TimelinePage() {
         {(selectedTags.length > 0 || moodFilter !== null) && (
           <div className="mb-4 p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg flex items-center justify-between">
             <p className="text-blue-300 text-xs">
-              🔍 Filtered by: {selectedTags.length > 0 && selectedTags.map(t => `#${t}`).join(', ')}
+              🔍 Filtered by:{' '}
+              {selectedTags.length > 0 && selectedTags.map((t) => `#${t}`).join(', ')}
               {selectedTags.length > 0 && moodFilter && ' + '}
               {moodFilter && MOOD_LABELS[moodFilter]}
             </p>
@@ -258,11 +267,11 @@ export default function TimelinePage() {
           <div className="text-center py-12">
             <p className="text-zinc-600 text-sm mb-4">
               {memories.length === 0
-                ? "No memories yet. Start writing some!"
-                : "No memories match your filters."}
+                ? 'No memories yet. Start writing some!'
+                : 'No memories match your filters.'}
             </p>
             <button
-              onClick={() => router.push("/grid")}
+              onClick={() => router.push('/grid')}
               className="border border-zinc-700 text-zinc-400 rounded-lg px-4 py-2.5 text-xs hover:border-zinc-600 transition-colors"
             >
               Go to grid →
@@ -271,7 +280,7 @@ export default function TimelinePage() {
         ) : (
           <div className="space-y-4 pb-10">
             {filtered.map((mem, idx) => {
-              const moodColor = mem.mood ? MOOD_COLORS[mem.mood] : "bg-zinc-800"
+              const moodColor = mem.mood ? MOOD_COLORS[mem.mood] : 'bg-zinc-800'
               const moodLabel = mem.mood ? MOOD_LABELS[mem.mood] : null
 
               return (
@@ -308,7 +317,9 @@ export default function TimelinePage() {
                             Week {mem.weekIndex + 1}
                           </p>
                           {moodLabel && (
-                            <span className={`text-xs font-medium ${MOOD_COLORS[mem.mood]} text-white px-2 py-1 rounded`}>
+                            <span
+                              className={`text-xs font-medium ${MOOD_COLORS[mem.mood]} text-white px-2 py-1 rounded`}
+                            >
                               {moodLabel}
                             </span>
                           )}
@@ -333,7 +344,6 @@ export default function TimelinePage() {
                                 key={tag}
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  // Filter by this tag
                                   if (!selectedTags.includes(tag)) {
                                     setSelectedTags([...selectedTags, tag])
                                   }
@@ -349,19 +359,19 @@ export default function TimelinePage() {
                         {/* Media preview indicators */}
                         {mem.media && mem.media.length > 0 && (
                           <div className="flex gap-2 mb-3 flex-wrap">
-                            {mem.media.filter((m) => m.type === "image").length > 0 && (
+                            {mem.media.filter((m) => m.type === 'image').length > 0 && (
                               <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
-                                📷 {mem.media.filter((m) => m.type === "image").length}
+                                📷 {mem.media.filter((m) => m.type === 'image').length}
                               </span>
                             )}
-                            {mem.media.filter((m) => m.type === "video").length > 0 && (
+                            {mem.media.filter((m) => m.type === 'video').length > 0 && (
                               <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
-                                🎥 {mem.media.filter((m) => m.type === "video").length}
+                                🎥 {mem.media.filter((m) => m.type === 'video').length}
                               </span>
                             )}
-                            {mem.media.filter((m) => m.type === "audio").length > 0 && (
+                            {mem.media.filter((m) => m.type === 'audio').length > 0 && (
                               <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
-                                🎙️ {mem.media.filter((m) => m.type === "audio").length}
+                                🎙️ {mem.media.filter((m) => m.type === 'audio').length}
                               </span>
                             )}
                           </div>
@@ -397,7 +407,7 @@ export default function TimelinePage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
@@ -419,9 +429,7 @@ export default function TimelinePage() {
               {/* Mood Badge */}
               {preview.mood > 0 && (
                 <div className="mb-4 flex items-center gap-2">
-                  <span
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium ${MOOD_COLORS[preview.mood]} text-white`}
-                  >
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${MOOD_COLORS[preview.mood]} text-white`}>
                     {MOOD_LABELS[preview.mood]}
                   </span>
                   <div className="flex gap-1">
@@ -431,7 +439,7 @@ export default function TimelinePage() {
                         className={`w-6 h-6 rounded-full border text-xs flex items-center justify-center ${
                           m === preview.mood
                             ? `${MOOD_COLORS[preview.mood]} border-white text-white`
-                            : "border-zinc-700 text-zinc-600"
+                            : 'border-zinc-700 text-zinc-600'
                         }`}
                       >
                         {m}
@@ -475,9 +483,7 @@ export default function TimelinePage() {
               {/* Photos */}
               {images.length > 0 && (
                 <div className="mb-6">
-                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
-                    Photos ({images.length})
-                  </p>
+                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Photos ({images.length})</p>
                   <div className="grid grid-cols-3 gap-2">
                     {images.map((item) => (
                       <motion.div
@@ -505,21 +511,11 @@ export default function TimelinePage() {
               {/* Videos */}
               {videos.length > 0 && (
                 <div className="mb-6">
-                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
-                    Videos ({videos.length})
-                  </p>
+                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Videos ({videos.length})</p>
                   <div className="space-y-2">
                     {videos.map((item) => (
-                      <motion.div
-                        key={item._id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                      >
-                        <video
-                          src={item.url}
-                          controls
-                          className="w-full rounded-lg max-h-48 bg-zinc-900"
-                        />
+                      <motion.div key={item._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                        <video src={item.url} controls className="w-full rounded-lg max-h-48 bg-zinc-900" />
                       </motion.div>
                     ))}
                   </div>
@@ -529,9 +525,7 @@ export default function TimelinePage() {
               {/* Audio */}
               {audios.length > 0 && (
                 <div className="mb-6">
-                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">
-                    Voice Notes ({audios.length})
-                  </p>
+                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Voice Notes ({audios.length})</p>
                   <div className="space-y-2">
                     {audios.map((item) => (
                       <motion.div
@@ -558,7 +552,7 @@ export default function TimelinePage() {
                 </button>
                 <button
                   onClick={() => {
-                    router.push("/grid")
+                    router.push('/grid')
                     setPreview(null)
                   }}
                   className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium hover:bg-zinc-100 transition-colors"
