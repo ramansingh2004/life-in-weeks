@@ -32,7 +32,7 @@ export default function GridPage() {
   
   // ✅ REPLACE: getMe() + getAllWeeks() with React Query hooks
   const { user, isLoading: isLoadingUser } = useAuth()
-  const { weeks: backendWeeks, isLoading: isLoadingWeeks } = useWeeks()
+  const { isLoading: isLoadingWeeks } = useWeeks()
   
   const {
     birthDate: storedDate,

@@ -117,6 +117,7 @@ export default function MediaUploader({ weekIndex }: Props) {
         toast.success('Media deleted')
       },
       onError: (error) => {
+        console.log('Delete error:', error)
         setError('Failed to delete media')
         toast.error('Failed to delete media')
       },
@@ -155,6 +156,7 @@ export default function MediaUploader({ weekIndex }: Props) {
                 toast.success('Voice note uploaded')
               },
               onError: (error) => {
+                console.log('Delete error:', error)
                 setError('Failed to upload voice note')
                 toast.error('Failed to upload voice note')
               },

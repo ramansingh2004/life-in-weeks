@@ -11,7 +11,15 @@ import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/hooks/useQuery'
 
 type StatCard = { label: string; value: string; sub?: string }
-
+type weekData = {
+        weekIndex: number;
+        date: string;
+        isPast: boolean;
+        isCurrent: boolean;
+        note: string;
+        mood: number;
+        tags: string[];
+    };
 export default function StatsPage() {
   const router = useRouter()
   
@@ -71,9 +79,9 @@ export default function StatsPage() {
     ])
 
     const moodEntries = Object.values(notes)
-      .filter((n: any) => n.mood > 0)
-      .sort((a: any, b: any) => a.weekIndex - b.weekIndex)
-      .map((n: any) => ({ week: n.weekIndex, mood: n.mood }))
+      .filter((n: weekData) => n.mood > 0)
+      .sort((a: weekData, b: weekData) => a.weekIndex - b.weekIndex)
+      .map((n: weekData) => ({ week: n.weekIndex, mood: n.mood }))
     setMoodData(moodEntries)
 
     const moodCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }

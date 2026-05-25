@@ -9,7 +9,7 @@ import { MilestonesCard } from './MilestonesCard'
 import { ProgressCard } from './ProgressCard'
 import Sidebar from '@/components/Sidebar'
 // ✅ IMPORT REACT QUERY HOOKS
-import { useAuth, useWeeks } from '@/hooks/useQuery'
+import { useAuth } from '@/hooks/useQuery'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useMilestoneStore } from '@/store/useMilestoneStore'
 
@@ -74,7 +74,7 @@ export function StatsCardGenerator() {
   
   // ✅ USE React Query hooks for auth and weeks
   const { user, isLoading: isLoadingUser } = useAuth()
-  const { weeks: backendWeeks, isLoading: isLoadingWeeks } = useWeeks()
+ // const { weeks: backendWeeks, isLoading: isLoadingWeeks } = useWeeks()
   
   const { notes } = useLifeStore()
   const { milestones } = useMilestoneStore()
