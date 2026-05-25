@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
           success: false,
           error: {
             message: 'Unauthorized',
-            code: 'UNAUTHORIZED'
-          }
+            code: 'UNAUTHORIZED',
+          },
         },
         { status: 401 }
       )
@@ -64,12 +64,12 @@ export async function GET(req: NextRequest) {
           error: {
             message: 'Invalid query parameters',
             code: 'INVALID_QUERY',
-            details: parsed.error.issues.map(err => ({
+            details: parsed.error.issues.map((err) => ({
               field: err.path.join('.'),
               message: err.message,
-              code: err.code
-            }))
-          }
+              code: err.code,
+            })),
+          },
         },
         { status: 400 }
       )
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
         skip,
         hasMore: skip + limit < total,
       },
-      message: `Found ${media.length} media items`
+      message: `Found ${media.length} media items`,
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -136,13 +136,13 @@ export async function GET(req: NextRequest) {
         error: {
           message: 'Failed to fetch media',
           code: 'FETCH_FAILED',
-          ...(process.env.NODE_ENV !== "production" && {
+          ...(process.env.NODE_ENV !== 'production' && {
             details: {
               message: errorMessage,
-              stack: errorStack
-            }
-          })
-        }
+              stack: errorStack,
+            },
+          }),
+        },
       },
       { status: 500 }
     )
@@ -165,8 +165,8 @@ export async function POST(req: NextRequest) {
           success: false,
           error: {
             message: 'Unauthorized',
-            code: 'UNAUTHORIZED'
-          }
+            code: 'UNAUTHORIZED',
+          },
         },
         { status: 401 }
       )
@@ -197,12 +197,12 @@ export async function POST(req: NextRequest) {
           error: {
             message: 'Validation failed',
             code: 'VALIDATION_ERROR',
-            details: parsed.error.issues.map(err => ({
+            details: parsed.error.issues.map((err) => ({
               field: err.path.join('.'),
               message: err.message,
-              code: err.code
-            }))
-          }
+              code: err.code,
+            })),
+          },
         },
         { status: 422 }
       )
@@ -210,35 +210,49 @@ export async function POST(req: NextRequest) {
 
     const { weekIndex, type, name, file: validatedFile } = parsed.data
 
-    console.log('✅ [POST_MEDIA] File validation passed:', { 
-      name, 
-      size: validatedFile.size,
+    const originalSize = validatedFile.size
+    console.log('✅ [POST_MEDIA] File validation passed:', {
+      name,
+      size: originalSize,
       type: validatedFile.type,
-      weekIndex, 
-      mediaType: type 
+      weekIndex,
+      mediaType: type,
     })
 
-    // Upload to Cloudinary using upload_stream
+    // Upload to Cloudinary using upload_stream with optimization
     const bytes = await validatedFile.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    console.log('🚀 [POST_MEDIA] Uploading to Cloudinary...')
+    console.log('🚀 [POST_MEDIA] Uploading to Cloudinary with optimization...')
 
+    // ✅ ENHANCED: Use Cloudinary transformations for optimization
     const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
-          folder: "life-in-weeks",
-          resource_type: "auto",
+          folder: 'life-in-weeks',
+          resource_type: 'auto',
+          // ✅ Automatic optimization
+          quality: 'auto',
+          fetch_format: type === 'image' ? 'auto' : undefined,
+          // ✅ Tags for organization
+          tags: [`week-${weekIndex}`, type, 'optimized'],
+          // ✅ Metadata for later retrieval
+          context: {
+            alt: name,
+            weekIndex: String(weekIndex),
+          },
         },
         (error, res) => {
           if (error) {
-            console.error("❌ [POST_MEDIA] Cloudinary upload error:", error)
+            console.error('❌ [POST_MEDIA] Cloudinary upload error:', error)
             reject(error)
           } else if (res) {
-            console.log("✅ [POST_MEDIA] Cloudinary upload success:", res.public_id)
+            console.log('✅ [POST_MEDIA] Cloudinary upload success:', res.public_id)
+            console.log('   Cloudinary size:', res.bytes, 'bytes')
+            console.log('   Compression ratio:', ((1 - res.bytes / originalSize) * 100).toFixed(1), '%')
             resolve(res)
           } else {
-            reject(new Error("Cloudinary upload returned no result"))
+            reject(new Error('Cloudinary upload returned no result'))
           }
         }
       ).end(buffer)
@@ -246,6 +260,7 @@ export async function POST(req: NextRequest) {
 
     const userId = user.userId
 
+    // ✅ STORE compression metadata
     const media = await Media.create({
       userId,
       url: uploadResult.secure_url,
@@ -253,6 +268,15 @@ export async function POST(req: NextRequest) {
       type,
       weekIndex,
       publicId: uploadResult.public_id,
+      // ✅ NEW: Store compression data
+      metadata: {
+        originalSize,
+        compressedSize: uploadResult.bytes,
+        compressionRatio: ((1 - uploadResult.bytes / originalSize) * 100).toFixed(1),
+        width: uploadResult.width,
+        height: uploadResult.height,
+        format: uploadResult.format,
+      },
     })
 
     console.log(`✅ [POST_MEDIA] Created media: ${name} for user ${userId}`)
@@ -264,8 +288,13 @@ export async function POST(req: NextRequest) {
           media,
           url: uploadResult.secure_url,
           publicId: uploadResult.public_id,
+          compression: {
+            originalSize,
+            compressedSize: uploadResult.bytes,
+            saved: ((1 - uploadResult.bytes / originalSize) * 100).toFixed(1) + '%',
+          },
         },
-        message: 'Media uploaded successfully'
+        message: 'Media uploaded successfully',
       },
       { status: 201 }
     )
@@ -282,13 +311,13 @@ export async function POST(req: NextRequest) {
         error: {
           message: 'Failed to upload media',
           code: 'UPLOAD_FAILED',
-          ...(process.env.NODE_ENV !== "production" && {
+          ...(process.env.NODE_ENV !== 'production' && {
             details: {
               message: errorMessage,
-              stack: errorStack
-            }
-          })
-        }
+              stack: errorStack,
+            },
+          }),
+        },
       },
       { status: 500 }
     )
@@ -311,8 +340,8 @@ export async function DELETE(req: NextRequest) {
           success: false,
           error: {
             message: 'Unauthorized',
-            code: 'UNAUTHORIZED'
-          }
+            code: 'UNAUTHORIZED',
+          },
         },
         { status: 401 }
       )
@@ -336,12 +365,12 @@ export async function DELETE(req: NextRequest) {
           error: {
             message: 'Invalid media ID',
             code: 'INVALID_ID',
-            details: parsed.error.issues.map(err => ({
+            details: parsed.error.issues.map((err) => ({
               field: err.path.join('.'),
               message: err.message,
-              code: err.code
-            }))
-          }
+              code: err.code,
+            })),
+          },
         },
         { status: 400 }
       )
@@ -354,7 +383,7 @@ export async function DELETE(req: NextRequest) {
     // Find the item first to get Cloudinary publicId
     const mediaItem = await Media.findOne({
       _id: id,
-      userId: user.userId
+      userId: user.userId,
     })
 
     if (!mediaItem) {
@@ -364,8 +393,8 @@ export async function DELETE(req: NextRequest) {
           success: false,
           error: {
             message: 'Media not found',
-            code: 'NOT_FOUND'
-          }
+            code: 'NOT_FOUND',
+          },
         },
         { status: 404 }
       )
@@ -380,7 +409,7 @@ export async function DELETE(req: NextRequest) {
         await cloudinary.uploader.destroy(mediaItem.publicId, { resource_type: resourceType })
         console.log(`✅ [DELETE_MEDIA] Deleted from Cloudinary: ${mediaItem.publicId}`)
       } catch (cloudinaryErr) {
-        console.error("⚠️ [DELETE_MEDIA] Failed to delete from Cloudinary:", cloudinaryErr)
+        console.error('⚠️ [DELETE_MEDIA] Failed to delete from Cloudinary:', cloudinaryErr)
       }
     }
 
@@ -392,9 +421,9 @@ export async function DELETE(req: NextRequest) {
       success: true,
       data: {
         id,
-        message: "Media deleted successfully"
+        message: 'Media deleted successfully',
       },
-      message: 'Media deleted successfully'
+      message: 'Media deleted successfully',
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -409,13 +438,13 @@ export async function DELETE(req: NextRequest) {
         error: {
           message: 'Failed to delete media',
           code: 'DELETE_FAILED',
-          ...(process.env.NODE_ENV !== "production" && {
+          ...(process.env.NODE_ENV !== 'production' && {
             details: {
               message: errorMessage,
-              stack: errorStack
-            }
-          })
-        }
+              stack: errorStack,
+            },
+          }),
+        },
       },
       { status: 500 }
     )

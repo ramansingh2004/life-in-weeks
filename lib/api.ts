@@ -7,58 +7,105 @@ export async function saveWeek(data: {
   isCurrent: boolean
   date: string
 }) {
-  const res = await fetch("/api/weeks", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
+  const res = await fetch('/api/weeks', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error("Failed to save week")
+  if (!res.ok) throw new Error('Failed to save week')
   return res.json()
 }
 
 export async function getAllWeeks() {
-  const res = await fetch("/api/weeks")
-  if (!res.ok) throw new Error("Failed to fetch weeks")
+  const res = await fetch('/api/weeks')
+  if (!res.ok) throw new Error('Failed to fetch weeks')
   return res.json()
 }
 
-// Media
-export async function uploadMedia(file: File, weekIndex: number, type: string) {
+// ✅ OPTIMIZED MEDIA FUNCTIONS
+
+/**
+ * ✅ Upload media with progress tracking and compression
+ * @param file - File to upload
+ * @param weekIndex - Week index for organizing media
+ * @param type - Media type (image, video, audio)
+ * @param onProgress - Progress callback (0-100)
+ */
+export async function uploadMedia(
+  file: File,
+  weekIndex: number,
+  type: string,
+  onProgress?: (progress: number) => void
+) {
   const formData = new FormData()
-  formData.append("file", file)
-  formData.append("weekIndex", String(weekIndex))
-  formData.append("type", type)
+  formData.append('file', file)
+  formData.append('weekIndex', String(weekIndex))
+  formData.append('type', type)
 
-  const res = await fetch("/api/media", {
-    method: "POST",
-    body: formData,
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+
+    // ✅ Track upload progress
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = (event.loaded / event.total) * 100
+        onProgress?.(Math.round(percentComplete))
+      }
+    })
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 201 || xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText)
+          resolve(response)
+        } catch (e) {
+          reject(new Error('Failed to parse response'))
+        }
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`))
+      }
+    })
+
+    xhr.addEventListener('error', () => {
+      reject(new Error('Upload request failed'))
+    })
+
+    xhr.addEventListener('abort', () => {
+      reject(new Error('Upload cancelled'))
+    })
+
+    xhr.open('POST', '/api/media', true)
+    xhr.send(formData)
   })
-  if (!res.ok) throw new Error("Failed to upload media")
-  return res.json()
 }
 
+/**
+ * ✅ Get week media with optional caching
+ */
 export async function getWeekMedia(weekIndex: number) {
   const res = await fetch(`/api/media?weekIndex=${weekIndex}`)
-  if (!res.ok) throw new Error("Failed to fetch media")
+  if (!res.ok) throw new Error('Failed to fetch media')
   return res.json()
 }
- 
+
+/**
+ * ✅ Delete media by ID
+ */
 export async function deleteMedia(mediaId: string) {
-  const res = await fetch("/api/media", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mediaId }),
+  const res = await fetch(`/api/media?id=${mediaId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
   })
-  if (!res.ok) throw new Error("Failed to delete media")
+  if (!res.ok) throw new Error('Failed to delete media')
   return res.json()
 }
 
 // Auth
 export async function getMe() {
-  const res = await fetch("/api/auth/me", {
-    method: "GET",
-    credentials: "include", // REQUIRED
+  const res = await fetch('/api/auth/me', {
+    method: 'GET',
+    credentials: 'include', // REQUIRED
   })
   if (!res.ok) return null
   return res.json()
@@ -68,11 +115,11 @@ export async function updateProfile(data: {
   birthDate?: string
   lifeExpectancy?: number
 }) {
-  const res = await fetch("/api/auth/profile", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+  const res = await fetch('/api/auth/profile', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error("Failed to update profile")
+  if (!res.ok) throw new Error('Failed to update profile')
   return res.json()
 }

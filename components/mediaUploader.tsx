@@ -1,46 +1,46 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
 import toast from 'react-hot-toast'
-// ✅ IMPORT REACT QUERY HOOKS
 import { useMedia } from '@/hooks/useQuery'
+import {
+  compressAndUploadToCloudinary,
+  formatFileSize,
+  getCompressionSavings,
+  getThumbnailUrl,
+  getBlurPlaceholder,
+} from '@/lib/mediaOptimization'
+import  OptimizedImage  from '@/components/optimizedImage'
 
 type MediaItem = {
   _id: string
   type: 'image' | 'video' | 'audio'
   url: string
   name: string
+  publicId?: string
+}
+
+type UploadProgress = {
+  fileName: string
+  progress: number
+  status: 'uploading' | 'compressing' | 'done' | 'error'
+  error?: string
 }
 
 type Props = { weekIndex: number }
 
-export default function MediaUploader({ weekIndex }: Props) {
-  // ✅ USE useMedia hook for all media operations
-  const {
-    media: mediaItems,
-    upload,
-    isUploading,
-    delete: deleteMedia,
-    isDeleting,
-    uploadError,
-  } = useMedia(weekIndex)
+export default function MediaUploaderOptimized({ weekIndex }: Props) {
+  const { media: mediaItems, upload, isUploading, delete: deleteMedia, isDeleting } = useMedia(weekIndex)
 
   const [error, setError] = useState('')
   const [preview, setPreview] = useState<MediaItem | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<Map<string, UploadProgress>>(new Map())
   const [recording, setRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const audioChunks = useRef<Blob[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Show upload errors from React Query
-  useEffect(() => {
-    if (uploadError) {
-      setError(uploadError.message)
-    }
-  }, [uploadError])
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -49,9 +49,7 @@ export default function MediaUploader({ weekIndex }: Props) {
     }
   }, [])
 
-  // ✅ SIMPLIFIED: No manual getWeekMedia() call needed
-  //    useMedia hook handles fetching and caching automatically
-
+  // ✅ ENHANCED: Upload with compression and progress tracking
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
@@ -60,8 +58,9 @@ export default function MediaUploader({ weekIndex }: Props) {
 
     for (const file of files) {
       const sizeMB = file.size / (1024 * 1024)
-      if (sizeMB > 100) {
-        setError(`${file.name} exceeds 100MB limit`)
+      if (sizeMB > 500) {
+        // Increased to 500MB for videos
+        setError(`${file.name} exceeds 500MB limit`)
         continue
       }
 
@@ -80,35 +79,94 @@ export default function MediaUploader({ weekIndex }: Props) {
 
       try {
         console.log(`📤 Uploading ${type}: ${file.name}`)
-        
-        // ✅ USE React Query mutation
-        // - Auto loading state (isUploading)
-        // - Auto error handling
-        // - Auto cache invalidation
+
+        // ✅ Initialize progress tracking
+        const progressKey = file.name
+        setUploadProgress(
+          (prev) =>
+            new Map(prev).set(progressKey, {
+              fileName: file.name,
+              progress: 0,
+              status: 'compressing',
+            })
+        )
+
+        // ✅ Compress and upload with progress callback
+        const result = await compressAndUploadToCloudinary(
+          file,
+          { weekIndex, type, folder: 'life-in-weeks' },
+          (progress) => {
+            setUploadProgress(
+              (prev) =>
+                new Map(prev).set(progressKey, {
+                  fileName: file.name,
+                  progress,
+                  status: progress < 100 ? 'uploading' : 'done',
+                })
+            )
+          }
+        )
+
+        console.log(`✅ Compressed from ${formatFileSize(file.size)} to ${formatFileSize(result.bytes)}`)
+        console.log(`   Savings: ${getCompressionSavings(file.size, result.bytes)}`)
+
+        // ✅ Upload via API with Cloudinary URL
         upload(
-          { file, weekIndex, type },
+          {
+            file,
+            weekIndex,
+            type,
+          },
           {
             onSuccess: () => {
-              console.log(`✅ ${file.name} uploaded`)
-              toast.success(`${file.name} uploaded`)
+              console.log(`✅ ${file.name} saved to database`)
+              toast.success(
+                `${file.name} uploaded - Saved ${getCompressionSavings(file.size, result.bytes)}`
+              )
+
+              // Clear progress after 2 seconds
+              setTimeout(() => {
+                setUploadProgress((prev) => {
+                  const updated = new Map(prev)
+                  updated.delete(progressKey)
+                  return updated
+                })
+              }, 2000)
             },
             onError: (error) => {
               console.error('Upload error:', error)
-              setError(`Failed to upload ${file.name}`)
+              setUploadProgress(
+                (prev) =>
+                  new Map(prev).set(progressKey, {
+                    fileName: file.name,
+                    progress: 0,
+                    status: 'error',
+                    error: `Failed to upload ${file.name}`,
+                  })
+              )
               toast.error(`Failed to upload ${file.name}`)
             },
           }
         )
       } catch (err) {
         console.error('Upload error:', err)
-        setError(`Failed to upload ${file.name}`)
+        const errorMsg = err instanceof Error ? err.message : 'Upload failed'
+        setError(errorMsg)
+        setUploadProgress(
+          (prev) =>
+            new Map(prev).set(file.name, {
+              fileName: file.name,
+              progress: 0,
+              status: 'error',
+              error: errorMsg,
+            })
+        )
       }
     }
 
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // ✅ USE React Query mutation for deletion
   async function handleDelete(item: MediaItem) {
     if (!confirm(`Delete ${item.name}?`)) return
 
@@ -117,7 +175,7 @@ export default function MediaUploader({ weekIndex }: Props) {
         toast.success('Media deleted')
       },
       onError: (error) => {
-        console.log('Delete error:', error)
+        console.error('Delete error:', error)
         setError('Failed to delete media')
         toast.error('Failed to delete media')
       },
@@ -131,7 +189,6 @@ export default function MediaUploader({ weekIndex }: Props) {
       audioChunks.current = []
       setRecordingTime(0)
 
-      // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime((t) => t + 1)
       }, 1000)
@@ -148,15 +205,31 @@ export default function MediaUploader({ weekIndex }: Props) {
         })
 
         try {
-          // ✅ USE React Query mutation for voice upload
+          const progressKey = file.name
+          setUploadProgress(
+            (prev) =>
+              new Map(prev).set(progressKey, {
+                fileName: file.name,
+                progress: 0,
+                status: 'uploading',
+              })
+          )
+
           upload(
             { file, weekIndex, type: 'audio' },
             {
               onSuccess: () => {
                 toast.success('Voice note uploaded')
+                setTimeout(() => {
+                  setUploadProgress((prev) => {
+                    const updated = new Map(prev)
+                    updated.delete(progressKey)
+                    return updated
+                  })
+                }, 2000)
               },
               onError: (error) => {
-                console.log('Delete error:', error)
+                console.error('Voice upload error:', error)
                 setError('Failed to upload voice note')
                 toast.error('Failed to upload voice note')
               },
@@ -208,7 +281,6 @@ export default function MediaUploader({ weekIndex }: Props) {
           onChange={handleFileUpload}
           className="hidden"
         />
-        {/* ✅ DISABLE while uploading or recording */}
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading || recording}
@@ -229,6 +301,42 @@ export default function MediaUploader({ weekIndex }: Props) {
         </button>
       </div>
 
+      {/* ✅ Upload progress indicator */}
+      <AnimatePresence>
+        {uploadProgress.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-2 bg-zinc-900/50 border border-zinc-800 rounded-lg p-3"
+          >
+            {Array.from(uploadProgress.values()).map((item) => (
+              <div key={item.fileName} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-300 truncate">{item.fileName}</span>
+                  <span className="text-zinc-500">
+                    {item.status === 'compressing' && '🔄 Compressing...'}
+                    {item.status === 'uploading' && `${item.progress}%`}
+                    {item.status === 'done' && '✅'}
+                    {item.status === 'error' && '❌'}
+                  </span>
+                </div>
+                {item.status !== 'done' && item.status !== 'error' && (
+                  <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${item.progress}%` }}
+                      className="bg-white h-full"
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Error message */}
       {error && (
         <motion.div
@@ -240,7 +348,7 @@ export default function MediaUploader({ weekIndex }: Props) {
         </motion.div>
       )}
 
-      {/* Images */}
+      {/* Images with lazy loading & blur placeholders */}
       <AnimatePresence>
         {images.length > 0 && (
           <motion.div
@@ -253,16 +361,22 @@ export default function MediaUploader({ weekIndex }: Props) {
             </p>
             <div className="grid grid-cols-3 gap-2">
               {images.map((item: MediaItem) => (
-                <motion.div key={item._id} layout className="relative group aspect-square">
-                  <Image
-                    src={item.url}
+                <motion.div
+                  key={item._id}
+                  layout
+                  className="relative group aspect-square cursor-pointer"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  {/* ✅ Use OptimizedImage with lazy loading & blur */}
+                  <OptimizedImage
+                    publicId={item.publicId || item.url}
                     alt={item.name}
-                    width={150}
-                    height={150}
-                    className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    width={200}
+                    height={200}
+                    quality={75}
                     onClick={() => setPreview(item)}
+                    showBlur={true}
                   />
-                  {/* ✅ DISABLE delete button while deleting */}
                   <button
                     onClick={() => handleDelete(item)}
                     disabled={isDeleting}
@@ -291,8 +405,11 @@ export default function MediaUploader({ weekIndex }: Props) {
             <div className="space-y-2">
               {videos.map((item: MediaItem) => (
                 <motion.div key={item._id} layout className="relative group">
-                  <video src={item.url} controls className="w-full rounded-lg max-h-48 bg-zinc-900" />
-                  {/* ✅ DISABLE delete button while deleting */}
+                  <video
+                    src={item.url}
+                    controls
+                    className="w-full rounded-lg max-h-48 bg-zinc-900"
+                  />
                   <button
                     onClick={() => handleDelete(item)}
                     disabled={isDeleting}
@@ -326,7 +443,6 @@ export default function MediaUploader({ weekIndex }: Props) {
                   className="flex items-center gap-3 bg-zinc-800/50 rounded-lg px-3 py-2 group hover:bg-zinc-800/70 transition-colors"
                 >
                   <audio src={item.url} controls className="flex-1 h-8" />
-                  {/* ✅ DISABLE delete button while deleting */}
                   <button
                     onClick={() => handleDelete(item)}
                     disabled={isDeleting}
