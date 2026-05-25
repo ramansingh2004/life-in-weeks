@@ -69,7 +69,7 @@ export function PhotoGallery() {
           throw new Error(responseData.error || 'Failed to fetch photos')
         }
 
-        const mediaArray = responseData.media || []
+        const mediaArray = responseData.data?.media || []
         console.log(`✅ Received ${mediaArray.length} media items`)
 
         if (mediaArray.length === 0) {

@@ -22,7 +22,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
       const res = await fetch('/api/tags')
       if (res.ok) {
         const data = await res.json()
-        set({ tags: data.tags || [] })
+        set({ tags: data.data?.tags || [] })
       }
     } catch (error) {
       console.error('Failed to fetch tags:', error)
@@ -40,9 +40,9 @@ export const useTagStore = create<TagStore>((set, get) => ({
       body: JSON.stringify({ displayName }),
     })
     const data = await res.json()
-    if (data.tag) {
-      set({ tags: [...get().tags, data.tag] })
-      return data.tag
+    if (data.data?.tag) {
+      set({ tags: [...get().tags, data.data.tag] })
+      return data.data.tag
     }
     throw new Error('Failed to create tag')
   },

@@ -80,7 +80,8 @@ export default function TimelinePage() {
           try {
             const mediaRes = await fetch(`/api/media?weekIndex=${i}`)
             if (mediaRes.ok) {
-              const { media } = await mediaRes.json()
+              const mediaData = await mediaRes.json()
+              const media = mediaData.data?.media || []
               if (media && Array.isArray(media) && media.length > 0) {
                 memory.media = media
                 console.log(`📸 Loaded ${media.length} media items for week ${i}`)

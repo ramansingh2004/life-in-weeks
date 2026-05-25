@@ -59,7 +59,8 @@ export const useMilestoneStore = create<MilestoneStore>()(
         try {
           const res = await fetch("/api/milestones")
           if (!res.ok) return
-          const { milestones } = await res.json()
+          const json = await res.json()
+          const milestones = json.data?.milestones || []
           set({ milestones })
         } catch (err) {
           console.error("Failed to sync milestones:", err)

@@ -84,7 +84,7 @@ export default function RegisterPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Something went wrong')
+        setError(data.error?.message || data.message || 'Something went wrong')
         return
       }
 

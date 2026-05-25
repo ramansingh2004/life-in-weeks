@@ -31,7 +31,7 @@ export default function MilestonesPage() {
         const res = await fetch("/api/auth/me")
         const data = await res.json()
 
-        if (!res.ok || !data?.user) {
+        if (!res.ok || !data?.data?.user) {
           router.push("/login")
           return
         }

@@ -45,7 +45,7 @@ export const useGetMe = () => {
     queryKey: authKeys.me(),
     queryFn: async () => {
       const response = await getMe()
-      return response?.user || null
+      return response?.data?.user || null
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes
@@ -62,8 +62,8 @@ export const useUpdateProfile = () => {
     mutationFn: updateProfile,
     onSuccess: (data) => {
       // ✅ Update cache with new user data
-      if (data?.user) {
-        queryClient.setQueryData(authKeys.me(), data.user)
+      if (data?.data?.user) {
+        queryClient.setQueryData(authKeys.me(), data.data.user)
       }
     },
     onError: (error) => {
@@ -202,7 +202,7 @@ export const useWeeks = () => {
 
   return {
     // State
-    weeks: data?.weeks || [],
+    weeks: data?.data?.weeks || [],
     isLoading,
     error,
 
@@ -224,7 +224,7 @@ export const useMedia = (weekIndex: number, enabled = true) => {
 
   return {
     // State
-    media: data?.media || [],
+    media: data?.data?.media || [],
     isLoading,
     error,
 
