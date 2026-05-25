@@ -9,7 +9,8 @@ import { PhotoFilters } from './PhotoFilters'
 import { PhotoStats } from './PhotoStats'
 import { PhotoViewer } from './PhotoViewer'
 import Sidebar from '@/components/Sidebar'
-
+// ✅ IMPORT REACT QUERY HOOKS
+import { useAuth } from '@/hooks/useQuery'
 
 type PhotoItem = {
   _id: string
@@ -21,15 +22,19 @@ type PhotoItem = {
 }
 
 interface RawPhotoData {
-     _id: string
-     weekIndex: number
-     url: string
-     name: string
-     createdAt?: string | Date
-   }
+  _id: string
+  weekIndex: number
+  url: string
+  name: string
+  createdAt?: string | Date
+}
 
 export function PhotoGallery() {
   const router = useRouter()
+  
+  // ✅ USE useAuth to verify user is authenticated
+  const { user, isLoading: isLoadingUser } = useAuth()
+  
   const { getNote } = useLifeStore()
 
   const [photos, setPhotos] = useState<PhotoItem[]>([])
@@ -41,17 +46,23 @@ export function PhotoGallery() {
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest')
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({})
 
+  // ✅ IMPROVED: Check auth status with React Query before loading photos
   useEffect(() => {
+    if (!isLoadingUser && !user) {
+      router.push('/login')
+      return
+    }
+
     async function fetchPhotos() {
       try {
         setIsLoading(true)
         setError(null)
 
         console.log('📸 Fetching photos from /api/media?type=image')
-        
+
         const res = await fetch('/api/media?type=image')
         const responseData = await res.json()
-        
+
         console.log('📡 API Response:', responseData)
 
         if (!res.ok) {
@@ -72,12 +83,10 @@ export function PhotoGallery() {
         // Enrich photos with week date info and ensure proper typing
         const enrichedPhotos = mediaArray.map((photo: RawPhotoData) => {
           const note = getNote(photo.weekIndex)
-          
+
           // Ensure createdAt is a Date object
-          const createdAt = photo.createdAt 
-            ? new Date(photo.createdAt)
-            : new Date()
-          
+          const createdAt = photo.createdAt ? new Date(photo.createdAt) : new Date()
+
           const enriched: PhotoItem = {
             _id: photo._id,
             weekIndex: photo.weekIndex,
@@ -86,13 +95,13 @@ export function PhotoGallery() {
             createdAt,
             weekDate: note?.date || new Date().toISOString(),
           }
-          
+
           console.log(`  📷 Photo: ${photo.name} (week ${photo.weekIndex})`)
           return enriched
         })
 
         console.log(`🔄 Sorting by ${sortBy}...`)
-        
+
         // Sort
         enrichedPhotos.sort((a: PhotoItem, b: PhotoItem) => {
           const dateA = a.createdAt.getTime()
@@ -114,27 +123,30 @@ export function PhotoGallery() {
       }
     }
 
-    fetchPhotos()
-  }, [getNote, sortBy])
+    if (!isLoadingUser && user) {
+      fetchPhotos()
+    }
+  }, [getNote, sortBy, user, isLoadingUser, router])
 
   // Apply filters whenever search or date range changes
   useEffect(() => {
     console.log(`🔍 Filtering: search="${searchTerm}", dateFrom=${dateRange.from}, dateTo=${dateRange.to}`)
-    
+
     let filtered = [...photos]
 
     // Search filter
     if (searchTerm.trim()) {
-      filtered = filtered.filter(photo =>
-        photo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        photo.weekDate?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (photo) =>
+          photo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          photo.weekDate?.toLowerCase().includes(searchTerm.toLowerCase())
       )
       console.log(`  Found ${filtered.length} matches for search`)
     }
 
     // Date range filter
     if (dateRange.from || dateRange.to) {
-      filtered = filtered.filter(photo => {
+      filtered = filtered.filter((photo) => {
         const photoDate = new Date(photo.createdAt)
         if (dateRange.from && photoDate < dateRange.from) return false
         if (dateRange.to && photoDate > dateRange.to) return false
@@ -146,6 +158,18 @@ export function PhotoGallery() {
     setFilteredPhotos(filtered)
   }, [searchTerm, dateRange, photos])
 
+  // ✅ Show loading while checking auth
+  if (isLoadingUser) {
+    return (
+      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
+        <div className="max-w-6xl mx-auto text-center py-20">
+          <div className="text-6xl mb-4 animate-bounce">📸</div>
+          <h1 className="text-2xl font-light">Loading...</h1>
+        </div>
+      </main>
+    )
+  }
+
   // Show error state
   if (error) {
     return (
@@ -155,10 +179,7 @@ export function PhotoGallery() {
           <h1 className="text-2xl sm:text-3xl font-light mb-4">Error Loading Photos</h1>
           <p className="text-zinc-400 mb-6">{error}</p>
           <button
-            onClick={() => {
-              // Re-trigger the useEffect by updating a dependency
-              setIsLoading(true)
-            }}
+            onClick={() => setIsLoading(true)}
             className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition mr-4"
           >
             Try Again
@@ -212,7 +233,6 @@ export function PhotoGallery() {
       {/* Sidebar */}
       <Sidebar />
       <div className="max-w-7xl mx-auto">
-
         {/* Header */}
         <div className="mb-8">
           <button
@@ -248,10 +268,7 @@ export function PhotoGallery() {
             <p className="text-zinc-400">No photos match your filters</p>
           </div>
         ) : (
-          <PhotoGrid
-            photos={filteredPhotos}
-            onPhotoClick={setSelectedPhoto}
-          />
+          <PhotoGrid photos={filteredPhotos} onPhotoClick={setSelectedPhoto} />
         )}
       </div>
 
@@ -262,7 +279,7 @@ export function PhotoGallery() {
             photo={selectedPhoto}
             onClose={() => setSelectedPhoto(null)}
             onNavigate={(direction) => {
-              const currentIndex = filteredPhotos.findIndex(p => p._id === selectedPhoto._id)
+              const currentIndex = filteredPhotos.findIndex((p) => p._id === selectedPhoto._id)
               if (direction === 'next' && currentIndex < filteredPhotos.length - 1) {
                 setSelectedPhoto(filteredPhotos[currentIndex + 1])
               } else if (direction === 'prev' && currentIndex > 0) {

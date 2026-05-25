@@ -2,47 +2,48 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useLifeStore } from '@/store/useCapsuleStore'
-import { useMilestoneStore } from '@/store/useMilestoneStore'
 import { CardPreview } from './CardPreview'
 import { SummaryCard } from './SummaryCard'
 import { MoodCard } from './MoodCard'
 import { MilestonesCard } from './MilestonesCard'
 import { ProgressCard } from './ProgressCard'
 import Sidebar from '@/components/Sidebar'
-
+// ✅ IMPORT REACT QUERY HOOKS
+import { useAuth, useWeeks } from '@/hooks/useQuery'
+import { useLifeStore } from '@/store/useCapsuleStore'
+import { useMilestoneStore } from '@/store/useMilestoneStore'
 
 interface Note {
-     weekIndex: number
-     note: string
-     mood: number
-     tags?: string[]
-   }
+  weekIndex: number
+  note: string
+  mood: number
+  tags?: string[]
+}
 
-   interface Milestone {
-     category: string
-   }
+interface Milestone {
+  category: string
+}
 
-   interface MoodCounts {
-     amazing: number
-     good: number
-     okay: number
-     bad: number
-     terrible: number
-   }
+interface MoodCounts {
+  amazing: number
+  good: number
+  okay: number
+  bad: number
+  terrible: number
+}
 
-   interface Stats {
-     totalMemories: number
-     averageMood: number | string
-     currentStreak: number
-     maxStreak: number
-     topTags: string[]
-     moodCounts: MoodCounts
-     milestonesByCategory: Map<string, number>
-     totalMilestones: number
-     moodValues: number[]
-     longestStreak: number
-   }
+interface Stats {
+  totalMemories: number
+  averageMood: number | string
+  currentStreak: number
+  maxStreak: number
+  topTags: string[]
+  moodCounts: MoodCounts
+  milestonesByCategory: Map<string, number>
+  totalMilestones: number
+  moodValues: number[]
+  longestStreak: number
+}
 
 type CardType = 'summary' | 'mood' | 'milestones' | 'progress'
 type Theme = 'dark' | 'light' | 'gradient' | 'neon'
@@ -70,6 +71,11 @@ const FORMATS = [
 
 export function StatsCardGenerator() {
   const router = useRouter()
+  
+  // ✅ USE React Query hooks for auth and weeks
+  const { user, isLoading: isLoadingUser } = useAuth()
+  const { weeks: backendWeeks, isLoading: isLoadingWeeks } = useWeeks()
+  
   const { notes } = useLifeStore()
   const { milestones } = useMilestoneStore()
 
@@ -78,77 +84,85 @@ export function StatsCardGenerator() {
   const [selectedFormat, setSelectedFormat] = useState<Format>('square')
   const [stats, setStats] = useState<Stats | null>(null)
 
+  // ✅ IMPROVED: Check auth status with React Query
+  useEffect(() => {
+    if (!isLoadingUser && !user) {
+      router.push('/login')
+    }
+  }, [isLoadingUser, user, router])
+
+  // ✅ CALCULATE stats from local Zustand data
   useEffect(() => {
     function calculateStats() {
-    const noteArray = Object.values(notes) as Note[]
-    
-    // Basic stats
-    const totalMemories = noteArray.length
-    const moodValues = noteArray
-      .filter((n) => n.mood > 0)
-      .map((n) => n.mood)
-    const averageMood = moodValues.length > 0
-      ? (moodValues.reduce((a: number, b: number) => a + b, 0) / moodValues.length).toFixed(1)
-      : 0
-    
-    // Streaks
-    let currentStreak = 0
-    let maxStreak = 0
-    let tempStreak = 0
-    
-    const sortedNotes = noteArray.sort((a, b) => a.weekIndex - b.weekIndex)
-    sortedNotes.forEach((note, idx) => {
-      if (note.note && note.note.length > 0) {
-        tempStreak++
-        maxStreak = Math.max(maxStreak, tempStreak)
-        if (idx === sortedNotes.length - 1) currentStreak = tempStreak
-      } else {
-        tempStreak = 0
-      }
-    })
+      const noteArray = Object.values(notes) as Note[]
 
-    // Tags
-    const tagCount = new Map<string, number>()
-    noteArray.forEach((note) => {
-      if (note.tags) {
-        note.tags.forEach((tag: string) => {
-          tagCount.set(tag, (tagCount.get(tag) || 0) + 1)
-        })
-      }
-    })
-    const topTags = Array.from(tagCount.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([tag]) => tag)
+      // Basic stats
+      const totalMemories = noteArray.length
+      const moodValues = noteArray
+        .filter((n) => n.mood > 0)
+        .map((n) => n.mood)
+      const averageMood = moodValues.length > 0
+        ? (moodValues.reduce((a: number, b: number) => a + b, 0) / moodValues.length).toFixed(1)
+        : 0
 
-    // Mood breakdown
-    const moodCounts = {
-      amazing: moodValues.filter(m => m === 5).length,
-      good: moodValues.filter(m => m === 4).length,
-      okay: moodValues.filter(m => m === 3).length,
-      bad: moodValues.filter(m => m === 2).length,
-      terrible: moodValues.filter(m => m === 1).length,
+      // Streaks
+      let currentStreak = 0
+      let maxStreak = 0
+      let tempStreak = 0
+
+      const sortedNotes = noteArray.sort((a, b) => a.weekIndex - b.weekIndex)
+      sortedNotes.forEach((note, idx) => {
+        if (note.note && note.note.length > 0) {
+          tempStreak++
+          maxStreak = Math.max(maxStreak, tempStreak)
+          if (idx === sortedNotes.length - 1) currentStreak = tempStreak
+        } else {
+          tempStreak = 0
+        }
+      })
+
+      // Tags
+      const tagCount = new Map<string, number>()
+      noteArray.forEach((note) => {
+        if (note.tags) {
+          note.tags.forEach((tag: string) => {
+            tagCount.set(tag, (tagCount.get(tag) || 0) + 1)
+          })
+        }
+      })
+      const topTags = Array.from(tagCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([tag]) => tag)
+
+      // Mood breakdown
+      const moodCounts = {
+        amazing: moodValues.filter((m) => m === 5).length,
+        good: moodValues.filter((m) => m === 4).length,
+        okay: moodValues.filter((m) => m === 3).length,
+        bad: moodValues.filter((m) => m === 2).length,
+        terrible: moodValues.filter((m) => m === 1).length,
+      }
+
+      // Milestone categories
+      const milestonesByCategory = new Map<string, number>()
+      milestones.forEach((m: Milestone) => {
+        milestonesByCategory.set(m.category, (milestonesByCategory.get(m.category) || 0) + 1)
+      })
+
+      setStats({
+        totalMemories,
+        averageMood,
+        currentStreak,
+        maxStreak,
+        topTags,
+        moodCounts,
+        milestonesByCategory,
+        totalMilestones: milestones.length,
+        moodValues,
+        longestStreak: maxStreak,
+      })
     }
-
-    // Milestone categories
-    const milestonesByCategory = new Map<string, number>()
-    milestones.forEach((m: Milestone) => {
-      milestonesByCategory.set(m.category, (milestonesByCategory.get(m.category) || 0) + 1)
-    })
-
-    setStats({
-      totalMemories,
-      averageMood,
-      currentStreak,
-      maxStreak,
-      topTags,
-      moodCounts,
-      milestonesByCategory,
-      totalMilestones: milestones.length,
-      moodValues,
-      longestStreak: maxStreak,
-    })
-  }
     calculateStats()
   }, [notes, milestones])
 
@@ -174,12 +188,22 @@ export function StatsCardGenerator() {
     }
   }
 
+  // ✅ Show loading while checking auth
+  if (isLoadingUser) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-zinc-400">Loading...</p>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
       {/* Sidebar */}
       <Sidebar />
       <div className="max-w-7xl mx-auto">
-
         {/* Header */}
         <div className="mb-12">
           <button
@@ -226,9 +250,7 @@ export function StatsCardGenerator() {
                     key={theme.id}
                     onClick={() => setSelectedTheme(theme.id as Theme)}
                     className={`p-4 rounded-lg border transition-all ${
-                      selectedTheme === theme.id
-                        ? 'border-white'
-                        : 'border-zinc-800 hover:border-zinc-700'
+                      selectedTheme === theme.id ? 'border-white' : 'border-zinc-800 hover:border-zinc-700'
                     }`}
                   >
                     <div className={`h-8 rounded mb-2 ${theme.color}`} />
@@ -253,7 +275,9 @@ export function StatsCardGenerator() {
                     }`}
                   >
                     <p className="font-medium text-sm">{format.name}</p>
-                    <p className="text-xs text-zinc-500">{format.size} • {format.platform}</p>
+                    <p className="text-xs text-zinc-500">
+                      {format.size} • {format.platform}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -262,11 +286,7 @@ export function StatsCardGenerator() {
 
           {/* Preview */}
           <div className="lg:col-span-2">
-            <CardPreview
-              card={renderCard()}
-              format={selectedFormat}
-              cardType={selectedCard}
-            />
+            <CardPreview card={renderCard()} format={selectedFormat} cardType={selectedCard} />
           </div>
         </div>
       </div>

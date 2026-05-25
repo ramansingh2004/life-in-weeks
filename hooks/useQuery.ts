@@ -240,3 +240,146 @@ export const useMedia = (weekIndex: number, enabled = true) => {
     deleteError: deleteMutation.error,
   }
 }
+
+// ============================================================================
+// MILESTONE HOOKS
+// ============================================================================
+
+/**
+ * ✅ useCreateMilestone - Create a new milestone
+ */
+export const useCreateMilestone = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: {
+      weekIndex: number
+      title: string
+      description: string
+      category: string
+      icon: string
+      date: string
+    }) => {
+      const res = await fetch('/api/milestones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to create milestone')
+      }
+
+      return res.json()
+    },
+    onSuccess: () => {
+      // ✅ Invalidate weeks list to refetch
+      queryClient.invalidateQueries({
+        queryKey: weekKeys.lists(),
+      })
+    },
+    onError: (error) => {
+      console.error('Create milestone error:', error)
+    },
+  })
+}
+
+/**
+ * ✅ useUpdateMilestone - Update existing milestone
+ */
+export const useUpdateMilestone = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: {
+      milestoneId: string
+      title: string
+      description: string
+      category: string
+      icon: string
+    }) => {
+      const res = await fetch('/api/milestones', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to update milestone')
+      }
+
+      return res.json()
+    },
+    onSuccess: () => {
+      // ✅ Invalidate weeks list to refetch
+      queryClient.invalidateQueries({
+        queryKey: weekKeys.lists(),
+      })
+    },
+    onError: (error) => {
+      console.error('Update milestone error:', error)
+    },
+  })
+}
+
+/**
+ * ✅ useDeleteMilestone - Delete a milestone
+ */
+export const useDeleteMilestone = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (milestoneId: string) => {
+      const res = await fetch('/api/milestones', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestoneId }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to delete milestone')
+      }
+
+      return res.json()
+    },
+    onSuccess: () => {
+      // ✅ Invalidate weeks list to refetch
+      queryClient.invalidateQueries({
+        queryKey: weekKeys.lists(),
+      })
+    },
+    onError: (error) => {
+      console.error('Delete milestone error:', error)
+    },
+  })
+}
+
+/**
+ * ✅ useMilestones - All milestone operations in one hook
+ */
+export const useMilestones = () => {
+  const createMutation = useCreateMilestone()
+  const updateMutation = useUpdateMilestone()
+  const deleteMutation = useDeleteMilestone()
+
+  return {
+    // Create
+    createMilestone: createMutation.mutate,
+    createMilestoneAsync: createMutation.mutateAsync,
+
+    // Update
+    updateMilestone: updateMutation.mutate,
+    updateMilestoneAsync: updateMutation.mutateAsync,
+
+    // Delete
+    deleteMilestone: deleteMutation.mutate,
+    deleteMilestoneAsync: deleteMutation.mutateAsync,
+
+    // Combined loading state
+    isLoading:
+      createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+  }
+}

@@ -10,7 +10,8 @@ import { ChapterCard } from './ChapterCard'
 import { ChapterDetailModal } from './ChapterDetailModal'
 import { Chapter } from '@/typesDefined'
 import Sidebar from '@/components/Sidebar'
-
+// ✅ IMPORT REACT QUERY HOOKS
+import { useAuth } from '@/hooks/useQuery'
 
 interface Milestone {
   icon: string
@@ -34,48 +35,62 @@ interface ChapterWithMedia extends Chapter {
 
 export function LifeChapters() {
   const router = useRouter()
+  
+  // ✅ USE useAuth to verify user is authenticated
+  const { user, isLoading: isLoadingUser } = useAuth()
+  
   const { notes } = useLifeStore()
   const { milestones } = useMilestoneStore()
 
   const [chapters, setChapters] = useState<Chapter[]>([])
-  const [chaptersWithMedia, setChaptersWithMedia] = useState<Map<string, ChapterWithMedia>>(new Map())
+  const [chaptersWithMedia, setChaptersWithMedia] = useState<Map<string, ChapterWithMedia>>(
+    new Map()
+  )
   const [isLoading, setIsLoading] = useState(true)
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null)
 
+  // ✅ IMPROVED: Check auth status with React Query before generating chapters
   useEffect(() => {
-    async function generateChapters() {
-    try {
-      setIsLoading(true)
-
-      const res = await fetch('/api/chapters/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        const chaptersList = data.chapters || []
-        setChapters(chaptersList)
-
-        // Fetch media for each chapter
-        const mediaMap = new Map<string, ChapterWithMedia>()
-        for (const chapter of chaptersList) {
-          const media = await fetchChapterMedia(chapter)
-          mediaMap.set(chapter._id, media)
-        }
-        setChaptersWithMedia(mediaMap)
-
-        console.log(`✅ Generated ${chaptersList.length} chapters with media`)
-      }
-    } catch (error) {
-      console.error('Failed to generate chapters:', error)
-    } finally {
-      setIsLoading(false)
+    if (!isLoadingUser && !user) {
+      router.push('/login')
+      return
     }
-  }
-  
-    generateChapters()
-  }, [notes, milestones])
+
+    async function generateChapters() {
+      try {
+        setIsLoading(true)
+
+        const res = await fetch('/api/chapters/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          const chaptersList = data.chapters || []
+          setChapters(chaptersList)
+
+          // Fetch media for each chapter
+          const mediaMap = new Map<string, ChapterWithMedia>()
+          for (const chapter of chaptersList) {
+            const media = await fetchChapterMedia(chapter)
+            mediaMap.set(chapter._id, media)
+          }
+          setChaptersWithMedia(mediaMap)
+
+          console.log(`✅ Generated ${chaptersList.length} chapters with media`)
+        }
+      } catch (error) {
+        console.error('Failed to generate chapters:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (!isLoadingUser && user) {
+      generateChapters()
+    }
+  }, [notes, milestones, user, isLoadingUser, router])
 
   async function fetchChapterMedia(chapter: Chapter): Promise<ChapterWithMedia> {
     try {
@@ -114,6 +129,17 @@ export function LifeChapters() {
         notes: [],
       }
     : null
+
+  // ✅ Show loading while checking auth
+  if (isLoadingUser) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-zinc-400">Loading...</p>
+        </div>
+      </main>
+    )
+  }
 
   if (isLoading) {
     return (
