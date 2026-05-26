@@ -7,8 +7,6 @@ import {
   compressAndUploadToCloudinary,
   formatFileSize,
   getCompressionSavings,
-  getThumbnailUrl,
-  getBlurPlaceholder,
 } from '@/lib/mediaOptimization'
 import  OptimizedImage  from '@/components/optimizedImage'
 
