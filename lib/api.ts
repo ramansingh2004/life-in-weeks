@@ -23,6 +23,21 @@ export async function getAllWeeks() {
   return res.json()
 }
 
+export interface UploadMediaResponse {
+  success: boolean
+  data?: {
+    media: any
+    url: string
+    publicId: string
+    compression?: {
+      originalSize: number
+      compressedSize: number
+      saved: string
+    }
+  }
+  message?: string
+}
+
 // ✅ OPTIMIZED MEDIA FUNCTIONS
 
 /**
@@ -37,13 +52,13 @@ export async function uploadMedia(
   weekIndex: number,
   type: string,
   onProgress?: (progress: number) => void
-) {
+): Promise<UploadMediaResponse> {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('weekIndex', String(weekIndex))
   formData.append('type', type)
 
-  return new Promise((resolve, reject) => {
+  return new Promise<UploadMediaResponse>((resolve, reject) => {
     const xhr = new XMLHttpRequest()
 
     // ✅ Track upload progress

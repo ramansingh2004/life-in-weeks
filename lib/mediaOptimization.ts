@@ -1,5 +1,4 @@
 import cloudinary from '@/lib/cloudinary'
-import { UploadApiResponse } from 'cloudinary'
 
 /**
  * ✅ Advanced Cloudinary transformation utilities
