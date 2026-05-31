@@ -103,7 +103,9 @@ export const useLifeStore = create<ExtendedLifeStore>()(
        */
       clearNote: (weekIndex: number) => {
         set((state) => {
-          const { [weekIndex]: _, ...remaining } = state.notes
+          const remaining = Object.fromEntries(
+            Object.entries(state.notes).filter(([k]) => Number(k) !== weekIndex)
+          ) as Record<number, WeekData>
           return { notes: remaining }
         })
       },

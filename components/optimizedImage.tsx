@@ -152,11 +152,13 @@ export function ResponsiveImage({ publicId, alt, className = '', onClick }: Resp
       {/* Desktop */}
       <source media="(min-width: 1025px)" srcSet={largeUrl} />
 
-      <img
+      <Image
         src={smallUrl}
         alt={alt}
         className="w-full h-full object-cover rounded-lg"
         loading="lazy"
+        blurDataURL={blurUrl || undefined}
+        placeholder={blurUrl ? 'blur' : 'empty'}
       />
     </motion.picture>
   )

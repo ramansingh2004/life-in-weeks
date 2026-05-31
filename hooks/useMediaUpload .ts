@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import {  getCompressionSavings } from '@/lib/mediaOptimization'
-import { uploadMedia } from '@/lib/api'
+import { getCompressionSavings } from '@/lib/mediaOptimization'
+import { uploadMedia, UploadMediaResponse } from '@/lib/api'
 interface UploadState {
   fileName: string
   progress: number
@@ -15,7 +15,7 @@ interface UploadState {
 
 interface UseMediaUploadOptions {
   weekIndex: number
-  onSuccess?: (result: any) => void
+  onSuccess?: (result: UploadMediaResponse) => void
   onError?: (error: Error) => void
   onProgress?: (state: UploadState) => void
 }
@@ -134,7 +134,7 @@ interface UploadBatch {
   averageProgress: number
 }
 
-export function useMediaUploadBatch(weekIndex: number) {
+export function useMediaUploadBatch() {
   const [batch, setBatch] = useState<UploadBatch>({
     totalFiles: 0,
     uploadedFiles: 0,

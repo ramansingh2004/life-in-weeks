@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose"
+import { Schema, model, models } from "mongoose"
 import { IUser } from "@/typesDefined";
 
 const UserSchema = new Schema<IUser>({

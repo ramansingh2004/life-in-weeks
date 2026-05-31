@@ -1,8 +1,8 @@
-import cloudinary from '@/lib/cloudinary'
+'use client'
 
 /**
- * ✅ Advanced Cloudinary transformation utilities
- * Optimizes images with compression, quality, and format conversion
+ *  Client-side media optimization utilities
+ * Uses Cloudinary URLs but doesn't import the Node.js SDK
  */
 
 export interface CloudinaryImage {
@@ -19,10 +19,8 @@ export interface CloudinaryImage {
 
 /**
  * Generate optimized image URL with transformations
- * @param publicId - Cloudinary public ID
- * @param width - Optional width
- * @param height - Optional height
- * @param quality - Quality 1-100 (default: 80)
+ * Note: We build URLs directly instead of using the Cloudinary SDK
+ * because the SDK has Node.js dependencies that break in the browser
  */
 export function getOptimizedImageUrl(
   publicId: string,
@@ -34,60 +32,58 @@ export function getOptimizedImageUrl(
   }
 ): string {
   const { width, height, quality = 80, crop = 'fill' } = options || {}
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
-  return cloudinary.url(publicId, {
-    transformation: [
-      {
-        width,
-        height,
-        crop,
-        quality,
-        fetch_format: 'auto', // ✅ Auto-optimize format (WebP for modern browsers)
-      },
-    ],
-  })
+  if (!cloudName) {
+    console.warn('NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME not set')
+    return ''
+  }
+
+  //  Build Cloudinary URL directly
+  // https://res.cloudinary.com/{cloud}/image/upload/w_{width},h_{height},c_{crop},q_{quality},f_auto/public_id
+  const transforms = [
+    width && `w_${width}`,
+    height && `h_${height}`,
+    crop && `c_${crop}`,
+    quality && `q_${quality}`,
+    'f_auto', // Auto format (WebP for modern browsers)
+  ]
+    .filter(Boolean)
+    .join(',')
+
+  return `https://res.cloudinary.com/${cloudName}/image/upload/${transforms}/${publicId}`
 }
 
 /**
- * Generate blur placeholder (low-quality base64)
- * @param publicId - Cloudinary public ID
+ * Generate blur placeholder (low-quality base64 URL)
  */
 export function getBlurPlaceholder(publicId: string): string {
-  return cloudinary.url(publicId, {
-    transformation: [
-      {
-        width: 10,
-        height: 10,
-        crop: 'fill',
-        quality: 20,
-        fetch_format: 'auto',
-      },
-    ],
-  })
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+
+  if (!cloudName) {
+    return ''
+  }
+
+  // ✅ 10x10 low quality image for blur effect
+  return `https://res.cloudinary.com/${cloudName}/image/upload/w_10,h_10,c_fill,q_20,f_auto/${publicId}`
 }
 
 /**
  * Generate thumbnail URL
- * @param publicId - Cloudinary public ID
- * @param size - Thumbnail size (default: 150)
  */
 export function getThumbnailUrl(publicId: string, size: number = 150): string {
-  return cloudinary.url(publicId, {
-    transformation: [
-      {
-        width: size,
-        height: size,
-        crop: 'fill',
-        quality: 75,
-        fetch_format: 'auto',
-      },
-    ],
-  })
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+
+  if (!cloudName) {
+    return ''
+  }
+
+  //  Fixed size thumbnail
+  return `https://res.cloudinary.com/${cloudName}/image/upload/w_${size},h_${size},c_fill,q_75,f_auto/${publicId}`
 }
 
 /**
  * Generate responsive image URLs for different screen sizes
- * @param publicId - Cloudinary public ID
  */
 export function getResponsiveImageUrls(publicId: string) {
   const sizes = [400, 800, 1200]
@@ -95,75 +91,13 @@ export function getResponsiveImageUrls(publicId: string) {
     small: getOptimizedImageUrl(publicId, { width: sizes[0], quality: 80 }),
     medium: getOptimizedImageUrl(publicId, { width: sizes[1], quality: 85 }),
     large: getOptimizedImageUrl(publicId, { width: sizes[2], quality: 90 }),
-    original: cloudinary.url(publicId),
+    original: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}`,
   }
-}
-
-/**
- * Compress and upload file to Cloudinary
- * @param file - File to upload
- * @param options - Upload options
- * @param onProgress - Progress callback (0-100)
- */
-export async function compressAndUploadToCloudinary(
-  file: File,
-  options: {
-    weekIndex: number
-    type: 'image' | 'video' | 'audio'
-    folder?: string
-  },
-  onProgress?: (progress: number) => void
-): Promise<CloudinaryImage> {
-  const { weekIndex, type, folder = 'life-in-weeks' } = options
-
-  // ✅ For images: compress before upload
-  let uploadFile = file
-  if (type === 'image') {
-    uploadFile = await compressImage(file, onProgress)
-  }
-
-  // Upload to Cloudinary
-  const bytes = await uploadFile.arrayBuffer()
-  const buffer = Buffer.from(bytes)
-
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: type === 'audio' || type === 'video' ? 'video' : 'image',
-        quality: 'auto', // ✅ Auto quality optimization
-        fetch_format: type === 'image' ? 'auto' : undefined, // ✅ Auto format for images
-        tags: [`week-${weekIndex}`, type],
-      },
-      (error, result) => {
-        if (error) {
-          reject(new Error(`Cloudinary upload failed: ${error.message}`))
-        } else if (result) {
-          resolve({
-            url: result.url,
-            secureUrl: result.secure_url,
-            publicId: result.public_id,
-            width: result.width || 0,
-            height: result.height || 0,
-            format: result.format || '',
-            bytes: result.bytes || 0,
-            blurUrl: getBlurPlaceholder(result.public_id),
-            thumbnailUrl: getThumbnailUrl(result.public_id),
-          })
-        } else {
-          reject(new Error('Cloudinary upload returned no result'))
-        }
-      }
-    )
-
-    uploadStream.end(buffer)
-  })
 }
 
 /**
  * Compress image using canvas API
- * @param file - Image file
- * @param onProgress - Progress callback
+ * This is pure client-side and doesn't need the Cloudinary SDK
  */
 async function compressImage(
   file: File,
@@ -212,7 +146,7 @@ async function compressImage(
 
         onProgress?.(70)
 
-        // ✅ Convert to blob with quality optimization
+        // Convert to blob with quality optimization
         canvas.toBlob(
           (blob) => {
             if (blob) {
@@ -247,6 +181,45 @@ async function compressImage(
 }
 
 /**
+ * Compress and prepare file for upload
+ * Note: Actual upload to Cloudinary happens in lib/api.ts on the backend
+ */
+export async function compressAndUploadToCloudinary(
+  file: File,
+  options: {
+    weekIndex: number
+    type: 'image' | 'video' | 'audio'
+    folder?: string
+  },
+  onProgress?: (progress: number) => void
+): Promise<CloudinaryImage> {
+  const {  type } = options
+
+  // For images: compress before upload
+  let uploadFile = file
+  if (type === 'image') {
+    uploadFile = await compressImage(file, onProgress)
+  }
+
+  // Get compressed file size
+  const bytes = uploadFile.size
+
+  // Return a placeholder response with compression info
+  // Actual upload happens in API route
+  return {
+    url: '', // Will be set by API
+    secureUrl: '', // Will be set by API
+    publicId: '', // Will be set by API
+    width: 0, // Will be set by API
+    height: 0, // Will be set by API
+    format: uploadFile.type,
+    bytes,
+    blurUrl: '', // Will be set after upload
+    thumbnailUrl: '', // Will be set after upload
+  }
+}
+
+/**
  * Get file size in human-readable format
  */
 export function formatFileSize(bytes: number): string {
@@ -261,6 +234,7 @@ export function formatFileSize(bytes: number): string {
  * Calculate image compression savings
  */
 export function getCompressionSavings(originalSize: number, compressedSize: number): string {
+  if (originalSize === 0) return '0%'
   const savings = ((1 - compressedSize / originalSize) * 100).toFixed(1)
   return `${savings}%`
 }

@@ -1,3 +1,5 @@
+import { IMedia } from '@/typesDefined'
+
 // Weeks
 export async function saveWeek(data: {
   weekIndex: number
@@ -26,7 +28,7 @@ export async function getAllWeeks() {
 export interface UploadMediaResponse {
   success: boolean
   data?: {
-    media: any
+    media: IMedia
     url: string
     publicId: string
     compression?: {
@@ -74,7 +76,8 @@ export async function uploadMedia(
         try {
           const response = JSON.parse(xhr.responseText)
           resolve(response)
-        } catch (e) {
+        } catch {
+          console.log('Failed to parse response');
           reject(new Error('Failed to parse response'))
         }
       } else {
