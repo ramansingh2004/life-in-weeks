@@ -155,6 +155,8 @@ export function ResponsiveImage({ publicId, alt, className = '', onClick }: Resp
       <Image
         src={smallUrl}
         alt={alt}
+        width={200}
+        height={200}
         className="w-full h-full object-cover rounded-lg"
         loading="lazy"
         blurDataURL={blurUrl || undefined}
