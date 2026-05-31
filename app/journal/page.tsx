@@ -127,8 +127,8 @@ export default function JournalPage() {
               px-4 py-1.5 rounded-full text-xs capitalize transition-all border
               ${
                 filter === f
-                  ? 'bg-white text-black border-white'
-                  : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'
+                  ? 'bg-brand-orange text-black border-brand-orange font-semibold'
+                  : 'border-zinc-800 text-zinc-500 hover:border-brand-orange hover:text-brand-orange'
               }
             `}
           >
@@ -161,9 +161,9 @@ export default function JournalPage() {
               key={entry.weekIndex}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              whileHover={{ scale: 1.01, borderColor: '#3f3f46' }}
+              whileHover={{ scale: 1.01, borderColor: 'var(--color-brand-orange)' }}
               transition={{ delay: i * 0.05 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 cursor-pointer hover:border-zinc-700 transition-colors"
+              className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 cursor-pointer hover:border-brand-orange transition-colors"
               onClick={() => router.push(`/grid?week=${entry.weekIndex}`)}
             >
               {/* Entry header */}
@@ -201,8 +201,8 @@ export default function JournalPage() {
                           : entry.mood === 3
                             ? 'bg-yellow-500'
                             : entry.mood === 4
-                              ? 'bg-green-500'
-                              : 'bg-emerald-400'
+                              ? 'bg-amber-500'
+                              : 'bg-brand-orange'
                     }`}
                   />
                 )}

@@ -217,8 +217,8 @@ export default function TimelinePage() {
             onClick={() => setMoodFilter(null)}
             className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
               moodFilter === null
-                ? 'border-white bg-white text-black'
-                : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                ? 'border-brand-orange bg-brand-orange text-black font-semibold'
+                : 'border-zinc-700 text-zinc-400 hover:border-brand-orange hover:text-brand-orange'
             }`}
           >
             All
@@ -232,8 +232,8 @@ export default function TimelinePage() {
                 onClick={() => setMoodFilter(moodFilter === mood ? null : mood)}
                 className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
                   moodFilter === mood
-                    ? 'border-white bg-white text-black'
-                    : `border-zinc-700 text-zinc-400 hover:border-zinc-600 ${colors}`
+                    ? 'border-brand-orange bg-brand-orange text-black font-semibold'
+                    : `border-zinc-700 text-zinc-400 hover:border-brand-orange hover:text-brand-orange ${colors}`
                 }`}
               >
                 {label}
@@ -349,7 +349,7 @@ export default function TimelinePage() {
                                     setSelectedTags([...selectedTags, tag])
                                   }
                                 }}
-                                className="text-xs px-2 py-1 bg-emerald-900/30 text-emerald-300 rounded hover:bg-emerald-900/50 transition-colors"
+                                className="text-xs px-2 py-1 bg-brand-orange/10 text-brand-orange border border-brand-orange/20 rounded hover:bg-brand-orange/20 transition-colors"
                               >
                                 #{tag}
                               </button>
@@ -464,7 +464,7 @@ export default function TimelinePage() {
                           }
                           setPreview(null)
                         }}
-                        className="px-3 py-1 bg-emerald-900/40 text-emerald-300 rounded-full text-xs hover:bg-emerald-900/60 transition-colors"
+                        className="px-3 py-1 bg-brand-orange/20 text-brand-orange border border-brand-orange/30 rounded-full text-xs hover:bg-brand-orange/30 transition-colors"
                       >
                         #{tag}
                       </button>
@@ -547,7 +547,7 @@ export default function TimelinePage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setPreview(null)}
-                  className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-zinc-600 transition-colors"
+                  className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-brand-orange hover:text-brand-orange transition-colors"
                 >
                   Close
                 </button>
@@ -556,7 +556,7 @@ export default function TimelinePage() {
                     router.push('/grid')
                     setPreview(null)
                   }}
-                  className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium hover:bg-zinc-100 transition-colors"
+                  className="flex-1 bg-brand-orange text-black rounded-lg py-2.5 text-sm font-semibold hover:bg-brand-orange/90 transition-colors"
                 >
                   Edit in grid →
                 </button>

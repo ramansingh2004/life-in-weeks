@@ -165,7 +165,7 @@ export function LifeChapters() {
           </p>
           <button
             onClick={() => router.push('/grid')}
-            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"
+            className="px-6 py-3 bg-brand-orange text-black font-semibold rounded-lg hover:bg-brand-orange/90 transition-all"
           >
             Go to grid →
           </button>

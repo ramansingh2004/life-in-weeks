@@ -90,9 +90,9 @@ export default function StatsPage() {
     const moodColors: Record<number, string> = {
       1: 'bg-red-500',
       2: 'bg-orange-500',
-      3: 'bg-yellow-500',
-      4: 'bg-green-500',
-      5: 'bg-emerald-400',
+      3: 'bg-zinc-700',
+      4: 'bg-amber-500',
+      5: 'bg-brand-orange',
     }
 
     setTopMoods(
@@ -151,7 +151,7 @@ export default function StatsPage() {
             initial={{ width: 0 }}
             animate={{ width: `${lifePercent}%` }}
             transition={{ duration: 1.2, ease: 'easeOut' }}
-            className="bg-white h-2 rounded-full"
+            className="bg-brand-orange h-2 rounded-full"
           />
         </div>
         <div className="flex justify-between text-xs text-zinc-700 mt-1">
@@ -188,8 +188,8 @@ export default function StatsPage() {
               <AreaChart data={moodData}>
                 <defs>
                   <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ffffff" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#ffffff" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#fca311" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#fca311" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis
@@ -219,10 +219,10 @@ export default function StatsPage() {
                 <Area
                   type="monotone"
                   dataKey="mood"
-                  stroke="#ffffff"
+                  stroke="#fca311"
                   strokeWidth={1.5}
                   fill="url(#moodGrad)"
-                  dot={{ fill: '#ffffff', r: 3 }}
+                  dot={{ fill: '#fca311', r: 3 }}
                 />
               </AreaChart>
             </ResponsiveContainer>

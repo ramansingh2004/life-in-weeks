@@ -165,7 +165,7 @@ export default function Home() {
                     i < 80
                       ? 'bg-zinc-500'
                       : i === 80
-                        ? 'bg-white animate-pulse'
+                        ? 'bg-brand-orange animate-pulse'
                         : 'bg-zinc-800'
                   }`}
                 />
@@ -217,7 +217,7 @@ export default function Home() {
                     setBirthDate(e.target.value)
                     setError('')
                   }}
-                  className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors backdrop-blur-sm"
+                  className="w-full bg-zinc-900/80 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-colors backdrop-blur-sm"
                 />
               </div>
 
@@ -235,7 +235,7 @@ export default function Home() {
                   max="100"
                   value={lifeExpectancy}
                   onChange={(e) => setLifeExpectancy(Number(e.target.value))}
-                  className="w-full accent-white"
+                  className="w-full accent-brand-orange"
                 />
                 <div className="flex justify-between text-zinc-700 text-xs mt-1">
                   <span>50</span>
@@ -260,7 +260,7 @@ export default function Home() {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleStart}
                 disabled={isUpdatingProfile}
-                className="w-full bg-white text-black rounded-xl py-3.5 text-sm font-medium hover:bg-zinc-100 transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-brand-orange text-black rounded-xl py-3.5 text-sm font-semibold hover:bg-brand-orange/90 transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUpdatingProfile ? 'Saving...' : 'See my life →'}
               </motion.button>

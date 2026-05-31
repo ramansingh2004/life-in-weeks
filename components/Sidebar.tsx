@@ -70,7 +70,7 @@ export default function Sidebar({ onLogout }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-40 p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
+        className="fixed top-4 left-4 z-40 p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-brand-orange hover:text-brand-orange transition-colors"
         title="Toggle sidebar"
       >
         <motion.div
@@ -101,7 +101,7 @@ export default function Sidebar({ onLogout }: Props) {
         animate={{ x: isOpen ? 0 : -300, opacity: isOpen ? 1 : 0 }}
         exit={{ x: -300, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed left-0 top-0 h-screen w-64 bg-zinc-950 border-r border-zinc-800 z-35 overflow-y-auto flex flex-col"
+        className="fixed left-0 top-0 h-screen w-64 bg-zinc-900 border-r border-zinc-800 z-35 overflow-y-auto flex flex-col"
       >
         {/* Header */}
         <div className="p-6 pt-16 border-b border-zinc-800">
@@ -112,9 +112,9 @@ export default function Sidebar({ onLogout }: Props) {
         {/* User Info */}
         {user && (
           <div className="px-6 py-4 border-b border-zinc-800">
-            <p className="text-zinc-400 text-xs uppercase tracking-widest mb-1">Signed in</p>
+            <p className="text-zinc-500 text-xs uppercase tracking-widest mb-1">Signed in</p>
             <p className="text-white text-sm font-medium">{user.name}</p>
-            <p className="text-zinc-600 text-xs mt-1">{user.email}</p>
+            <p className="text-zinc-500/60 text-xs mt-1">{user.email}</p>
           </div>
         )}
 
@@ -131,8 +131,8 @@ export default function Sidebar({ onLogout }: Props) {
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
-                    ? "bg-white text-black font-medium"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+                    ? "bg-brand-orange text-black font-semibold shadow-md shadow-brand-orange/10"
+                    : "text-zinc-500 hover:bg-zinc-850 hover:text-white"
                 }`}
                 whileHover={{ x: 4 }}
                 whileTap={{ scale: 0.95 }}
@@ -185,7 +185,7 @@ export default function Sidebar({ onLogout }: Props) {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           exit={{ scale: 0 }}
-          className="fixed bottom-4 left-4 w-2 h-2 rounded-full bg-white z-40"
+          className="fixed bottom-4 left-4 w-2 h-2 rounded-full bg-brand-orange z-40"
         />
       )}
     </>

@@ -205,7 +205,7 @@ export default function MilestoneModal({
                   setError('')
                 }}
                 placeholder="e.g., Got my first job"
-                className="w-full bg-zinc-800/50 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-zinc-600 transition-colors"
+                className="w-full bg-zinc-800/50 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-orange transition-colors"
                 maxLength={50}
                 disabled={isMutating}
               />
@@ -221,7 +221,7 @@ export default function MilestoneModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add more details..."
-                className="w-full bg-zinc-800/50 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-zinc-600 transition-colors resize-none"
+                className="w-full bg-zinc-800/50 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-orange transition-colors resize-none"
                 rows={2}
                 maxLength={200}
                 disabled={isMutating}
@@ -245,8 +245,8 @@ export default function MilestoneModal({
                     disabled={isMutating}
                     className={`p-2 rounded-lg border text-xs transition-all text-center ${
                       category === cat.id
-                        ? 'border-white bg-zinc-700'
-                        : 'border-zinc-700 hover:border-zinc-600'
+                        ? 'border-brand-orange bg-brand-orange text-black font-semibold'
+                        : 'border-zinc-700 hover:border-brand-orange'
                     }`}
                   >
                     <span className="text-lg block">{cat.icon}</span>
@@ -274,14 +274,14 @@ export default function MilestoneModal({
               <button
                 onClick={onClose}
                 disabled={isMutating}
-                className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-zinc-600 transition-colors disabled:opacity-50"
+                className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-brand-orange hover:text-brand-orange transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={isMutating || !title.trim()}
-                className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-brand-orange text-black rounded-lg py-2.5 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isMutating ? 'Saving...' : existingMilestone ? 'Update' : 'Create'}
               </button>

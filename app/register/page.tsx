@@ -128,8 +128,8 @@ export default function RegisterPage() {
               setTab('oauth')
               setError('')
             }}
-            className={`flex-1 py-2 rounded text-sm font-medium transition-colors ${
-              tab === 'oauth' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'
+            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors ${
+              tab === 'oauth' ? 'bg-brand-orange text-black' : 'text-zinc-500 hover:text-white'
             }`}
           >
             Google
@@ -139,8 +139,8 @@ export default function RegisterPage() {
               setTab('email')
               setError('')
             }}
-            className={`flex-1 py-2 rounded text-sm font-medium transition-colors ${
-              tab === 'email' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'
+            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors ${
+              tab === 'email' ? 'bg-brand-orange text-black' : 'text-zinc-500 hover:text-white'
             }`}
           >
             Email
@@ -170,7 +170,7 @@ export default function RegisterPage() {
               whileTap={{ scale: 0.97 }}
               onClick={handleGoogleSignUp}
               disabled={loading}
-              className="w-full bg-white text-black rounded-xl py-3 text-sm font-medium hover:bg-zinc-100 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-brand-orange text-black rounded-xl py-3 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 'Creating account...'
@@ -228,7 +228,7 @@ export default function RegisterPage() {
               placeholder="Your name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600"
+              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-colors placeholder:text-zinc-650"
             />
 
             <input
@@ -236,7 +236,7 @@ export default function RegisterPage() {
               placeholder="Email address"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600"
+              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-colors placeholder:text-zinc-650"
             />
 
             <input
@@ -244,7 +244,7 @@ export default function RegisterPage() {
               placeholder="Password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600"
+              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-colors placeholder:text-zinc-650"
             />
 
             <input
@@ -252,7 +252,7 @@ export default function RegisterPage() {
               placeholder="Confirm password"
               value={form.confirmPassword}
               onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600"
+              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-colors placeholder:text-zinc-650"
             />
 
             <motion.button
@@ -260,7 +260,7 @@ export default function RegisterPage() {
               whileTap={{ scale: 0.97 }}
               onClick={handleEmailSignUp}
               disabled={loading}
-              className="w-full bg-white text-black rounded-xl py-3 text-sm font-medium hover:bg-zinc-100 transition-colors disabled:opacity-50"
+              className="w-full bg-brand-orange text-black rounded-xl py-3 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50"
             >
               {loading ? 'Creating account...' : 'Create account →'}
             </motion.button>

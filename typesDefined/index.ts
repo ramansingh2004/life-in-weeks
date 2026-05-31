@@ -36,19 +36,19 @@ export const MOOD_LABELS: Record<number, string> = {
 }
 
 export const MOOD_COLORS: Record<number, string> = {
-  1: "bg-red-900",
-  2: "bg-orange-900",
-  3: "bg-yellow-900",
-  4: "bg-green-900",
-  5: "bg-emerald-700",
+  1: "bg-red-900/80",
+  2: "bg-orange-900/80",
+  3: "bg-zinc-850",
+  4: "bg-amber-500/70",
+  5: "bg-brand-orange",
 }
 
 export const MOOD_TEXT_COLORS: Record<number, string> = {
-  1: "text-red-400",
-  2: "text-orange-400",
-  3: "text-yellow-400",
-  4: "text-green-400",
-  5: "text-emerald-400",
+  1: "text-red-450",
+  2: "text-orange-450",
+  3: "text-zinc-500",
+  4: "text-amber-400",
+  5: "text-brand-orange",
 }
 
 export interface LifeStore  {

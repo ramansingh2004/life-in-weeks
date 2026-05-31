@@ -241,13 +241,13 @@ export default function MemoryViewCard({ week, data, onClose, onEdit }: Props) {
             <div className="flex gap-3 sticky bottom-0 bg-zinc-900 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 py-4 border-t border-zinc-800">
               <button
                 onClick={onClose}
-                className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-zinc-600 transition-colors"
+                className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-brand-orange hover:text-brand-orange transition-colors"
               >
                 Close
               </button>
               <button
                 onClick={onEdit}
-                className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium hover:bg-zinc-100 transition-colors"
+                className="flex-1 bg-brand-orange text-black rounded-lg py-2.5 text-sm font-semibold hover:bg-brand-orange/90 transition-colors"
               >
                 ✏️ Edit →
               </button>

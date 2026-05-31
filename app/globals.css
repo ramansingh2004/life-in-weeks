@@ -1,28 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ffffff;
+  --brand-orange: #fca311;
+  --brand-navy: #14213d;
+  --brand-navy-light: #1c2a4a;
+  --brand-navy-border: #22345e;
+  --brand-gray: #e5e5e5;
+  --brand-white: #ffffff;
+  --brand-black: #000000;
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-brand-black: var(--brand-black);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-light: var(--brand-navy-light);
+  --color-brand-navy-border: var(--brand-navy-border);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-gray: var(--brand-gray);
+  --color-brand-white: var(--brand-white);
+
+  /* Mapping standard zinc colors to align with our branding */
+  --color-zinc-950: #000000;
+  --color-zinc-900: #14213d;
+  --color-zinc-800: #1c2a4a;
+  --color-zinc-700: #22345e;
+  --color-zinc-600: #5c6c94;
+  --color-zinc-500: #e5e5e5;
+  --color-zinc-400: #e5e5e5;
+  --color-zinc-300: #ffffff;
+  --color-zinc-200: #ffffff;
+  --color-zinc-100: #ffffff;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
 /* Sleek custom scrollbar for any overflow containers (like our weeks grid) */

@@ -140,7 +140,7 @@ export default function GridPage() {
                 key={i}
                 animate={{ opacity: [0.2, 1, 0.2] }}
                 transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                className="w-2 h-2 bg-zinc-600 rounded-[1px]"
+                className="w-2 h-2 bg-brand-orange rounded-[1px]"
               />
             ))}
           </div>
@@ -228,7 +228,7 @@ export default function GridPage() {
                               transition-all duration-150 hover:scale-150 hover:z-10 relative
                               ${
                                 week.isCurrent
-                                  ? 'bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse'
+                                  ? 'bg-brand-orange ring-2 ring-brand-orange ring-offset-1 ring-offset-black animate-pulse'
                                   : week.isPast
                                     ? moodColor || 'bg-zinc-500'
                                     : noted
@@ -242,7 +242,7 @@ export default function GridPage() {
                             <motion.div
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-black shadow-lg cursor-pointer hover:scale-110"
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-brand-orange rounded-full flex items-center justify-center text-xs font-bold text-black shadow-lg cursor-pointer hover:scale-110"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedMilestoneWeek(week)
@@ -276,7 +276,7 @@ export default function GridPage() {
               <button
                 onClick={loadMoreYears}
                 disabled={isLoadingMore}
-                className="px-6 py-2 border border-zinc-700 text-zinc-400 rounded-lg hover:border-zinc-600 transition-colors disabled:opacity-50"
+                className="px-6 py-2 border border-zinc-700 text-zinc-400 rounded-lg hover:border-brand-orange hover:text-brand-orange transition-colors disabled:opacity-50"
               >
                 {isLoadingMore ? 'Loading...' : 'Load More Years'}
               </button>
@@ -289,7 +289,7 @@ export default function GridPage() {
               <span className="text-zinc-500">Lived</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-[14px] h-[14px] rounded-[2px] bg-white animate-pulse" />
+              <div className="w-[14px] h-[14px] rounded-[2px] bg-brand-orange animate-pulse" />
               <span className="text-zinc-500">This week</span>
             </div>
             <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ export default function GridPage() {
               <span className="text-zinc-500">Hard</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs font-bold text-black" />
+              <div className="w-5 h-5 bg-brand-orange rounded-full flex items-center justify-center text-xs font-bold text-black" />
               <span className="text-zinc-500">Milestone</span>
             </div>
           </div>

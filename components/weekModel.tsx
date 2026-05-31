@@ -167,11 +167,11 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
                       key={m}
                       onClick={() => setMood(m)}
                       className={`
-                        w-8 h-8 rounded-full border text-xs font-medium transition-all
+                        w-8 h-8 rounded-full border text-xs font-semibold transition-all
                         ${
                           mood === m
-                            ? 'border-white bg-white text-black'
-                            : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
+                            ? 'border-brand-orange bg-brand-orange text-black'
+                            : 'border-zinc-700 text-zinc-500 hover:border-brand-orange hover:text-brand-orange'
                         }
                       `}
                     >
@@ -206,7 +206,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
                 {editor ? (
                   <EditorContent key={editorKey} editor={editor} />
                 ) : (
-                  <p className="text-zinc-600 text-sm">{placeholder}</p>
+                  <p className="text-zinc-650 text-sm">{placeholder}</p>
                 )}
               </div>
             </div>
@@ -219,7 +219,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
                 </p>
                 <MediaUploader weekIndex={week.index} />
                 {week.isFuture && (
-                  <p className="text-zinc-600 text-xs mt-3 italic">
+                  <p className="text-zinc-650 text-xs mt-3 italic">
                     🎙️ Record your aspirations as voice notes for this future week
                   </p>
                 )}
@@ -240,7 +240,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
               <button
                 onClick={onClose}
                 disabled={isSaving}
-                className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-zinc-600 transition-colors disabled:opacity-50"
+                className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-brand-orange hover:text-brand-orange transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -248,7 +248,7 @@ export default function WeekModal({ week, onClose, onSave, existingData }: Props
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-1 bg-white text-black rounded-lg py-2.5 text-sm font-medium hover:bg-zinc-100 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-brand-orange text-black rounded-lg py-2.5 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSaving ? (
                   <>
