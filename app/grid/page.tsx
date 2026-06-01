@@ -11,6 +11,7 @@ import { Week, WeekData, MOOD_COLORS } from '@/typesDefined'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useMilestoneStore } from '@/store/useMilestoneStore'
+// ✅ IMPORT REACT QUERY HOOKS
 import { useAuth, useWeeks } from '@/hooks/useQuery'
 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
@@ -29,6 +30,7 @@ function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
 export default function GridPage() {
   const router = useRouter()
   
+  // ✅ REPLACE: getMe() + getAllWeeks() with React Query hooks
   const { user, isLoading: isLoadingUser } = useAuth()
   const { isLoading: isLoadingWeeks } = useWeeks()
   
@@ -56,10 +58,6 @@ export default function GridPage() {
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false)
   const [selectedMilestoneWeek, setSelectedMilestoneWeek] = useState<Week | null>(null)
   const [hydrated, setHydrated] = useState(false)
-  
-  // ✅ Infinite scroll state
-  const [displayedYears, setDisplayedYears] = useState(10)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const animatedLived = useCountUp(stats.lived)
   const animatedRemaining = useCountUp(stats.remaining)
@@ -69,22 +67,28 @@ export default function GridPage() {
     setHydrated(true)
   }, [])
 
+  // ✅ SIMPLIFIED: useAuth hook handles user fetching
+  //    No more manual getMe() call and loading state
   useEffect(() => {
     if (!hydrated || isLoadingUser) return
 
+    // User not authenticated
     if (!user) {
       router.push('/login')
       return
     }
 
+    // User doesn't have birth date set
     if (!user.birthDate) {
       router.push('/')
       return
     }
 
+    // Sync Zustand with backend user data
     setBirthDate(user.birthDate)
     setLifeExpectancy(user.lifeExpectancy || 80)
 
+    // Sync weeks and milestones from backend
     if (!isSynced) syncFromBackend()
     syncMilestones()
   }, [hydrated, user, isLoadingUser, setBirthDate, setLifeExpectancy, syncFromBackend, syncMilestones, isSynced, router])
@@ -111,25 +115,13 @@ export default function GridPage() {
     [weeks.length]
   )
 
-  // ✅ Visible years for infinite scroll
-  const visibleYears = useMemo(() => years.slice(0, displayedYears), [years, displayedYears])
-
   function handleWeekClick(week: Week) {
     setSelectedWeek(week)
     const data = getNote(week.index)
     setViewMode(!!data)
   }
 
-  // ✅ Load more years
-  const loadMoreYears = () => {
-    setIsLoadingMore(true)
-    // Simulate network delay
-    setTimeout(() => {
-      setDisplayedYears((prev) => Math.min(prev + 10, years.length))
-      setIsLoadingMore(false)
-    }, 300)
-  }
-
+  // ✅ IMPROVED: Check both user loading AND weeks loading
   if (!hydrated || isLoadingUser || isLoadingWeeks) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
@@ -140,7 +132,7 @@ export default function GridPage() {
                 key={i}
                 animate={{ opacity: [0.2, 1, 0.2] }}
                 transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                className="w-2 h-2 bg-brand-orange rounded-[1px]"
+                className="w-2 h-2 bg-zinc-600 rounded-[1px]"
               />
             ))}
           </div>
@@ -152,10 +144,13 @@ export default function GridPage() {
 
   return (
     <main className="min-h-screen bg-black text-white">
+      {/* Sidebar */}
       <Sidebar />
 
+      {/* Main Content with padding to avoid hamburger overlap */}
       <div className="pt-14 sm:pt-10 px-4 sm:px-6 py-10">
         <div className="max-w-5xl mx-auto">
+          {/* Simplified Header with left padding */}
           <div className="mb-8 pl-0">
             <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">Life in Weeks</h1>
             <p className="text-zinc-600 text-sm">
@@ -163,6 +158,7 @@ export default function GridPage() {
             </p>
           </div>
 
+          {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
             {[
               { label: 'Weeks lived', value: animatedLived.toLocaleString() },
@@ -179,11 +175,12 @@ export default function GridPage() {
             ))}
           </div>
 
-          {/* Grid with infinite scroll */}
+          {/* Grid */}
           <div className="mb-10 overflow-x-auto pb-4">
             <div className="flex gap-2">
+              {/* Year labels */}
               <div className="flex flex-col gap-[4px] pt-[1px] flex-shrink-0">
-                {visibleYears.map((y) => (
+                {years.map((y) => (
                   <div
                     key={y}
                     className="text-zinc-700 text-[8px] w-6 h-[14px] flex items-center justify-end pr-2"
@@ -193,8 +190,9 @@ export default function GridPage() {
                 ))}
               </div>
 
+              {/* Squares with milestone markers */}
               <div className="flex flex-col gap-[4px] flex-shrink-0" onMouseLeave={() => setTooltip(null)}>
-                {visibleYears.map((yearIndex) => (
+                {years.map((yearIndex) => (
                   <div key={yearIndex} className="flex gap-[4px]">
                     {weeks.slice(yearIndex * 52, yearIndex * 52 + 52).map((week) => {
                       const note = getNote(week.index)
@@ -204,6 +202,7 @@ export default function GridPage() {
 
                       return (
                         <div key={week.index} className="relative group flex-shrink-0">
+                          {/* Week square */}
                           <div
                             onClick={() => handleWeekClick(week)}
                             onContextMenu={(e) => {
@@ -228,7 +227,7 @@ export default function GridPage() {
                               transition-all duration-150 hover:scale-150 hover:z-10 relative
                               ${
                                 week.isCurrent
-                                  ? 'bg-brand-orange ring-2 ring-brand-orange ring-offset-1 ring-offset-black animate-pulse'
+                                  ? 'bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse'
                                   : week.isPast
                                     ? moodColor || 'bg-zinc-500'
                                     : noted
@@ -238,6 +237,7 @@ export default function GridPage() {
                             `}
                           />
 
+                          {/* Milestone marker */}
                           {milestone && (
                             <motion.div
                               initial={{ scale: 0 }}
@@ -261,6 +261,7 @@ export default function GridPage() {
               </div>
             </div>
 
+            {/* Week column labels */}
             <div className="flex gap-[4px] mt-3 ml-8">
               {Array.from({ length: 52 }, (_, i) => (
                 <div key={i} className="text-zinc-700 text-[8px] w-[14px] text-center flex-shrink-0">
@@ -270,19 +271,7 @@ export default function GridPage() {
             </div>
           </div>
 
-          {/* ✅ Load More Button */}
-          {displayedYears < years.length && (
-            <div className="text-center mb-10">
-              <button
-                onClick={loadMoreYears}
-                disabled={isLoadingMore}
-                className="px-6 py-2 border border-zinc-700 text-zinc-400 rounded-lg hover:border-brand-orange hover:text-brand-orange transition-colors disabled:opacity-50"
-              >
-                {isLoadingMore ? 'Loading...' : 'Load More Years'}
-              </button>
-            </div>
-          )}
-
+          {/* Legend */}
           <div className="flex items-center gap-6 flex-wrap text-xs mb-10">
             <div className="flex items-center gap-2">
               <div className="w-[14px] h-[14px] rounded-[2px] bg-zinc-500" />
@@ -310,6 +299,7 @@ export default function GridPage() {
             </div>
           </div>
 
+          {/* Footer */}
           <div className="text-center pb-10">
             <p className="text-zinc-700 text-xs">
               You have lived {stats.lived.toLocaleString()} weeks. <br />
@@ -319,6 +309,7 @@ export default function GridPage() {
         </div>
       </div>
 
+      {/* Modals */}
       {viewMode ? (
         <MemoryViewCard
           week={selectedWeek}
@@ -352,6 +343,7 @@ export default function GridPage() {
         }
       />
 
+      {/* Tooltip */}
       {tooltip && (
         <div
           className="fixed pointer-events-none bg-zinc-800 text-white text-xs px-2 py-1 rounded z-50"
