@@ -34,6 +34,7 @@ export function useCursorPagination<T>({
   const [hasMore, setHasMore] = useState(initialItems.length >= itemsPerPage || initialItems.length === 0)
   const observerTarget = useRef<HTMLDivElement>(null)
   const lastCursorRef = useRef<string | number | null>(null)
+  const loadingRef = useRef(false)
 
   // Get cursor from last item
   const getLastCursor = useCallback((): string | number | null => {
@@ -48,8 +49,9 @@ export function useCursorPagination<T>({
 
   // Load more items
   const loadMore = useCallback(async () => {
-    if (isLoading || !hasMore || !onLoadMore) return
+    if (loadingRef.current || !hasMore || !onLoadMore) return
 
+    loadingRef.current = true
     setIsLoading(true)
     try {
       const cursor = getLastCursor()
@@ -58,7 +60,13 @@ export function useCursorPagination<T>({
       if (newItems.length === 0) {
         setHasMore(false)
       } else {
-        setItems((prev) => [...prev, ...newItems])
+        setItems((prev) => {
+          // Avoid duplicating any items already in state if triggered concurrently
+          const newItemsFiltered = getCursorFromItem 
+            ? newItems.filter(newItem => !prev.some(prevItem => getCursorFromItem(prevItem) === getCursorFromItem(newItem)))
+            : newItems
+          return [...prev, ...newItemsFiltered]
+        })
         lastCursorRef.current = getLastCursor()
         if (newItems.length < itemsPerPage) {
           setHasMore(false)
@@ -69,14 +77,15 @@ export function useCursorPagination<T>({
       setHasMore(false)
     } finally {
       setIsLoading(false)
+      loadingRef.current = false
     }
-  }, [getLastCursor, isLoading, hasMore, onLoadMore, itemsPerPage])
+  }, [getLastCursor, hasMore, onLoadMore, itemsPerPage, getCursorFromItem])
 
   // Setup Intersection Observer for automatic scroll trigger
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
+        if (entries[0].isIntersecting && hasMore && !isLoading && !loadingRef.current) {
           loadMore()
         }
       },
@@ -95,7 +104,7 @@ export function useCursorPagination<T>({
 
   // Auto-load first page if empty on mount/reset
   useEffect(() => {
-    if (items.length === 0 && hasMore && !isLoading) {
+    if (items.length === 0 && hasMore && !isLoading && !loadingRef.current) {
       loadMore()
     }
   }, [items.length, hasMore, isLoading, loadMore])
@@ -103,6 +112,7 @@ export function useCursorPagination<T>({
   const reset = useCallback(() => {
     setItems(initialItems)
     setIsLoading(false)
+    loadingRef.current = false
     setHasMore(initialItems.length >= itemsPerPage || initialItems.length === 0)
     lastCursorRef.current = null
   }, [initialItems, itemsPerPage])

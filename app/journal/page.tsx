@@ -48,8 +48,8 @@ export default function JournalPage() {
       }
       
       // Find current cursor position
-      const cursorIndex = filtered.findIndex((e) => e.weekIndex <= (cursor as number))
-      const startIndex = cursorIndex >= 0 ? cursorIndex : 0
+      const cursorIndex = filtered.findIndex((e) => e.weekIndex === (cursor as number))
+      const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0
       
       return filtered.slice(startIndex, startIndex + 20)
     },

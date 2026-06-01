@@ -69,8 +69,8 @@ export default function TimelinePage() {
         return filtered.slice(0, 15)
       }
       
-      const cursorIndex = filtered.findIndex((m) => m.weekIndex <= (cursor as number))
-      const startIndex = cursorIndex >= 0 ? cursorIndex : 0
+      const cursorIndex = filtered.findIndex((m) => m.weekIndex === (cursor as number))
+      const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0
       
       return filtered.slice(startIndex, startIndex + 15)
     },
