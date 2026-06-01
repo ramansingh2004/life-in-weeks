@@ -22,6 +22,8 @@ export default function JournalPage() {
   const [allEntries, setAllEntries] = useState<WeekData[]>([])
   const [hydrated, setHydrated] = useState(false)
 
+  const totalNotesCount = Object.values(notes).filter((n) => n.note && n.note !== '<p></p>').length
+
   // ✅ Cursor-based pagination
   const {
     items: paginatedEntries,
@@ -182,25 +184,27 @@ export default function JournalPage() {
 
       {/* Entries with infinite scroll */}
       <div className="max-w-2xl mx-auto space-y-4">
-        {paginatedEntries.length === 0 ? (
+        {totalNotesCount === 0 ? (
           <div className="text-center py-20">
             <p className="text-zinc-600 text-sm">
-              {allEntries.length === 0
-                ? 'No entries yet. Go to the grid and click a week to write your first memory.'
-                : 'No entries match your search.'}
+              No entries yet. Go to the grid and click a week to write your first memory.
             </p>
-            {allEntries.length === 0 && (
-              <button
-                onClick={() => router.push('/grid')}
-                className="mt-4 text-zinc-500 text-xs underline hover:text-zinc-300 transition-colors"
-              >
-                Go to grid →
-              </button>
-            )}
+            <button
+              onClick={() => router.push('/grid')}
+              className="mt-4 text-zinc-500 text-xs underline hover:text-zinc-300 transition-colors"
+            >
+              Go to grid →
+            </button>
+          </div>
+        ) : allEntries.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-zinc-600 text-sm">
+              No entries match your search.
+            </p>
           </div>
         ) : (
           <>
-            {paginatedEntries.map((entry, i) => (
+            {paginatedEntries.length > 0 && paginatedEntries.map((entry, i) => (
               <motion.div
                 key={entry.weekIndex}
                 initial={{ opacity: 0, y: 16 }}

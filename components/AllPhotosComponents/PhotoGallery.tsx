@@ -291,15 +291,15 @@ export function PhotoGallery() {
         />
 
         {/* Photo Grid with infinite scroll */}
-        {paginatedPhotos.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-zinc-400">
-              {filtered.length === 0 ? 'No photos match your filters' : 'Loading photos...'}
-            </p>
+            <p className="text-zinc-400">No photos match your filters</p>
           </div>
         ) : (
           <>
-            <PhotoGrid photos={paginatedPhotos} onPhotoClick={setSelectedPhoto} />
+            {paginatedPhotos.length > 0 && (
+              <PhotoGrid photos={paginatedPhotos} onPhotoClick={setSelectedPhoto} />
+            )}
             
             {/* ✅ Infinite scroll loader */}
             <InfiniteScrollLoader

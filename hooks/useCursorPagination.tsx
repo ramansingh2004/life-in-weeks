@@ -93,6 +93,13 @@ export function useCursorPagination<T>({
     return () => observer.disconnect()
   }, [loadMore, hasMore, isLoading])
 
+  // Auto-load first page if empty on mount/reset
+  useEffect(() => {
+    if (items.length === 0 && hasMore && !isLoading) {
+      loadMore()
+    }
+  }, [items.length, hasMore, isLoading, loadMore])
+
   const reset = useCallback(() => {
     setItems(initialItems)
     setIsLoading(false)
