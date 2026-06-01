@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
@@ -8,8 +8,8 @@ import { MOOD_COLORS, MOOD_LABELS } from '@/typesDefined'
 import { TagFilter } from '@/components/TagComponents/TagFilter'
 import Image from 'next/image'
 import Sidebar from '@/components/Sidebar'
-// ✅ IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
+import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
 
 type MediaItem = {
   _id: string
@@ -32,12 +32,10 @@ type TimelineMemory = {
 export default function TimelinePage() {
   const router = useRouter()
   
-  // ✅ USE useAuth to verify user is authenticated
   const { user, isLoading: isLoadingUser } = useAuth()
-  
   const { getNote } = useLifeStore()
 
-  const [memories, setMemories] = useState<TimelineMemory[]>([])
+  const [allMemories, setAllMemories] = useState<TimelineMemory[]>([])
   const [loading, setLoading] = useState(true)
   const [hydrated, setHydrated] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -50,7 +48,35 @@ export default function TimelinePage() {
     setHydrated(true)
   }, [])
 
-  // ✅ IMPROVED: Check auth status with React Query before loading memories
+  // ✅ Cursor-based pagination for memories
+  const {
+    items: paginatedMemories,
+    isLoading: isLoadingMore,
+    hasMore,
+    observerTarget,
+    reset: resetPagination,
+  } = useCursorPagination<TimelineMemory>({
+    initialItems: [],
+    itemsPerPage: 15,
+    getCursorFromItem: (item) => item.weekIndex,
+    onLoadMore: async (cursor) => {
+      // Simulate network delay
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      
+      const filtered = getFilteredMemories()
+      
+      if (cursor === null) {
+        return filtered.slice(0, 15)
+      }
+      
+      const cursorIndex = filtered.findIndex((m) => m.weekIndex <= (cursor as number))
+      const startIndex = cursorIndex >= 0 ? cursorIndex : 0
+      
+      return filtered.slice(startIndex, startIndex + 15)
+    },
+  })
+
+  // Load all memories from backend
   useEffect(() => {
     if (!hydrated || isLoadingUser) return
 
@@ -60,7 +86,7 @@ export default function TimelinePage() {
     }
 
     async function loadMemories() {
-      const allMemories: TimelineMemory[] = []
+      const allMems: TimelineMemory[] = []
 
       // Get all weeks - iterate through a reasonable range
       for (let i = 0; i < 10000; i++) {
@@ -73,7 +99,7 @@ export default function TimelinePage() {
             mood: note.mood,
             isPast: note.isPast,
             isCurrent: note.isCurrent,
-            tags: note.tags || [], // Load tags from note
+            tags: note.tags || [],
           }
 
           // Load media for this week
@@ -84,25 +110,45 @@ export default function TimelinePage() {
               const media = mediaData.data?.media || []
               if (media && Array.isArray(media) && media.length > 0) {
                 memory.media = media
-                console.log(`📸 Loaded ${media.length} media items for week ${i}`)
               }
             }
           } catch (err) {
             console.error(`Failed to load media for week ${i}:`, err)
           }
 
-          allMemories.push(memory)
+          allMems.push(memory)
         }
       }
 
       // Sort by weekIndex descending (newest first)
-      allMemories.sort((a, b) => b.weekIndex - a.weekIndex)
-      setMemories(allMemories)
-      console.log(`📜 Loaded ${allMemories.length} memories with media`)
+      allMems.sort((a, b) => b.weekIndex - a.weekIndex)
+      setAllMemories(allMems)
     }
 
     loadMemories().finally(() => setLoading(false))
   }, [hydrated, isLoadingUser, user, router, getNote])
+
+  // Get filtered memories
+  const getFilteredMemories = useCallback((): TimelineMemory[] => {
+    return allMemories.filter((mem) => {
+      const matchesSearch =
+        searchTerm === '' ||
+        mem.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        mem.date.toLowerCase().includes(searchTerm.toLowerCase())
+
+      const matchesMood = moodFilter === null || mem.mood === moodFilter
+
+      const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => mem.tags?.includes(tag))
+
+      return matchesSearch && matchesMood && matchesTags
+    })
+  }, [allMemories, searchTerm, moodFilter, selectedTags])
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    if (!hydrated) return
+    resetPagination()
+  }, [searchTerm, moodFilter, selectedTags, hydrated, resetPagination])
 
   // Prevent background scroll when preview is open
   useEffect(() => {
@@ -113,21 +159,6 @@ export default function TimelinePage() {
       }
     }
   }, [preview, imagePreview])
-
-  // Filter memories: search + mood + tags
-  const filtered = memories.filter((mem) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      mem.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mem.date.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesMood = moodFilter === null || mem.mood === moodFilter
-
-    // Tag filtering: AND logic (must have ALL selected tags)
-    const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => mem.tags?.includes(tag))
-
-    return matchesSearch && matchesMood && matchesTags
-  })
 
   // ✅ Show loading while checking auth
   if (isLoadingUser) {
@@ -173,6 +204,8 @@ export default function TimelinePage() {
   const images = preview?.media?.filter((m) => m.type === 'image') || []
   const videos = preview?.media?.filter((m) => m.type === 'video') || []
   const audios = preview?.media?.filter((m) => m.type === 'audio') || []
+
+  const filtered = getFilteredMemories()
 
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-10 px-4 sm:px-6 pb-10">
@@ -263,11 +296,11 @@ export default function TimelinePage() {
           </div>
         )}
 
-        {/* Timeline */}
-        {filtered.length === 0 ? (
+        {/* Timeline with infinite scroll */}
+        {paginatedMemories.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-zinc-600 text-sm mb-4">
-              {memories.length === 0
+              {allMemories.length === 0
                 ? 'No memories yet. Start writing some!'
                 : 'No memories match your filters.'}
             </p>
@@ -279,116 +312,127 @@ export default function TimelinePage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-4 pb-10">
-            {filtered.map((mem, idx) => {
-              const moodColor = mem.mood ? MOOD_COLORS[mem.mood] : 'bg-zinc-800'
-              const moodLabel = mem.mood ? MOOD_LABELS[mem.mood] : null
+          <>
+            <div className="space-y-4 pb-10">
+              {paginatedMemories.map((mem, idx) => {
+                const moodColor = mem.mood ? MOOD_COLORS[mem.mood] : 'bg-zinc-800'
+                const moodLabel = mem.mood ? MOOD_LABELS[mem.mood] : null
 
-              return (
-                <motion.div
-                  key={mem.weekIndex}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="group"
-                >
-                  {/* Timeline line and dot */}
-                  <div className="flex gap-4">
-                    {/* Left side - dot and line */}
-                    <div className="flex flex-col items-center flex-shrink-0">
-                      <motion.div
-                        className={`w-3 h-3 rounded-full border-2 border-white ${moodColor} group-hover:scale-125 transition-transform cursor-pointer`}
-                        whileHover={{ scale: 1.2 }}
-                        onClick={() => setPreview(mem)}
-                      />
-                      {idx < filtered.length - 1 && (
-                        <div className="w-0.5 h-12 bg-gradient-to-b from-zinc-700 to-zinc-900 mt-2" />
-                      )}
-                    </div>
+                return (
+                  <motion.div
+                    key={mem.weekIndex}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="group"
+                  >
+                    {/* Timeline line and dot */}
+                    <div className="flex gap-4">
+                      {/* Left side - dot and line */}
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <motion.div
+                          className={`w-3 h-3 rounded-full border-2 border-white ${moodColor} group-hover:scale-125 transition-transform cursor-pointer`}
+                          whileHover={{ scale: 1.2 }}
+                          onClick={() => setPreview(mem)}
+                        />
+                        {idx < paginatedMemories.length - 1 && (
+                          <div className="w-0.5 h-12 bg-gradient-to-b from-zinc-700 to-zinc-900 mt-2" />
+                        )}
+                      </div>
 
-                    {/* Right side - content card */}
-                    <div className="flex-1 pb-4">
-                      <div
-                        onClick={() => setPreview(mem)}
-                        className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 group-hover:border-zinc-700 transition-all cursor-pointer"
-                      >
-                        {/* Date and mood */}
-                        <div className="flex items-start justify-between mb-2">
-                          <p className="text-zinc-500 text-xs uppercase tracking-widest">
-                            Week {mem.weekIndex + 1}
-                          </p>
-                          {moodLabel && (
-                            <span
-                              className={`text-xs font-medium ${MOOD_COLORS[mem.mood]} text-white px-2 py-1 rounded`}
-                            >
-                              {moodLabel}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Date */}
-                        <p className="text-zinc-600 text-xs mb-3">{mem.date}</p>
-
-                        {/* Memory text (preview) */}
-                        <div className="mb-3">
-                          <div
-                            className="prose prose-invert prose-sm max-w-none text-zinc-300 line-clamp-3"
-                            dangerouslySetInnerHTML={{ __html: mem.note }}
-                          />
-                        </div>
-
-                        {/* Tags Display */}
-                        {mem.tags && mem.tags.length > 0 && (
-                          <div className="mb-3 flex flex-wrap gap-2">
-                            {mem.tags.map((tag) => (
-                              <button
-                                key={tag}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (!selectedTags.includes(tag)) {
-                                    setSelectedTags([...selectedTags, tag])
-                                  }
-                                }}
-                                className="text-xs px-2 py-1 bg-brand-orange/10 text-brand-orange border border-brand-orange/20 rounded hover:bg-brand-orange/20 transition-colors"
+                      {/* Right side - content card */}
+                      <div className="flex-1 pb-4">
+                        <div
+                          onClick={() => setPreview(mem)}
+                          className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 group-hover:border-zinc-700 transition-all cursor-pointer"
+                        >
+                          {/* Date and mood */}
+                          <div className="flex items-start justify-between mb-2">
+                            <p className="text-zinc-500 text-xs uppercase tracking-widest">
+                              Week {mem.weekIndex + 1}
+                            </p>
+                            {moodLabel && (
+                              <span
+                                className={`text-xs font-medium ${MOOD_COLORS[mem.mood]} text-white px-2 py-1 rounded`}
                               >
-                                #{tag}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Media preview indicators */}
-                        {mem.media && mem.media.length > 0 && (
-                          <div className="flex gap-2 mb-3 flex-wrap">
-                            {mem.media.filter((m) => m.type === 'image').length > 0 && (
-                              <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
-                                📷 {mem.media.filter((m) => m.type === 'image').length}
-                              </span>
-                            )}
-                            {mem.media.filter((m) => m.type === 'video').length > 0 && (
-                              <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
-                                🎥 {mem.media.filter((m) => m.type === 'video').length}
-                              </span>
-                            )}
-                            {mem.media.filter((m) => m.type === 'audio').length > 0 && (
-                              <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
-                                🎙️ {mem.media.filter((m) => m.type === 'audio').length}
+                                {moodLabel}
                               </span>
                             )}
                           </div>
-                        )}
 
-                        {/* View button */}
-                        <button className="text-zinc-500 text-xs hover:text-white transition-colors">
-                          View full memory →
-                        </button>
+                          {/* Date */}
+                          <p className="text-zinc-600 text-xs mb-3">{mem.date}</p>
+
+                          {/* Memory text (preview) */}
+                          <div className="mb-3">
+                            <div
+                              className="prose prose-invert prose-sm max-w-none text-zinc-300 line-clamp-3"
+                              dangerouslySetInnerHTML={{ __html: mem.note }}
+                            />
+                          </div>
+
+                          {/* Tags Display */}
+                          {mem.tags && mem.tags.length > 0 && (
+                            <div className="mb-3 flex flex-wrap gap-2">
+                              {mem.tags.map((tag) => (
+                                <button
+                                  key={tag}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (!selectedTags.includes(tag)) {
+                                      setSelectedTags([...selectedTags, tag])
+                                    }
+                                  }}
+                                  className="text-xs px-2 py-1 bg-emerald-900/30 text-emerald-300 rounded hover:bg-emerald-900/50 transition-colors"
+                                >
+                                  #{tag}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Media preview indicators */}
+                          {mem.media && mem.media.length > 0 && (
+                            <div className="flex gap-2 mb-3 flex-wrap">
+                              {mem.media.filter((m) => m.type === 'image').length > 0 && (
+                                <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
+                                  📷 {mem.media.filter((m) => m.type === 'image').length}
+                                </span>
+                              )}
+                              {mem.media.filter((m) => m.type === 'video').length > 0 && (
+                                <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
+                                  🎥 {mem.media.filter((m) => m.type === 'video').length}
+                                </span>
+                              )}
+                              {mem.media.filter((m) => m.type === 'audio').length > 0 && (
+                                <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
+                                  🎙️ {mem.media.filter((m) => m.type === 'audio').length}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* View button */}
+                          <button className="text-zinc-500 text-xs hover:text-white transition-colors">
+                            View full memory →
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+
+            {/* ✅ Infinite scroll loader */}
+            <InfiniteScrollLoader
+              isLoading={isLoadingMore}
+              hasMore={hasMore}
+              targetRef={observerTarget}
+              loadingText="Loading more memories..."
+              emptyText="You've reached the beginning of your timeline"
+            />
+          </>
         )}
       </div>
 

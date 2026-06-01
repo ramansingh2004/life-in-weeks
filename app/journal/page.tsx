@@ -1,64 +1,99 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from '@/typesDefined'
 import Sidebar from '@/components/Sidebar'
-// ✅ IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
+import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
 
 type Filter = 'all' | 'memories' | 'dreams'
 
 export default function JournalPage() {
   const router = useRouter()
   
-  // ✅ USE useAuth to verify user is authenticated
   const { user, isLoading: isLoadingUser } = useAuth()
-  
   const { notes, birthDate } = useLifeStore()
+  
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
-  const [entries, setEntries] = useState<WeekData[]>([])
+  const [allEntries, setAllEntries] = useState<WeekData[]>([])
+  const [hydrated, setHydrated] = useState(false)
 
-  // ✅ SIMPLIFIED: useAuth hook handles checking if user is logged in
+  // ✅ Cursor-based pagination
+  const {
+    items: paginatedEntries,
+    isLoading: isLoadingMore,
+    hasMore,
+    observerTarget,
+    reset: resetPagination,
+  } = useCursorPagination<WeekData>({
+    initialItems: [],
+    itemsPerPage: 20,
+    getCursorFromItem: (item) => item.weekIndex,
+    onLoadMore: async (cursor) => {
+      // Simulate loading delay
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      
+      // Get filtered entries
+      const filtered = getFilteredEntries()
+      
+      if (cursor === null) {
+        // First load
+        return filtered.slice(0, 20)
+      }
+      
+      // Find current cursor position
+      const cursorIndex = filtered.findIndex((e) => e.weekIndex <= (cursor as number))
+      const startIndex = cursorIndex >= 0 ? cursorIndex : 0
+      
+      return filtered.slice(startIndex, startIndex + 20)
+    },
+  })
+
   useEffect(() => {
-    if (isLoadingUser) return
+    setHydrated(true)
+  }, [])
 
-    // Redirect if not authenticated
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    // Redirect if no birth date set
-    if (!birthDate) {
-      router.push('/')
-      return
-    }
-
-    // Convert notes object to sorted array
+  // Get filtered entries based on current filter and search
+  const getFilteredEntries = useCallback((): WeekData[] => {
     const allNotes = Object.values(notes)
       .filter((n) => n.note && n.note !== '<p></p>')
       .sort((a, b) => b.weekIndex - a.weekIndex)
 
-    setEntries(allNotes)
-  }, [notes, router, birthDate, user, isLoadingUser])
+    return allNotes.filter((entry) => {
+      const matchesFilter =
+        filter === 'all' ||
+        (filter === 'memories' && entry.isPast) ||
+        (filter === 'dreams' && !entry.isPast)
 
-  const filtered = entries.filter((entry) => {
-    const matchesFilter =
-      filter === 'all' ||
-      (filter === 'memories' && entry.isPast) ||
-      (filter === 'dreams' && !entry.isPast)
+      const matchesSearch =
+        search === '' ||
+        entry.note.toLowerCase().includes(search.toLowerCase()) ||
+        entry.date.toLowerCase().includes(search.toLowerCase())
 
-    const matchesSearch =
-      search === '' ||
-      entry.note.toLowerCase().includes(search.toLowerCase()) ||
-      entry.date.toLowerCase().includes(search.toLowerCase())
+      return matchesFilter && matchesSearch
+    })
+  }, [notes, filter, search])
 
-    return matchesFilter && matchesSearch
-  })
+  // Load initial entries when filter/search changes
+  useEffect(() => {
+    if (!hydrated) return
+    
+    const filtered = getFilteredEntries()
+    setAllEntries(filtered)
+    resetPagination()
+    
+    // Load first batch
+    setTimeout(() => {
+      const initial = filtered.slice(0, 20)
+      if (initial.length > 0) {
+        // Trigger pagination to load initial items
+      }
+    }, 0)
+  }, [filter, search, hydrated, getFilteredEntries, resetPagination])
 
   function stripHtml(html: string) {
     return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -85,6 +120,14 @@ export default function JournalPage() {
     )
   }
 
+  if (!hydrated || !user) {
+    return null
+  }
+
+  if (!birthDate) {
+    return null
+  }
+
   return (
     <main className="min-h-screen bg-black text-white px-4 sm:px-6 pt-16 sm:pt-10 pb-10">
       {/* Sidebar */}
@@ -102,7 +145,7 @@ export default function JournalPage() {
           </button>
         </div>
         <p className="text-zinc-600 text-xs">
-          {entries.length} {entries.length === 1 ? 'entry' : 'entries'} written
+          {allEntries.length} {allEntries.length === 1 ? 'entry' : 'entries'} written
         </p>
       </div>
 
@@ -127,8 +170,8 @@ export default function JournalPage() {
               px-4 py-1.5 rounded-full text-xs capitalize transition-all border
               ${
                 filter === f
-                  ? 'bg-brand-orange text-black border-brand-orange font-semibold'
-                  : 'border-zinc-800 text-zinc-500 hover:border-brand-orange hover:text-brand-orange'
+                  ? 'bg-white text-black border-white'
+                  : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'
               }
             `}
           >
@@ -137,16 +180,16 @@ export default function JournalPage() {
         ))}
       </div>
 
-      {/* Entries */}
+      {/* Entries with infinite scroll */}
       <div className="max-w-2xl mx-auto space-y-4">
-        {filtered.length === 0 ? (
+        {paginatedEntries.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-zinc-600 text-sm">
-              {entries.length === 0
+              {allEntries.length === 0
                 ? 'No entries yet. Go to the grid and click a week to write your first memory.'
                 : 'No entries match your search.'}
             </p>
-            {entries.length === 0 && (
+            {allEntries.length === 0 && (
               <button
                 onClick={() => router.push('/grid')}
                 className="mt-4 text-zinc-500 text-xs underline hover:text-zinc-300 transition-colors"
@@ -156,64 +199,75 @@ export default function JournalPage() {
             )}
           </div>
         ) : (
-          filtered.map((entry, i) => (
-            <motion.div
-              key={entry.weekIndex}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              whileHover={{ scale: 1.01, borderColor: 'var(--color-brand-orange)' }}
-              transition={{ delay: i * 0.05 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 cursor-pointer hover:border-brand-orange transition-colors"
-              onClick={() => router.push(`/grid?week=${entry.weekIndex}`)}
-            >
-              {/* Entry header */}
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full border ${
-                        entry.isPast
-                          ? 'border-zinc-700 text-zinc-400'
-                          : 'border-zinc-600 text-zinc-300'
-                      }`}
-                    >
-                      {entry.isPast ? 'Memory' : 'Dream'}
-                    </span>
-                    {entry.mood > 0 && (
-                      <span className={`text-xs ${MOOD_TEXT_COLORS[entry.mood]}`}>
-                        {MOOD_LABELS[entry.mood]}
+          <>
+            {paginatedEntries.map((entry, i) => (
+              <motion.div
+                key={entry.weekIndex}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.01, borderColor: '#3f3f46' }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 cursor-pointer hover:border-zinc-700 transition-colors"
+                onClick={() => router.push(`/grid?week=${entry.weekIndex}`)}
+              >
+                {/* Entry header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full border ${
+                          entry.isPast
+                            ? 'border-zinc-700 text-zinc-400'
+                            : 'border-zinc-600 text-zinc-300'
+                        }`}
+                      >
+                        {entry.isPast ? 'Memory' : 'Dream'}
                       </span>
-                    )}
+                      {entry.mood > 0 && (
+                        <span className={`text-xs ${MOOD_TEXT_COLORS[entry.mood]}`}>
+                          {MOOD_LABELS[entry.mood]}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-zinc-500 text-xs">
+                      Week {entry.weekIndex + 1} · {entry.date}
+                    </p>
                   </div>
-                  <p className="text-zinc-500 text-xs">
-                    Week {entry.weekIndex + 1} · {entry.date}
-                  </p>
+
+                  {/* Mood dot */}
+                  {entry.mood > 0 && (
+                    <div
+                      className={`w-2 h-2 rounded-full mt-1 ${
+                        entry.mood === 1
+                          ? 'bg-red-500'
+                          : entry.mood === 2
+                            ? 'bg-orange-500'
+                            : entry.mood === 3
+                              ? 'bg-yellow-500'
+                              : entry.mood === 4
+                                ? 'bg-green-500'
+                                : 'bg-emerald-400'
+                      }`}
+                    />
+                  )}
                 </div>
 
-                {/* Mood dot */}
-                {entry.mood > 0 && (
-                  <div
-                    className={`w-2 h-2 rounded-full mt-1 ${
-                      entry.mood === 1
-                        ? 'bg-red-500'
-                        : entry.mood === 2
-                          ? 'bg-orange-500'
-                          : entry.mood === 3
-                            ? 'bg-yellow-500'
-                            : entry.mood === 4
-                              ? 'bg-amber-500'
-                              : 'bg-brand-orange'
-                    }`}
-                  />
-                )}
-              </div>
+                {/* Entry content preview */}
+                <p className="text-zinc-300 text-sm leading-relaxed line-clamp-3">
+                  {stripHtml(entry.note)}
+                </p>
+              </motion.div>
+            ))}
 
-              {/* Entry content preview */}
-              <p className="text-zinc-300 text-sm leading-relaxed line-clamp-3">
-                {stripHtml(entry.note)}
-              </p>
-            </motion.div>
-          ))
+            {/* ✅ Infinite scroll loader */}
+            <InfiniteScrollLoader
+              isLoading={isLoadingMore}
+              hasMore={hasMore}
+              targetRef={observerTarget}
+              loadingText="Loading more entries..."
+              emptyText="You've reached the end of your journal"
+            />
+          </>
         )}
       </div>
     </main>

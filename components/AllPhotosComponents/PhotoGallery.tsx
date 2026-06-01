@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
@@ -9,8 +9,8 @@ import { PhotoFilters } from './PhotoFilters'
 import { PhotoStats } from './PhotoStats'
 import { PhotoViewer } from './PhotoViewer'
 import Sidebar from '@/components/Sidebar'
-// ✅ IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
+import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
 
 type PhotoItem = {
   _id: string
@@ -32,19 +32,44 @@ interface RawPhotoData {
 export function PhotoGallery() {
   const router = useRouter()
   
-  // ✅ USE useAuth to verify user is authenticated
   const { user, isLoading: isLoadingUser } = useAuth()
-  
   const { getNote } = useLifeStore()
 
-  const [photos, setPhotos] = useState<PhotoItem[]>([])
-  const [filteredPhotos, setFilteredPhotos] = useState<PhotoItem[]>([])
+  const [allPhotos, setAllPhotos] = useState<PhotoItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null)
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest')
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({})
+
+  // ✅ Cursor-based pagination for photos
+  const {
+    items: paginatedPhotos,
+    isLoading: isLoadingMore,
+    hasMore,
+    observerTarget,
+    reset: resetPagination,
+  } = useCursorPagination<PhotoItem>({
+    initialItems: [],
+    itemsPerPage: 30,
+    getCursorFromItem: (item) => item._id,
+    onLoadMore: async (cursor) => {
+      // Simulate network delay
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      
+      const filtered = getFilteredPhotos()
+      
+      if (cursor === null) {
+        return filtered.slice(0, 30)
+      }
+      
+      const cursorIndex = filtered.findIndex((p) => p._id === cursor)
+      const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0
+      
+      return filtered.slice(startIndex, startIndex + 30)
+    },
+  })
 
   // ✅ IMPROVED: Check auth status with React Query before loading photos
   useEffect(() => {
@@ -74,8 +99,7 @@ export function PhotoGallery() {
 
         if (mediaArray.length === 0) {
           console.log('⚠️ No photos found')
-          setPhotos([])
-          setFilteredPhotos([])
+          setAllPhotos([])
           setIsLoading(false)
           return
         }
@@ -110,14 +134,13 @@ export function PhotoGallery() {
         })
 
         console.log(`✅ Total photos enriched: ${enrichedPhotos.length}`)
-        setPhotos(enrichedPhotos)
-        setFilteredPhotos(enrichedPhotos)
+        setAllPhotos(enrichedPhotos)
+        resetPagination()
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error'
         console.error('❌ Failed to fetch photos:', message)
         setError(message)
-        setPhotos([])
-        setFilteredPhotos([])
+        setAllPhotos([])
       } finally {
         setIsLoading(false)
       }
@@ -126,13 +149,11 @@ export function PhotoGallery() {
     if (!isLoadingUser && user) {
       fetchPhotos()
     }
-  }, [getNote, sortBy, user, isLoadingUser, router])
+  }, [getNote, sortBy, user, isLoadingUser, router, resetPagination])
 
-  // Apply filters whenever search or date range changes
-  useEffect(() => {
-    console.log(`🔍 Filtering: search="${searchTerm}", dateFrom=${dateRange.from}, dateTo=${dateRange.to}`)
-
-    let filtered = [...photos]
+  // Get filtered photos
+  const getFilteredPhotos = useCallback((): PhotoItem[] => {
+    let filtered = [...allPhotos]
 
     // Search filter
     if (searchTerm.trim()) {
@@ -155,8 +176,13 @@ export function PhotoGallery() {
       console.log(`  Found ${filtered.length} matches for date range`)
     }
 
-    setFilteredPhotos(filtered)
-  }, [searchTerm, dateRange, photos])
+    return filtered
+  }, [allPhotos, searchTerm, dateRange])
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    resetPagination()
+  }, [searchTerm, dateRange, resetPagination])
 
   // ✅ Show loading while checking auth
   if (isLoadingUser) {
@@ -208,7 +234,7 @@ export function PhotoGallery() {
   }
 
   // Show empty state
-  if (photos.length === 0) {
+  if (allPhotos.length === 0) {
     return (
       <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
         <div className="max-w-6xl mx-auto text-center py-20">
@@ -228,6 +254,8 @@ export function PhotoGallery() {
     )
   }
 
+  const filtered = getFilteredPhotos()
+
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
       {/* Sidebar */}
@@ -243,12 +271,12 @@ export function PhotoGallery() {
           </button>
           <h1 className="text-2xl sm:text-4xl font-light tracking-tight mb-2">All Photos</h1>
           <p className="text-zinc-600">
-            {filteredPhotos.length} photo{filteredPhotos.length !== 1 ? 's' : ''} from your life
+            {filtered.length} photo{filtered.length !== 1 ? 's' : ''} from your life
           </p>
         </div>
 
         {/* Stats */}
-        {photos.length > 0 && <PhotoStats photos={photos} />}
+        {allPhotos.length > 0 && <PhotoStats photos={allPhotos} />}
 
         {/* Filters */}
         <PhotoFilters
@@ -258,17 +286,30 @@ export function PhotoGallery() {
           onSortChange={setSortBy}
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
-          totalPhotos={photos.length}
-          filteredPhotos={filteredPhotos.length}
+          totalPhotos={allPhotos.length}
+          filteredPhotos={filtered.length}
         />
 
-        {/* Photo Grid */}
-        {filteredPhotos.length === 0 ? (
+        {/* Photo Grid with infinite scroll */}
+        {paginatedPhotos.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-zinc-400">No photos match your filters</p>
+            <p className="text-zinc-400">
+              {filtered.length === 0 ? 'No photos match your filters' : 'Loading photos...'}
+            </p>
           </div>
         ) : (
-          <PhotoGrid photos={filteredPhotos} onPhotoClick={setSelectedPhoto} />
+          <>
+            <PhotoGrid photos={paginatedPhotos} onPhotoClick={setSelectedPhoto} />
+            
+            {/* ✅ Infinite scroll loader */}
+            <InfiniteScrollLoader
+              isLoading={isLoadingMore}
+              hasMore={hasMore}
+              targetRef={observerTarget}
+              loadingText="Loading more photos..."
+              emptyText="You've seen all your photos"
+            />
+          </>
         )}
       </div>
 
@@ -279,11 +320,11 @@ export function PhotoGallery() {
             photo={selectedPhoto}
             onClose={() => setSelectedPhoto(null)}
             onNavigate={(direction) => {
-              const currentIndex = filteredPhotos.findIndex((p) => p._id === selectedPhoto._id)
-              if (direction === 'next' && currentIndex < filteredPhotos.length - 1) {
-                setSelectedPhoto(filteredPhotos[currentIndex + 1])
+              const currentIndex = paginatedPhotos.findIndex((p) => p._id === selectedPhoto._id)
+              if (direction === 'next' && currentIndex < paginatedPhotos.length - 1) {
+                setSelectedPhoto(paginatedPhotos[currentIndex + 1])
               } else if (direction === 'prev' && currentIndex > 0) {
-                setSelectedPhoto(filteredPhotos[currentIndex - 1])
+                setSelectedPhoto(paginatedPhotos[currentIndex - 1])
               }
             }}
           />
