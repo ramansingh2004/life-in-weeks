@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     // ✅ VALIDATE QUERY PARAMS WITH ZOD
     const queryData = {
       weekIndex: searchParams.get('weekIndex') ? parseInt(searchParams.get('weekIndex')!) : undefined,
-      type: searchParams.get('type') as 'image' | 'video' | 'audio' | undefined,
+      type: (searchParams.get('type') || undefined) as 'image' | 'video' | 'audio' | undefined,
       startWeek: searchParams.get('startWeek') ? parseInt(searchParams.get('startWeek')!) : undefined,
       endWeek: searchParams.get('endWeek') ? parseInt(searchParams.get('endWeek')!) : undefined,
       limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20,
