@@ -43,11 +43,11 @@ export function PhotoStats({ photos }: PhotoStatsProps) {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+        className="bg-[#14213D] border border-zinc-800/80 rounded-lg p-4"
       >
-        <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Photos</p>
-        <p className="text-2xl font-light text-white">{stats.totalPhotos}</p>
-        <p className="text-xs text-zinc-600 mt-1">in your gallery</p>
+        <p className="text-zinc-400 text-xs font-medium uppercase tracking-widest mb-2">Photos</p>
+        <p className="text-2xl font-light text-[#FCA311]">{stats.totalPhotos}</p>
+        <p className="text-xs text-zinc-400 mt-1">in your gallery</p>
       </motion.div>
 
       {/* Oldest Photo */}
@@ -55,13 +55,13 @@ export function PhotoStats({ photos }: PhotoStatsProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+        className="bg-[#14213D] border border-zinc-800/80 rounded-lg p-4"
       >
-        <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Oldest</p>
-        <p className="text-sm font-light text-white">
-          {stats.oldestPhoto?.toLocaleDateString()}
+        <p className="text-zinc-400 text-xs font-medium uppercase tracking-widest mb-2">Oldest</p>
+        <p className="text-lg font-light text-white">
+          {stats.oldestPhoto?.toLocaleDateString() || 'N/A'}
         </p>
-        <p className="text-xs text-zinc-600 mt-1">first photo</p>
+        <p className="text-xs text-zinc-400 mt-1">first photo</p>
       </motion.div>
 
       {/* Newest Photo */}
@@ -69,13 +69,13 @@ export function PhotoStats({ photos }: PhotoStatsProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+        className="bg-[#14213D] border border-zinc-800/80 rounded-lg p-4"
       >
-        <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Newest</p>
-        <p className="text-sm font-light text-white">
-          {stats.newestPhoto?.toLocaleDateString()}
+        <p className="text-zinc-400 text-xs font-medium uppercase tracking-widest mb-2">Newest</p>
+        <p className="text-lg font-light text-white">
+          {stats.newestPhoto?.toLocaleDateString() || 'N/A'}
         </p>
-        <p className="text-xs text-zinc-600 mt-1">last photo</p>
+        <p className="text-xs text-zinc-400 mt-1">last photo</p>
       </motion.div>
 
       {/* Most Active Week */}
@@ -83,13 +83,13 @@ export function PhotoStats({ photos }: PhotoStatsProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+        className="bg-[#14213D] border border-zinc-800/80 rounded-lg p-4"
       >
-        <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Most Active</p>
-        <p className="text-2xl font-light text-white">
+        <p className="text-zinc-400 text-xs font-medium uppercase tracking-widest mb-2">Most Active</p>
+        <p className="text-2xl font-light text-[#FCA311]">
           {stats.mostActiveWeek ? stats.mostActiveWeek[1] : 0}
         </p>
-        <p className="text-xs text-zinc-600 mt-1">
+        <p className="text-xs text-zinc-400 mt-1">
           week {stats.mostActiveWeek ? stats.mostActiveWeek[0] + 1 : 'N/A'}
         </p>
       </motion.div>

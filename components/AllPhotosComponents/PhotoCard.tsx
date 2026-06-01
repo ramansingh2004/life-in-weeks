@@ -24,12 +24,12 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
   return (
     <motion.button
       onClick={onClick}
-      className="relative group overflow-hidden rounded-lg cursor-pointer w-full break-inside-avoid"
+      className="relative group overflow-hidden rounded-lg cursor-pointer w-full break-inside-avoid hover:ring-1 hover:ring-[#FCA311] hover:shadow-[0_0_15px_rgba(252,163,17,0.2)] transition-all duration-300"
       whileHover={{ scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
       {/* Image */}
-      <div className="relative aspect-auto bg-zinc-800">
+      <div className="relative aspect-auto bg-[#14213D]">
         <Image
           src={photo.url}
           alt={photo.name}
@@ -42,23 +42,23 @@ export function PhotoCard({ photo, onClick }: PhotoCardProps) {
         />
 
         {isLoading && (
-          <div className="absolute inset-0 bg-zinc-800 animate-pulse" />
+          <div className="absolute inset-0 bg-[#14213D] animate-pulse" />
         )}
       </div>
 
       {/* Overlay */}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-end">
-        <div className="w-full p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-          <p className="text-sm text-white font-medium truncate">{photo.name}</p>
-          <p className="text-xs text-zinc-400 mt-1">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+        <div className="w-full p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+          <p className="text-sm text-white font-semibold truncate">{photo.name}</p>
+          <p className="text-xs text-[#FCA311] font-medium mt-1">
             Week {photo.weekIndex + 1}
           </p>
         </div>
       </div>
 
       {/* Zoom Icon */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/10 backdrop-blur rounded-full p-2">
-        <span className="text-white text-lg">🔍</span>
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/60 border border-zinc-800/80 backdrop-blur rounded-full p-2">
+        <span className="text-[#FCA311] text-sm">🔍</span>
       </div>
     </motion.button>
   )

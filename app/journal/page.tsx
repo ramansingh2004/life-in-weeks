@@ -156,7 +156,7 @@ export default function JournalPage() {
           placeholder="Search your memories and dreams..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-zinc-600 transition-colors placeholder:text-zinc-600"
+          className="w-full bg-[#14213D] border border-zinc-800/80 text-white rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] transition-all placeholder:text-zinc-500"
         />
       </div>
 
@@ -167,11 +167,11 @@ export default function JournalPage() {
             key={f}
             onClick={() => setFilter(f)}
             className={`
-              px-4 py-1.5 rounded-full text-xs capitalize transition-all border
+              px-4 py-1.5 rounded-full text-xs capitalize transition-all border duration-300
               ${
                 filter === f
-                  ? 'bg-white text-black border-white'
-                  : 'border-zinc-800 text-zinc-500 hover:border-zinc-600'
+                  ? 'bg-[#FCA311] text-black border-[#FCA311] font-semibold shadow-md shadow-[#FCA311]/10'
+                  : 'border-zinc-800/80 text-zinc-400 hover:border-[#FCA311]/50 hover:text-[#FCA311]'
               }
             `}
           >
@@ -205,9 +205,9 @@ export default function JournalPage() {
                 key={entry.weekIndex}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.01, borderColor: '#3f3f46' }}
+                whileHover={{ scale: 1.01, borderColor: '#FCA311' }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 cursor-pointer hover:border-zinc-700 transition-colors"
+                className="bg-[#14213D] border border-zinc-800/80 rounded-xl p-5 cursor-pointer hover:border-[#FCA311]/50 hover:shadow-[0_0_15px_rgba(252,163,17,0.15)] transition-all duration-300"
                 onClick={() => router.push(`/grid?week=${entry.weekIndex}`)}
               >
                 {/* Entry header */}
@@ -217,8 +217,8 @@ export default function JournalPage() {
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full border ${
                           entry.isPast
-                            ? 'border-zinc-700 text-zinc-400'
-                            : 'border-zinc-600 text-zinc-300'
+                            ? 'border-zinc-700 text-zinc-400 bg-black/20'
+                            : 'border-[#FCA311]/40 text-[#FCA311] bg-[#FCA311]/5'
                         }`}
                       >
                         {entry.isPast ? 'Memory' : 'Dream'}
@@ -229,7 +229,7 @@ export default function JournalPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-zinc-500 text-xs">
+                    <p className="text-zinc-400 text-xs">
                       Week {entry.weekIndex + 1} · {entry.date}
                     </p>
                   </div>

@@ -206,13 +206,13 @@ export function PhotoGallery() {
           <p className="text-zinc-400 mb-6">{error}</p>
           <button
             onClick={() => setIsLoading(true)}
-            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition mr-4"
+            className="px-6 py-3 bg-[#FCA311] hover:bg-[#FCA311]/90 text-black font-semibold rounded-lg transition mr-4 shadow-md hover:shadow-[0_0_10px_rgba(252,163,17,0.2)]"
           >
             Try Again
           </button>
           <button
             onClick={() => router.push('/grid')}
-            className="px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition"
+            className="px-6 py-3 bg-[#14213D] border border-zinc-800 text-white hover:border-[#FCA311]/50 rounded-lg transition"
           >
             Back to Grid
           </button>
@@ -245,7 +245,7 @@ export function PhotoGallery() {
           </p>
           <button
             onClick={() => router.push('/grid')}
-            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"
+            className="px-6 py-3 bg-[#FCA311] hover:bg-[#FCA311]/90 text-black font-semibold rounded-lg transition shadow-md hover:shadow-[0_0_10px_rgba(252,163,17,0.2)]"
           >
             Go to grid →
           </button>
@@ -265,12 +265,12 @@ export function PhotoGallery() {
         <div className="mb-8">
           <button
             onClick={() => router.push('/grid')}
-            className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors mb-4"
+            className="text-zinc-400 text-xs hover:text-[#FCA311] transition-colors mb-4"
           >
             ← Back to grid
           </button>
           <h1 className="text-2xl sm:text-4xl font-light tracking-tight mb-2">All Photos</h1>
-          <p className="text-zinc-600">
+          <p className="text-zinc-400 text-sm">
             {filtered.length} photo{filtered.length !== 1 ? 's' : ''} from your life
           </p>
         </div>

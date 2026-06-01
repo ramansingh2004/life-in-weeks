@@ -51,26 +51,26 @@ export function PhotoViewer({ photo, onClose, onNavigate }: PhotoViewerProps) {
           />
 
           {isLoading && (
-            <div className="absolute inset-0 bg-zinc-900 animate-pulse" />
+            <div className="absolute inset-0 bg-[#14213D] animate-pulse" />
           )}
 
           {/* Navigation Arrows */}
           <button
             onClick={() => onNavigate('prev')}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 w-10 h-10 flex items-center justify-center bg-black/60 border border-zinc-800/80 text-white hover:text-[#FCA311] hover:border-[#FCA311]/50 rounded-full transition-all"
           >
             ←
           </button>
           <button
             onClick={() => onNavigate('next')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 w-10 h-10 flex items-center justify-center bg-black/60 border border-zinc-800/80 text-white hover:text-[#FCA311] hover:border-[#FCA311]/50 rounded-full transition-all"
           >
             →
           </button>
         </div>
 
         {/* Info */}
-        <div className="p-4 bg-zinc-900 rounded-b-lg">
+        <div className="p-4 bg-[#14213D] border-t border-[#FCA311]/20 rounded-b-lg">
           <p className="text-white font-medium">{photo.name}</p>
           <p className="text-sm text-zinc-400 mt-1">
             Week {photo.weekIndex + 1} • {new Date(photo.createdAt).toLocaleDateString()}
@@ -80,7 +80,7 @@ export function PhotoViewer({ photo, onClose, onNavigate }: PhotoViewerProps) {
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+          className="absolute top-4 right-4 p-2 w-10 h-10 flex items-center justify-center bg-black/60 border border-zinc-800/80 text-white hover:text-[#FCA311] hover:border-[#FCA311]/50 rounded-full transition-all"
         >
           ✕
         </button>
@@ -90,7 +90,7 @@ export function PhotoViewer({ photo, onClose, onNavigate }: PhotoViewerProps) {
           href={photo.url}
           download={photo.name}
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-4 right-4 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm transition-colors"
+          className="absolute bottom-4 right-4 px-4 py-2 bg-[#FCA311] hover:bg-[#FCA311]/90 text-black font-semibold rounded text-sm transition-all duration-300 shadow-md hover:shadow-[0_0_10px_rgba(252,163,17,0.3)]"
         >
           Download
         </a>

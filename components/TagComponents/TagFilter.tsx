@@ -133,10 +133,10 @@ export function TagFilter({
             <button
               key={tag._id || tag.name}
               onClick={() => handleTagClick(tag.name)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition ${
+              className={`px-3 py-1 rounded-full text-sm font-medium transition duration-300 ${
                 selectedTags.includes(tag.name)
-                  ? 'ring-2 ring-offset-2 ring-offset-zinc-900'
-                  : 'opacity-60 hover:opacity-100'
+                  ? 'ring-2 ring-[#FCA311] ring-offset-2 ring-offset-black scale-105'
+                  : 'opacity-60 hover:opacity-100 hover:scale-102'
               }`}
               style={{
                 backgroundColor: `${tag.color || '#6366f1'}20`,

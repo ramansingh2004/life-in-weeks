@@ -234,12 +234,12 @@ export default function TimelinePage() {
             placeholder="Search memories..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-zinc-600 transition-colors"
+            className="w-full bg-[#14213D] border border-zinc-800/80 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] transition-all placeholder:text-zinc-500"
           />
         </div>
 
         {/* Tag Filter */}
-        <div className="mb-6 bg-zinc-900 rounded-lg border border-zinc-800 p-4">
+        <div className="mb-6 bg-[#14213D] rounded-lg border border-zinc-800/80 p-4">
           <TagFilter selectedTags={selectedTags} onTagsChange={setSelectedTags} mode="multiple" />
         </div>
 
@@ -277,8 +277,8 @@ export default function TimelinePage() {
 
         {/* Active Filters Display */}
         {(selectedTags.length > 0 || moodFilter !== null) && (
-          <div className="mb-4 p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg flex items-center justify-between">
-            <p className="text-blue-300 text-xs">
+          <div className="mb-4 p-3 bg-[#FCA311]/10 border border-[#FCA311]/30 rounded-lg flex items-center justify-between">
+            <p className="text-[#FCA311] text-xs font-medium">
               🔍 Filtered by:{' '}
               {selectedTags.length > 0 && selectedTags.map((t) => `#${t}`).join(', ')}
               {selectedTags.length > 0 && moodFilter && ' + '}
@@ -289,7 +289,7 @@ export default function TimelinePage() {
                 setSelectedTags([])
                 setMoodFilter(null)
               }}
-              className="text-blue-300 hover:text-blue-200 text-xs underline transition-colors"
+              className="text-[#FCA311] hover:text-[#FCA311]/80 text-xs underline transition-colors font-semibold"
             >
               Clear
             </button>
@@ -331,12 +331,12 @@ export default function TimelinePage() {
                       {/* Left side - dot and line */}
                       <div className="flex flex-col items-center flex-shrink-0">
                         <motion.div
-                          className={`w-3 h-3 rounded-full border-2 border-white ${moodColor} group-hover:scale-125 transition-transform cursor-pointer`}
+                          className={`w-3 h-3 rounded-full border-2 border-white ${moodColor} group-hover:scale-125 hover:border-[#FCA311] transition-all cursor-pointer`}
                           whileHover={{ scale: 1.2 }}
                           onClick={() => setPreview(mem)}
                         />
                         {idx < paginatedMemories.length - 1 && (
-                          <div className="w-0.5 h-12 bg-gradient-to-b from-zinc-700 to-zinc-900 mt-2" />
+                          <div className="w-0.5 h-12 bg-gradient-to-b from-[#FCA311]/80 via-[#14213D] to-black/20 mt-2" />
                         )}
                       </div>
 
@@ -344,7 +344,7 @@ export default function TimelinePage() {
                       <div className="flex-1 pb-4">
                         <div
                           onClick={() => setPreview(mem)}
-                          className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 group-hover:border-zinc-700 transition-all cursor-pointer"
+                          className="bg-[#14213D] border border-zinc-800/80 rounded-lg p-4 group-hover:border-[#FCA311]/60 group-hover:shadow-[0_0_15px_rgba(252,163,17,0.15)] transition-all duration-300 cursor-pointer"
                         >
                           {/* Date and mood */}
                           <div className="flex items-start justify-between mb-2">
@@ -383,7 +383,7 @@ export default function TimelinePage() {
                                       setSelectedTags([...selectedTags, tag])
                                     }
                                   }}
-                                  className="text-xs px-2 py-1 bg-emerald-900/30 text-emerald-300 rounded hover:bg-emerald-900/50 transition-colors"
+                                  className="text-xs px-2 py-1 bg-[#FCA311]/10 text-[#FCA311] border border-[#FCA311]/20 rounded hover:bg-[#FCA311]/25 transition-colors"
                                 >
                                   #{tag}
                                 </button>
@@ -395,17 +395,17 @@ export default function TimelinePage() {
                           {mem.media && mem.media.length > 0 && (
                             <div className="flex gap-2 mb-3 flex-wrap">
                               {mem.media.filter((m) => m.type === 'image').length > 0 && (
-                                <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
+                                <span className="text-xs bg-black/35 border border-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
                                   📷 {mem.media.filter((m) => m.type === 'image').length}
                                 </span>
                               )}
                               {mem.media.filter((m) => m.type === 'video').length > 0 && (
-                                <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
+                                <span className="text-xs bg-black/35 border border-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
                                   🎥 {mem.media.filter((m) => m.type === 'video').length}
                                 </span>
                               )}
                               {mem.media.filter((m) => m.type === 'audio').length > 0 && (
-                                <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded">
+                                <span className="text-xs bg-black/35 border border-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
                                   🎙️ {mem.media.filter((m) => m.type === 'audio').length}
                                 </span>
                               )}
@@ -413,7 +413,7 @@ export default function TimelinePage() {
                           )}
 
                           {/* View button */}
-                          <button className="text-zinc-500 text-xs hover:text-white transition-colors">
+                          <button className="text-[#FCA311]/85 text-xs font-semibold hover:text-[#FCA311] hover:underline underline-offset-4 transition-colors">
                             View full memory →
                           </button>
                         </div>
@@ -453,7 +453,7 @@ export default function TimelinePage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto"
+              className="bg-[#14213D] border border-zinc-800/80 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto shadow-2xl shadow-black/90"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -465,7 +465,7 @@ export default function TimelinePage() {
                 </div>
                 <button
                   onClick={() => setPreview(null)}
-                  className="text-zinc-600 hover:text-zinc-400 text-xl leading-none transition-colors flex-shrink-0"
+                  className="text-zinc-400 hover:text-[#FCA311] text-xl leading-none transition-colors flex-shrink-0"
                 >
                   ×
                 </button>
@@ -496,8 +496,8 @@ export default function TimelinePage() {
 
               {/* Tags Display */}
               {preview.tags && preview.tags.length > 0 && (
-                <div className="mb-4 pb-4 border-b border-zinc-700">
-                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Tags</p>
+                <div className="mb-4 pb-4 border-b border-zinc-800/80">
+                  <p className="text-[#FCA311]/90 text-xs font-semibold tracking-wider uppercase mb-2">Tags</p>
                   <div className="flex flex-wrap gap-2">
                     {preview.tags.map((tag) => (
                       <button
@@ -518,7 +518,7 @@ export default function TimelinePage() {
               )}
 
               {/* Content */}
-              <div className="bg-zinc-800/30 border border-zinc-800 rounded-lg px-4 py-3 mb-6">
+              <div className="bg-black/30 border border-zinc-800/80 rounded-lg px-4 py-3 mb-6">
                 <div
                   className="prose prose-invert prose-sm max-w-none text-zinc-300"
                   dangerouslySetInnerHTML={{ __html: preview.note }}
@@ -528,7 +528,7 @@ export default function TimelinePage() {
               {/* Photos */}
               {images.length > 0 && (
                 <div className="mb-6">
-                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Photos ({images.length})</p>
+                  <p className="text-[#FCA311]/90 text-xs font-semibold tracking-wider uppercase mb-2">Photos ({images.length})</p>
                   <div className="grid grid-cols-3 gap-2">
                     {images.map((item) => (
                       <motion.div
@@ -556,7 +556,7 @@ export default function TimelinePage() {
               {/* Videos */}
               {videos.length > 0 && (
                 <div className="mb-6">
-                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Videos ({videos.length})</p>
+                  <p className="text-[#FCA311]/90 text-xs font-semibold tracking-wider uppercase mb-2">Videos ({videos.length})</p>
                   <div className="space-y-2">
                     {videos.map((item) => (
                       <motion.div key={item._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -570,14 +570,14 @@ export default function TimelinePage() {
               {/* Audio */}
               {audios.length > 0 && (
                 <div className="mb-6">
-                  <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">Voice Notes ({audios.length})</p>
+                  <p className="text-[#FCA311]/90 text-xs font-semibold tracking-wider uppercase mb-2">Voice Notes ({audios.length})</p>
                   <div className="space-y-2">
                     {audios.map((item) => (
                       <motion.div
                         key={item._id}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-3 bg-zinc-800/50 rounded-lg px-3 py-2 hover:bg-zinc-800/70 transition-colors"
+                        className="flex items-center gap-3 bg-black/30 border border-zinc-800/50 rounded-lg px-3 py-2 hover:bg-black/40 transition-colors"
                       >
                         <span className="text-lg flex-shrink-0">🎙️</span>
                         <audio src={item.url} controls className="flex-1 h-8" />

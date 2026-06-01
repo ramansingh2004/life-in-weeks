@@ -35,11 +35,11 @@ export function PhotoFilters({
           placeholder="Search photos by name..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="flex-1 px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-700"
+          className="flex-1 px-4 py-2.5 bg-[#14213D] border border-zinc-800/80 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] transition-all"
         />
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg text-white transition-colors"
+          className="px-4 py-2.5 bg-[#14213D] border border-zinc-800/80 hover:border-[#FCA311]/50 hover:text-[#FCA311] rounded-lg text-white transition-colors"
         >
           ⚙️ Filters
         </button>
@@ -51,7 +51,7 @@ export function PhotoFilters({
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-zinc-900 border border-zinc-800 rounded-lg"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-[#14213D]/70 border border-zinc-800/80 backdrop-blur-md rounded-lg"
         >
           {/* Sort */}
           <div>
@@ -61,7 +61,7 @@ export function PhotoFilters({
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value as 'newest' | 'oldest')}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-white text-sm focus:outline-none"
+              className="w-full px-3 py-2 bg-black/40 border border-zinc-800/80 hover:border-[#FCA311]/50 focus:border-[#FCA311] rounded text-white text-sm focus:outline-none transition-all"
             >
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
@@ -82,7 +82,7 @@ export function PhotoFilters({
                   from: e.target.value ? new Date(e.target.value) : undefined,
                 })
               }
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-white text-sm focus:outline-none"
+              className="w-full px-3 py-2 bg-black/40 border border-zinc-800/80 hover:border-[#FCA311]/50 focus:border-[#FCA311] rounded text-white text-sm focus:outline-none transition-all"
             />
           </div>
 
@@ -100,7 +100,7 @@ export function PhotoFilters({
                   to: e.target.value ? new Date(e.target.value) : undefined,
                 })
               }
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-white text-sm focus:outline-none"
+              className="w-full px-3 py-2 bg-black/40 border border-zinc-800/80 hover:border-[#FCA311]/50 focus:border-[#FCA311] rounded text-white text-sm focus:outline-none transition-all"
             />
           </div>
         </motion.div>
