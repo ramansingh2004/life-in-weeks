@@ -31,7 +31,7 @@ export function useCursorPagination<T>({
 }: UseCursorPaginationOptions<T>): UseCursorPaginationReturn<T> {
   const [items, setItems] = useState<T[]>(initialItems)
   const [isLoading, setIsLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(initialItems.length >= itemsPerPage)
+  const [hasMore, setHasMore] = useState(initialItems.length >= itemsPerPage || initialItems.length === 0)
   const observerTarget = useRef<HTMLDivElement>(null)
   const lastCursorRef = useRef<string | number | null>(null)
 
@@ -60,6 +60,9 @@ export function useCursorPagination<T>({
       } else {
         setItems((prev) => [...prev, ...newItems])
         lastCursorRef.current = getLastCursor()
+        if (newItems.length < itemsPerPage) {
+          setHasMore(false)
+        }
       }
     } catch (error) {
       console.error('Error loading more items:', error)
@@ -67,7 +70,7 @@ export function useCursorPagination<T>({
     } finally {
       setIsLoading(false)
     }
-  }, [getLastCursor, isLoading, hasMore, onLoadMore])
+  }, [getLastCursor, isLoading, hasMore, onLoadMore, itemsPerPage])
 
   // Setup Intersection Observer for automatic scroll trigger
   useEffect(() => {
@@ -93,7 +96,7 @@ export function useCursorPagination<T>({
   const reset = useCallback(() => {
     setItems(initialItems)
     setIsLoading(false)
-    setHasMore(initialItems.length >= itemsPerPage)
+    setHasMore(initialItems.length >= itemsPerPage || initialItems.length === 0)
     lastCursorRef.current = null
   }, [initialItems, itemsPerPage])
 
