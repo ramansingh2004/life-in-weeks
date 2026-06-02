@@ -66,8 +66,8 @@ export function LifeChapters() {
         })
 
         if (res.ok) {
-          const data = await res.json()
-          const chaptersList = data.chapters || []
+          const json = await res.json()
+          const chaptersList = json.data?.chapters || json.chapters || []
           setChapters(chaptersList)
 
           // Fetch media for each chapter

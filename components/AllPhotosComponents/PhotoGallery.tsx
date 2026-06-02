@@ -91,7 +91,8 @@ export function PhotoGallery() {
         console.log('📡 API Response:', responseData)
 
         if (!res.ok) {
-          throw new Error(responseData.error || 'Failed to fetch photos')
+          const errorMsg = responseData.error?.message || responseData.error || 'Failed to fetch photos'
+          throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Failed to fetch photos')
         }
 
         const mediaArray = responseData.data?.media || []
