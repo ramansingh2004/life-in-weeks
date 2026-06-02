@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
@@ -34,6 +34,7 @@ export function PhotoGallery() {
   
   const { user, isLoading: isLoadingUser } = useAuth()
   const { getNote } = useLifeStore()
+  const resetPaginationRef = useRef<(() => void) | null>(null)
 
   const [allPhotos, setAllPhotos] = useState<PhotoItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -51,6 +52,7 @@ export function PhotoGallery() {
     observerTarget,
     reset: resetPagination,
   } = useCursorPagination<PhotoItem>({
+
     initialItems: [],
     itemsPerPage: 30,
     getCursorFromItem: (item) => item._id,
@@ -70,6 +72,9 @@ export function PhotoGallery() {
       return filtered.slice(startIndex, startIndex + 30)
     },
   })
+
+  // Keep a stable ref to resetPagination to avoid infinite loops
+  resetPaginationRef.current = resetPagination
 
   // ✅ IMPROVED: Check auth status with React Query before loading photos
   useEffect(() => {
@@ -136,7 +141,7 @@ export function PhotoGallery() {
 
         console.log(`✅ Total photos enriched: ${enrichedPhotos.length}`)
         setAllPhotos(enrichedPhotos)
-        resetPagination()
+        resetPaginationRef.current?.()
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error'
         console.error('❌ Failed to fetch photos:', message)
@@ -150,7 +155,8 @@ export function PhotoGallery() {
     if (!isLoadingUser && user) {
       fetchPhotos()
     }
-  }, [getNote, sortBy, user, isLoadingUser, router, resetPagination])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, user, isLoadingUser, router])
 
   // Get filtered photos
   const getFilteredPhotos = useCallback((): PhotoItem[] => {

@@ -35,10 +35,10 @@ interface ChapterWithMedia extends Chapter {
 
 export function LifeChapters() {
   const router = useRouter()
-  
+
   // ✅ USE useAuth to verify user is authenticated
   const { user, isLoading: isLoadingUser } = useAuth()
-  
+
   const { notes } = useLifeStore()
   const { milestones } = useMilestoneStore()
 
@@ -122,12 +122,12 @@ export function LifeChapters() {
 
   const selectedChapterWithMedia = selectedChapter
     ? chaptersWithMedia.get(selectedChapter._id) || {
-        ...selectedChapter,
-        photos: [],
-        videos: [],
-        milestones: [],
-        notes: [],
-      }
+      ...selectedChapter,
+      photos: [],
+      videos: [],
+      milestones: [],
+      notes: [],
+    }
     : null
 
   // ✅ Show loading while checking auth
