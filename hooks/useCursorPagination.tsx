@@ -36,34 +36,50 @@ export function useCursorPagination<T>({
   const lastCursorRef = useRef<string | number | null>(null)
   const loadingRef = useRef(false)
 
+  const onLoadMoreRef = useRef(onLoadMore)
+  const getCursorFromItemRef = useRef(getCursorFromItem)
+  const initialItemsRef = useRef(initialItems)
+
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore
+  }, [onLoadMore])
+
+  useEffect(() => {
+    getCursorFromItemRef.current = getCursorFromItem
+  }, [getCursorFromItem])
+
+  useEffect(() => {
+    initialItemsRef.current = initialItems
+  }, [initialItems])
+
   // Get cursor from last item
   const getLastCursor = useCallback((): string | number | null => {
     if (items.length === 0) return null
     const lastItem = items[items.length - 1]
-    if (getCursorFromItem) {
-      return getCursorFromItem(lastItem)
+    if (getCursorFromItemRef.current) {
+      return getCursorFromItemRef.current(lastItem)
     }
     // Fallback: use index
     return items.length - 1
-  }, [items, getCursorFromItem])
+  }, [items])
 
   // Load more items
   const loadMore = useCallback(async () => {
-    if (loadingRef.current || !hasMore || !onLoadMore) return
+    if (loadingRef.current || !hasMore || !onLoadMoreRef.current) return
 
     loadingRef.current = true
     setIsLoading(true)
     try {
       const cursor = getLastCursor()
-      const newItems = await onLoadMore(cursor)
+      const newItems = await onLoadMoreRef.current(cursor)
 
       if (newItems.length === 0) {
         setHasMore(false)
       } else {
         setItems((prev) => {
           // Avoid duplicating any items already in state if triggered concurrently
-          const newItemsFiltered = getCursorFromItem 
-            ? newItems.filter(newItem => !prev.some(prevItem => getCursorFromItem(prevItem) === getCursorFromItem(newItem)))
+          const newItemsFiltered = getCursorFromItemRef.current 
+            ? newItems.filter(newItem => !prev.some(prevItem => getCursorFromItemRef.current!(prevItem) === getCursorFromItemRef.current!(newItem)))
             : newItems
           return [...prev, ...newItemsFiltered]
         })
@@ -79,7 +95,7 @@ export function useCursorPagination<T>({
       setIsLoading(false)
       loadingRef.current = false
     }
-  }, [getLastCursor, hasMore, onLoadMore, itemsPerPage, getCursorFromItem])
+  }, [getLastCursor, hasMore, itemsPerPage])
 
   // Setup Intersection Observer for automatic scroll trigger
   useEffect(() => {
@@ -110,12 +126,12 @@ export function useCursorPagination<T>({
   }, [items.length, hasMore, isLoading, loadMore])
 
   const reset = useCallback(() => {
-    setItems(initialItems)
+    setItems(initialItemsRef.current)
     setIsLoading(false)
     loadingRef.current = false
-    setHasMore(initialItems.length >= itemsPerPage || initialItems.length === 0)
+    setHasMore(initialItemsRef.current.length >= itemsPerPage || initialItemsRef.current.length === 0)
     lastCursorRef.current = null
-  }, [initialItems, itemsPerPage])
+  }, [itemsPerPage])
 
   return {
     items,

@@ -153,10 +153,11 @@ export function PhotoGallery() {
     }
 
     if (!isLoadingUser && user) {
+      console.log('🔄 [PhotoGallery] Triggering fetchPhotos because user and isLoadingUser changed', { userId: user?._id })
       fetchPhotos()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, user, isLoadingUser, router])
+  }, [sortBy, user?._id, isLoadingUser, router])
 
   // Get filtered photos
   const getFilteredPhotos = useCallback((): PhotoItem[] => {
