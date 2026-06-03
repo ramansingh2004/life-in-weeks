@@ -4,6 +4,13 @@ import { connectDB } from "@/lib/mongodb"
 import { Week } from "@/models/Week.model"
 import { WeekDataSchema, WeekResponseSchema, WeekFilterSchema } from "@/validators/week.validator"
 import { z } from "zod"
+import {
+  CACHE_KEYS,
+  CACHE_TTL,
+  getCachedValue,
+  setCachedValue,
+  invalidateWeeksCache,
+} from "@/lib/cache"
 
 interface WeekQuery {
   userId: string
@@ -114,6 +121,10 @@ export async function POST(req: NextRequest) {
       updatedAt: week.updatedAt,
     })
 
+    // ✅ INVALIDATE CACHE
+    console.log(`🔄 [CACHE] Invalidating weeks cache for user ${user.userId}`)
+    await invalidateWeeksCache(user.userId)
+
     return NextResponse.json({
       success: true,
       data: {
@@ -213,9 +224,25 @@ export async function GET(req: NextRequest) {
 
     const filters = filterParsed.data
 
-    // Single week query
+    // Single week query - TRY CACHE FIRST
     if (filters.startWeek === undefined && filters.endWeek === undefined && queryData.weekIndex !== undefined) {
       console.log(`🔍 [GET_WEEK] Fetching single week: ${queryData.weekIndex}`)
+
+      // ✅ Try to get from cache
+      const cacheKey = CACHE_KEYS.WEEKS_SINGLE(user.userId, queryData.weekIndex)
+      const cachedWeek = await getCachedValue(cacheKey)
+
+      if (cachedWeek) {
+        console.log(`✅ [GET_WEEK] Returning cached week: ${queryData.weekIndex}`)
+        return NextResponse.json({
+          success: true,
+          data: {
+            week: cachedWeek
+          },
+          message: 'Week fetched successfully (cached)',
+          cached: true
+        })
+      }
 
       const week = await Week.findOne({
         userId: user.userId,
@@ -248,6 +275,9 @@ export async function GET(req: NextRequest) {
         updatedAt: week.updatedAt,
       })
 
+      // ✅ CACHE THE RESULT
+      await setCachedValue(cacheKey, validatedResponse, CACHE_TTL.WEEKS)
+
       return NextResponse.json({
         success: true,
         data: {
@@ -257,31 +287,47 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Multiple weeks query with filters
+    // Multiple weeks query - TRY CACHE FIRST
     console.log('🔍 [GET_WEEK] Fetching multiple weeks with filters')
 
-    const query: WeekQuery = { userId: user.userId }
+    // ✅ Try to get from cache (weeks list)
+    const listCacheKey = CACHE_KEYS.WEEKS_LIST(user.userId)
+    const cachedWeeks = await getCachedValue<any[]>(listCacheKey)
 
-    if (filters.startWeek !== undefined && filters.endWeek !== undefined) {
-      query.weekIndex = { $gte: filters.startWeek, $lte: filters.endWeek }
+    let weeks
+    if (cachedWeeks && !filters.tags && filters.moodMin === undefined && filters.moodMax === undefined) {
+      console.log(`✅ [GET_WEEK] Using cached weeks list`)
+      weeks = cachedWeeks
+    } else {
+      // Cache miss or has filters - fetch from DB
+      const query: WeekQuery = { userId: user.userId }
+
+      if (filters.startWeek !== undefined && filters.endWeek !== undefined) {
+        query.weekIndex = { $gte: filters.startWeek, $lte: filters.endWeek }
+      }
+
+      if (filters.tags && filters.tags.length > 0) {
+        query.tags = { $in: filters.tags }
+      }
+
+      if (filters.moodMin !== undefined || filters.moodMax !== undefined) {
+        query.mood = {}
+        if (filters.moodMin !== undefined) query.mood.$gte = filters.moodMin
+        if (filters.moodMax !== undefined) query.mood.$lte = filters.moodMax
+      }
+
+      weeks = await Week.find(query)
+        .sort({ weekIndex: 1 })
+        .limit(filters.limit)
+        .skip(filters.skip)
+
+      // ✅ Cache the full list (if no tag/mood filters)
+      if (!filters.tags && filters.moodMin === undefined && filters.moodMax === undefined) {
+        await setCachedValue(listCacheKey, weeks, CACHE_TTL.WEEKS)
+      }
     }
 
-    if (filters.tags && filters.tags.length > 0) {
-      query.tags = { $in: filters.tags }
-    }
-
-    if (filters.moodMin !== undefined || filters.moodMax !== undefined) {
-      query.mood = {}
-      if (filters.moodMin !== undefined) query.mood.$gte = filters.moodMin
-      if (filters.moodMax !== undefined) query.mood.$lte = filters.moodMax
-    }
-
-    const weeks = await Week.find(query)
-      .sort({ weekIndex: 1 })
-      .limit(filters.limit)
-      .skip(filters.skip)
-
-    const total = await Week.countDocuments(query)
+    const total = await Week.countDocuments({ userId: user.userId })
 
     console.log(`✅ [GET_WEEK] Found ${weeks.length} weeks (total: ${total})`)
 
@@ -415,6 +461,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     console.log(`✅ [DELETE_WEEK] Week ${weekIndex} deleted`)
+
+    // ✅ INVALIDATE CACHE
+    console.log(`🔄 [CACHE] Invalidating weeks cache for user ${user.userId}`)
+    await invalidateWeeksCache(user.userId)
 
     return NextResponse.json({
       success: true,

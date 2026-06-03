@@ -4,13 +4,20 @@ import { Milestone } from "@/models/Milestone.model"
 import { getAuthUser } from "@/lib/getUser"
 import { MilestoneCreateSchema, MilestoneUpdateSchema, MilestoneResponseSchema } from "@/validators/milestone.validator"
 import { z } from "zod"
+import {
+  CACHE_KEYS,
+  CACHE_TTL,
+  getCachedValue,
+  setCachedValue,
+  invalidateMilestonesCache,
+} from "@/lib/cache"
 
 // ✅ MILESTONE ID VALIDATOR
 const MilestoneIdSchema = z.object({
   milestoneId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid milestone ID format'),
 })
 
-// GET — fetch all milestones for user
+// GET — fetch all milestones for user (WITH CACHING)
 export async function GET() {
   try {
     console.log('📋 [GET_MILESTONES] Fetching milestones')
@@ -28,6 +35,23 @@ export async function GET() {
         },
         { status: 401 }
       )
+    }
+
+    // ✅ TRY CACHE FIRST
+    const cacheKey = CACHE_KEYS.MILESTONES_LIST(auth.userId)
+    const cachedMilestones = await getCachedValue(cacheKey)
+
+    if (cachedMilestones) {
+      console.log(`✅ [GET_MILESTONES] Returning cached milestones`)
+      return NextResponse.json({
+        success: true,
+        data: {
+          milestones: cachedMilestones,
+          count: Array.isArray(cachedMilestones) ? cachedMilestones.length : 0,
+        },
+        message: `Found milestones (cached)`,
+        cached: true
+      })
     }
 
     await connectDB()
@@ -55,6 +79,9 @@ export async function GET() {
         updatedAt: m.updatedAt,
       })
     )
+
+    // ✅ CACHE THE RESULT
+    await setCachedValue(cacheKey, validatedMilestones, CACHE_TTL.MILESTONES)
 
     return NextResponse.json({
       success: true,
@@ -90,7 +117,7 @@ export async function GET() {
   }
 }
 
-// POST — create a new milestone
+// POST — create a new milestone (WITH CACHE INVALIDATION)
 export async function POST(req: NextRequest) {
   try {
     console.log('✨ [POST_MILESTONE] Creating milestone')
@@ -188,6 +215,10 @@ export async function POST(req: NextRequest) {
       updatedAt: milestone.updatedAt,
     })
 
+    // ✅ INVALIDATE CACHE
+    console.log(`🔄 [CACHE] Invalidating milestones cache for user ${auth.userId}`)
+    await invalidateMilestonesCache(auth.userId)
+
     return NextResponse.json(
       {
         success: true,
@@ -224,7 +255,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PATCH — update a milestone
+// PATCH — update a milestone (WITH CACHE INVALIDATION)
 export async function PATCH(req: NextRequest) {
   try {
     console.log('📝 [PATCH_MILESTONE] Updating milestone')
@@ -335,6 +366,10 @@ export async function PATCH(req: NextRequest) {
       updatedAt: milestone.updatedAt,
     })
 
+    // ✅ INVALIDATE CACHE
+    console.log(`🔄 [CACHE] Invalidating milestones cache for user ${auth.userId}`)
+    await invalidateMilestonesCache(auth.userId)
+
     return NextResponse.json({
       success: true,
       data: {
@@ -368,7 +403,7 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// DELETE — remove a milestone
+// DELETE — remove a milestone (WITH CACHE INVALIDATION)
 export async function DELETE(req: NextRequest) {
   try {
     console.log('🗑️ [DELETE_MILESTONE] Deleting milestone')
@@ -438,6 +473,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     console.log(`✅ [DELETE_MILESTONE] Deleted milestone:`, milestoneId)
+
+    // ✅ INVALIDATE CACHE
+    console.log(`🔄 [CACHE] Invalidating milestones cache for user ${auth.userId}`)
+    await invalidateMilestonesCache(auth.userId)
 
     return NextResponse.json({
       success: true,
