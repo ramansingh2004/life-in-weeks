@@ -8,8 +8,7 @@ let isConnected = false
  * Connects to Redis server with error handling and retry logic
  */
 export async function initializeRedis(): Promise<RedisClientType> {
-  if (redisClient && isConnected) {
-    console.log('♻️ [REDIS] Client already connected')
+  if (redisClient) {
     return redisClient
   }
 
@@ -60,16 +59,19 @@ export async function initializeRedis(): Promise<RedisClientType> {
       console.log('✅ [REDIS] Redis client ready')
     })
 
-    // Connect
-    await redisClient.connect()
-    isConnected = true
+    // Connect in the background without blocking execution
+    redisClient.connect().catch((err) => {
+      console.error('❌ [REDIS] Background connection failed:', err.message)
+      isConnected = false
+    })
 
-    console.log('✅ [REDIS] Redis client initialized successfully')
+    console.log('✅ [REDIS] Redis client initialization triggered')
     return redisClient
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error('❌ [REDIS] Failed to initialize Redis:', message)
     isConnected = false
+    redisClient = null
     throw error
   }
 }
@@ -89,6 +91,10 @@ export async function getRedisClient(): Promise<RedisClientType> {
  * ✅ Check Redis Connection Status
  */
 export function isRedisConnected(): boolean {
+  if (!redisClient && typeof window === 'undefined' && process.env.REDIS_URL) {
+    // Trigger initialization asynchronously if not yet started
+    initializeRedis().catch(() => {})
+  }
   return isConnected && redisClient !== null
 }
 
@@ -107,6 +113,11 @@ export async function closeRedis(): Promise<void> {
       console.error('❌ [REDIS] Error closing connection:', message)
     }
   }
+}
+
+// Automatically trigger initialization on module load in server environments
+if (typeof window === 'undefined' && process.env.REDIS_URL) {
+  initializeRedis().catch(() => {})
 }
 
 export default getRedisClient

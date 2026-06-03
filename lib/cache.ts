@@ -46,6 +46,10 @@ export const CACHE_TTL = {
  */
 export async function getCachedValue<T>(key: string): Promise<T | null> {
   try {
+    if (!process.env.REDIS_URL) {
+      return null
+    }
+
     if (!isRedisConnected()) {
       console.warn(`⚠️ [CACHE] Redis not connected, skipping GET for key: ${key}`)
       return null
@@ -78,6 +82,10 @@ export async function setCachedValue<T>(
   ttlSeconds?: number
 ): Promise<boolean> {
   try {
+    if (!process.env.REDIS_URL) {
+      return false
+    }
+
     if (!isRedisConnected()) {
       console.warn(`⚠️ [CACHE] Redis not connected, skipping SET for key: ${key}`)
       return false
@@ -107,6 +115,10 @@ export async function setCachedValue<T>(
  */
 export async function deleteCachedValue(key: string): Promise<boolean> {
   try {
+    if (!process.env.REDIS_URL) {
+      return false
+    }
+
     if (!isRedisConnected()) {
       console.warn(`⚠️ [CACHE] Redis not connected, skipping DELETE for key: ${key}`)
       return false
@@ -135,6 +147,10 @@ export async function deleteCachedValue(key: string): Promise<boolean> {
  */
 export async function deleteCachedPatterns(userId: string, patterns: string[]): Promise<number> {
   try {
+    if (!process.env.REDIS_URL) {
+      return 0
+    }
+
     if (!isRedisConnected()) {
       console.warn(`⚠️ [CACHE] Redis not connected, skipping DELETE patterns for user: ${userId}`)
       return 0
@@ -277,7 +293,7 @@ export async function cachedFetch<T>(
  */
 export async function getCacheStats(): Promise<{ memory?: string; keys?: number }> {
   try {
-    if (!isRedisConnected()) {
+    if (!process.env.REDIS_URL || !isRedisConnected()) {
       return {}
     }
 
