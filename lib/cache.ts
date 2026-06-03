@@ -1,5 +1,4 @@
 import { getRedisClient, isRedisConnected } from './redis'
-import { RedisClientType } from 'redis'
 
 /**
  * Cache Key Patterns

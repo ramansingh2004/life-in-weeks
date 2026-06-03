@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuthUser } from "@/lib/getUser"
 import { connectDB } from "@/lib/mongodb"
 import { Week } from "@/models/Week.model"
-import { WeekDataSchema, WeekResponseSchema, WeekFilterSchema } from "@/validators/week.validator"
+import { WeekDataSchema, WeekResponseSchema, WeekFilterSchema, WeekResponse } from "@/validators/week.validator"
 import { z } from "zod"
 import {
   CACHE_KEYS,
@@ -292,7 +292,7 @@ export async function GET(req: NextRequest) {
 
     // ✅ Try to get from cache (weeks list)
     const listCacheKey = CACHE_KEYS.WEEKS_LIST(user.userId)
-    const cachedWeeks = await getCachedValue<any[]>(listCacheKey)
+    const cachedWeeks = await getCachedValue<WeekResponse[]>(listCacheKey)
 
     let weeks
     if (cachedWeeks && !filters.tags && filters.moodMin === undefined && filters.moodMax === undefined) {
