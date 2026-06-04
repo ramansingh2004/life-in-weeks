@@ -264,6 +264,22 @@ export default function Home() {
               >
                 {isUpdatingProfile ? 'Saving...' : 'See my life →'}
               </motion.button>
+
+              {/* ✅ NEW: LINK TO LANDING PAGE */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-center mt-4"
+              >
+                <p className="text-zinc-600 text-xs mb-2">New to Life in Weeks?</p>
+                <Link
+                  href="/landing"
+                  className="text-brand-orange text-xs hover:text-brand-orange/80 transition-colors underline"
+                >
+                  Learn how it works →
+                </Link>
+              </motion.div>
             </motion.div>
 
             {/* Features row */}
