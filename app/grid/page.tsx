@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar'
 import WeekModal from '@/components/weekModel'
 import MemoryViewCard from '@/components/MemoryViewCard'
 import MilestoneModal from '@/components/MilestoneModal'
+import DateSearch from '@/components/DateSearch'
 import { Week, WeekData, MOOD_COLORS } from '@/typesDefined'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useCountUp } from '@/hooks/useCountUp'
@@ -58,6 +59,8 @@ export default function GridPage() {
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false)
   const [selectedMilestoneWeek, setSelectedMilestoneWeek] = useState<Week | null>(null)
   const [hydrated, setHydrated] = useState(false)
+  // ✅ NEW: Highlight state for search results
+  const [highlightedWeekIndex, setHighlightedWeekIndex] = useState<number | null>(null)
 
   const animatedLived = useCountUp(stats.lived)
   const animatedRemaining = useCountUp(stats.remaining)
@@ -158,6 +161,16 @@ export default function GridPage() {
             </p>
           </div>
 
+          {/* ✅ NEW: DATE SEARCH COMPONENT */}
+          {storedDate && (
+            <DateSearch
+              birthDate={storedDate}
+              weeks={weeks}
+              onWeekSelect={handleWeekClick}
+              onHighlight={setHighlightedWeekIndex}
+            />
+          )}
+
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
             {[
@@ -199,9 +212,33 @@ export default function GridPage() {
                       const moodColor = note?.mood ? MOOD_COLORS[note.mood] : null
                       const noted = hasNote(week.index)
                       const milestone = getMilestone(week.index)
+                      // ✅ NEW: Check if this is the highlighted week
+                      const isHighlighted = highlightedWeekIndex === week.index
 
                       return (
-                        <div key={week.index} className="relative group flex-shrink-0">
+                        <div 
+                          key={week.index} 
+                          className="relative group flex-shrink-0"
+                          id={`week-${week.index}`}
+                        >
+                          {/* ✅ NEW: Highlight animation */}
+                          {isHighlighted && (
+                            <motion.div
+                              layoutId="highlight"
+                              className="absolute inset-0 bg-brand-orange/30 rounded-[2px] pointer-events-none"
+                              animate={{
+                                boxShadow: [
+                                  '0 0 0 0px rgba(255, 120, 0, 0.5)',
+                                  '0 0 0 8px rgba(255, 120, 0, 0)',
+                                ],
+                              }}
+                              transition={{
+                                duration: 1.5,
+                                repeat: Infinity,
+                              }}
+                            />
+                          )}
+
                           {/* Week square */}
                           <div
                             onClick={() => handleWeekClick(week)}
@@ -226,13 +263,15 @@ export default function GridPage() {
                               w-[14px] h-[14px] rounded-[2px] cursor-pointer
                               transition-all duration-150 hover:scale-150 hover:z-10 relative
                               ${
-                                week.isCurrent
-                                  ? 'bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse'
-                                  : week.isPast
-                                    ? moodColor || 'bg-zinc-500'
-                                    : noted
-                                      ? 'bg-zinc-600'
-                                      : 'bg-zinc-800 hover:bg-zinc-600'
+                                isHighlighted
+                                  ? 'ring-2 ring-brand-orange scale-150'
+                                  : week.isCurrent
+                                    ? 'bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse'
+                                    : week.isPast
+                                      ? moodColor || 'bg-zinc-500'
+                                      : noted
+                                        ? 'bg-zinc-600'
+                                        : 'bg-zinc-800 hover:bg-zinc-600'
                               }
                             `}
                           />
