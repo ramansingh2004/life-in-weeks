@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { differenceInWeeks, parseISO, format } from 'date-fns'
 import { Search, X, ChevronRight } from 'lucide-react'
+import { Week } from '@/typesDefined'
 
 interface DateSearchProps {
   birthDate: string | null
-  weeks: any[]
-  onWeekSelect: (week: any) => void
+  weeks: Week[]
+  onWeekSelect: (week: Week) => void
   onHighlight: (weekIndex: number | null) => void
 }
 
@@ -20,7 +21,7 @@ export default function DateSearch({
 }: DateSearchProps) {
   const [searchInput, setSearchInput] = useState('')
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedWeek, setSelectedWeek] = useState<any | null>(null)
+  const [selectedWeek, setSelectedWeek] = useState<Week | null>(null)
   const [error, setError] = useState('')
 
   // ✅ SEARCH LOGIC: Find week by date
