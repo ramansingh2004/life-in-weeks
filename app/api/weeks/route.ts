@@ -122,8 +122,8 @@ export async function POST(req: NextRequest) {
     })
 
     // ✅ INVALIDATE CACHE
-    console.log(`🔄 [CACHE] Invalidating weeks cache for user ${user.userId}`)
-    await invalidateWeeksCache(user.userId)
+    console.log(`🔄 [CACHE] Invalidating weeks cache for user ${user.userId}, week ${weekIndex}`)
+    await invalidateWeeksCache(user.userId, weekIndex)
 
     return NextResponse.json({
       success: true,
@@ -463,8 +463,8 @@ export async function DELETE(req: NextRequest) {
     console.log(`✅ [DELETE_WEEK] Week ${weekIndex} deleted`)
 
     // ✅ INVALIDATE CACHE
-    console.log(`🔄 [CACHE] Invalidating weeks cache for user ${user.userId}`)
-    await invalidateWeeksCache(user.userId)
+    console.log(`🔄 [CACHE] Invalidating weeks cache for user ${user.userId}, week ${weekIndex}`)
+    await invalidateWeeksCache(user.userId, weekIndex)
 
     return NextResponse.json({
       success: true,

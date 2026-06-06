@@ -204,13 +204,17 @@ export async function clearUserCache(userId: string): Promise<number> {
 /**
  * Invalidate Weeks Cache (when week is updated/deleted)
  */
-export async function invalidateWeeksCache(userId: string): Promise<number> {
-  console.log(`🔄 [CACHE] Invalidating weeks cache for user: ${userId}`)
+export async function invalidateWeeksCache(userId: string, weekIndex?: number): Promise<number> {
+  console.log(`🔄 [CACHE] Invalidating weeks cache for user: ${userId}${weekIndex !== undefined ? `, weekIndex: ${weekIndex}` : ''}`)
 
   const keys = [
     CACHE_KEYS.WEEKS_LIST(userId),
     CACHE_KEYS.DASHBOARD(userId), // Dashboard might show week stats
   ]
+
+  if (weekIndex !== undefined) {
+    keys.push(CACHE_KEYS.WEEKS_SINGLE(userId, weekIndex))
+  }
 
   let deletedCount = 0
   for (const key of keys) {

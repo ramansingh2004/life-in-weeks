@@ -155,7 +155,7 @@ export default function GridPage() {
         <div className="max-w-5xl mx-auto">
           {/* Simplified Header with left padding */}
           <div className="mb-8 pl-0">
-            <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">Life <h1 className="text-brand-orange">in</h1> Weeks</h1>
+            <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">Life <span className="text-brand-orange">in</span> Weeks</h1>
             <p className="text-zinc-600 text-sm">
               Age {currentAge} · {stats.lived.toLocaleString()} weeks lived · {milestones.length} milestones
             </p>
