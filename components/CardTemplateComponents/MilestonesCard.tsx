@@ -182,7 +182,7 @@ export function MilestonesCard({ theme, stats }: MilestonesCardProps) {
           <p className="text-xs opacity-60 mb-4 uppercase tracking-wide">Your Journey</p>
           <div className="space-y-3">
             <p className="text-sm font-light">
-              You've celebrated <span className={config.accent}>every milestone</span> across{' '}
+              You&apos;ve celebrated <span className={config.accent}>every milestone</span> across{' '}
               <span className={config.accent}>{sortedCategories.length}</span> life areas
             </p>
             <p className="text-xs opacity-60">
