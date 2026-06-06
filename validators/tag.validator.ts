@@ -20,8 +20,8 @@ export const TagResponseSchema = z.object({
   emoji: z.string().optional(),
   description: z.string().optional(),
   usageCount: z.number().int().nonnegative().default(0),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 });
  
 export const TagMergeSchema = z.object({

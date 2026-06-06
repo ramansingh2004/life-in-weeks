@@ -36,8 +36,8 @@ export const UserResponseSchema = z.object({
   lifeExpectancy: z.number(),
   image: z.string().url().optional().nullable(),
   isEmailVerified: z.boolean(),
-  createdAt: z.date(),
-  updatedAt: z.date().optional(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date().optional(),
 });
  
 export const ChangePasswordSchema = z.object({

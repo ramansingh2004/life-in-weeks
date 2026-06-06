@@ -30,7 +30,7 @@ export const MediaResponseSchema = z.object({
   url: z.string().url(),
   publicId: z.string(),
   name: z.string(),
-  createdAt: z.date(),
+  createdAt: z.coerce.date(),
 });
  
 export const MediaFilterSchema = z.object({

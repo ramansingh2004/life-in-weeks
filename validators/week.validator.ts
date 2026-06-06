@@ -27,8 +27,8 @@ export const WeekResponseSchema = z.object({
   note: z.string(),
   mood: MoodLevelSchema,
   tags: z.array(z.string()),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 });
  
 export const WeekFilterSchema = z.object({

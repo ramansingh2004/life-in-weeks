@@ -23,8 +23,8 @@ export const MilestoneResponseSchema = z.object({
   icon: z.string(),
   date: z.string(),
   tags: z.array(z.string()).optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 });
  
 export const MilestoneFilterSchema = z.object({

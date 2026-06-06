@@ -39,8 +39,8 @@ export const LifeChapterResponseSchema = z.object({
   averageMood: z.number().default(0),
   photoCount: z.number().int().nonnegative().default(0),
   milestoneCount: z.number().int().nonnegative().default(0),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 });
 
 export const LifeChapterFilterSchema = z.object({
