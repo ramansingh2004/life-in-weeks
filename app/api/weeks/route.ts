@@ -29,28 +29,11 @@ export async function POST(req: NextRequest) {
   try {
     console.log('📝 [POST_WEEK] Saving week')
 
-    await connectDB()
-    console.log('✅ [POST_WEEK] Database connected')
-
-    const user = await getAuthUser()
-    if (!user) {
-      console.warn('⚠️ [POST_WEEK] Unauthorized')
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            message: 'Unauthorized',
-            code: 'UNAUTHORIZED'
-          }
-        },
-        { status: 401 }
-      )
-    }
-
+    // ✅ Parse and validate BEFORE connecting to DB
     const body = await req.json()
     console.log('📦 [POST_WEEK] Body parsed')
 
-    // ✅ VALIDATE INPUT WITH ZOD
+    // ✅ VALIDATE INPUT WITH ZOD (before DB connection)
     const parsed = WeekDataSchema.safeParse(body)
 
     if (!parsed.success) {
@@ -71,6 +54,26 @@ export async function POST(req: NextRequest) {
         { status: 422 }
       )
     }
+
+    // ✅ Get auth user BEFORE connecting to DB
+    const user = await getAuthUser()
+    if (!user) {
+      console.warn('⚠️ [POST_WEEK] Unauthorized')
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: 'Unauthorized',
+            code: 'UNAUTHORIZED'
+          }
+        },
+        { status: 401 }
+      )
+    }
+
+    // ✅ NOW connect to database (after validation & auth)
+    await connectDB()
+    console.log('✅ [POST_WEEK] Database connected')
 
     const { weekIndex, note, mood, tags, date, isPast, isCurrent } = parsed.data
 
@@ -162,9 +165,7 @@ export async function GET(req: NextRequest) {
   try {
     console.log('📖 [GET_WEEK] Fetching week(s)')
 
-    await connectDB()
-    console.log('✅ [GET_WEEK] Database connected')
-
+    // ✅ GET AUTH USER FIRST (lightweight operation)
     const user = await getAuthUser()
     if (!user) {
       console.warn('⚠️ [GET_WEEK] Unauthorized')
@@ -180,6 +181,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    // ✅ PARSE & VALIDATE QUERY PARAMS BEFORE DB CONNECTION
     const { searchParams } = new URL(req.url)
     const weekIndexParam = searchParams.get("weekIndex")
     const startWeekParam = searchParams.get("startWeek")
@@ -188,7 +190,7 @@ export async function GET(req: NextRequest) {
     const limitParam = searchParams.get("limit")
     const skipParam = searchParams.get("skip")
 
-    // ✅ VALIDATE QUERY PARAMS WITH ZOD
+    // ✅ VALIDATE QUERY PARAMS WITH ZOD (before DB)
     const queryData = {
       weekIndex: weekIndexParam ? parseInt(weekIndexParam) : undefined,
       startWeek: startWeekParam ? parseInt(startWeekParam) : undefined,
@@ -200,7 +202,6 @@ export async function GET(req: NextRequest) {
       skip: skipParam ? parseInt(skipParam) : 0,
     }
 
-    // Use WeekFilterSchema for validation
     const filterParsed = WeekFilterSchema.safeParse(queryData)
 
     if (!filterParsed.success) {
@@ -224,25 +225,34 @@ export async function GET(req: NextRequest) {
 
     const filters = filterParsed.data
 
-    // Single week query - TRY CACHE FIRST
+    // ✅ SINGLE WEEK QUERY - CHECK CACHE FIRST (before DB connection)
     if (filters.startWeek === undefined && filters.endWeek === undefined && queryData.weekIndex !== undefined) {
       console.log(`🔍 [GET_WEEK] Fetching single week: ${queryData.weekIndex}`)
 
-      // ✅ Try to get from cache
+      // ✅ TRY CACHE FIRST (before any DB connection)
       const cacheKey = CACHE_KEYS.WEEKS_SINGLE(user.userId, queryData.weekIndex)
       const cachedWeek = await getCachedValue(cacheKey)
 
       if (cachedWeek) {
-        console.log(`✅ [GET_WEEK] Returning cached week: ${queryData.weekIndex}`)
+        console.log(`✅ [CACHE_HIT] Returning cached week: ${queryData.weekIndex} (no DB connection needed)`)
         return NextResponse.json({
           success: true,
           data: {
             week: cachedWeek
           },
           message: 'Week fetched successfully (cached)',
-          cached: true
+          cached: true,
+          performanceMetrics: {
+            source: 'cache',
+            dbConnectionSkipped: true
+          }
         })
       }
+
+      // Cache miss - now connect to DB
+      console.log(`📊 [CACHE_MISS] Week ${queryData.weekIndex} not in cache, querying database...`)
+      await connectDB()
+      console.log('✅ [GET_WEEK] Database connected (after cache miss)')
 
       const week = await Week.findOne({
         userId: user.userId,
@@ -277,55 +287,83 @@ export async function GET(req: NextRequest) {
 
       // ✅ CACHE THE RESULT
       await setCachedValue(cacheKey, validatedResponse, CACHE_TTL.WEEKS)
+      console.log(`💾 [CACHE_STORE] Cached week ${queryData.weekIndex}`)
 
       return NextResponse.json({
         success: true,
         data: {
           week: validatedResponse
         },
-        message: 'Week fetched successfully'
+        message: 'Week fetched successfully',
+        cached: false,
+        performanceMetrics: {
+          source: 'database',
+          dbConnectionRequired: true
+        }
       })
     }
 
-    // Multiple weeks query - TRY CACHE FIRST
+    // ✅ MULTIPLE WEEKS QUERY - CHECK CACHE FIRST (before DB)
     console.log('🔍 [GET_WEEK] Fetching multiple weeks with filters')
 
-    // ✅ Try to get from cache (weeks list)
+    // ✅ TRY CACHE FIRST for weeks list (if no filters)
     const listCacheKey = CACHE_KEYS.WEEKS_LIST(user.userId)
-    const cachedWeeks = await getCachedValue<WeekResponse[]>(listCacheKey)
+    let cachedWeeks: WeekResponse[] | null = null
 
-    let weeks
-    if (cachedWeeks && !filters.tags && filters.moodMin === undefined && filters.moodMax === undefined) {
-      console.log(`✅ [GET_WEEK] Using cached weeks list`)
-      weeks = cachedWeeks
-    } else {
-      // Cache miss or has filters - fetch from DB
-      const query: WeekQuery = { userId: user.userId }
-
-      if (filters.startWeek !== undefined && filters.endWeek !== undefined) {
-        query.weekIndex = { $gte: filters.startWeek, $lte: filters.endWeek }
-      }
-
-      if (filters.tags && filters.tags.length > 0) {
-        query.tags = { $in: filters.tags }
-      }
-
-      if (filters.moodMin !== undefined || filters.moodMax !== undefined) {
-        query.mood = {}
-        if (filters.moodMin !== undefined) query.mood.$gte = filters.moodMin
-        if (filters.moodMax !== undefined) query.mood.$lte = filters.moodMax
-      }
-
-      weeks = await Week.find(query)
-        .sort({ weekIndex: 1 })
-        .limit(filters.limit)
-        .skip(filters.skip)
-
-      // ✅ Cache the full list (if no tag/mood filters)
-      if (!filters.tags && filters.moodMin === undefined && filters.moodMax === undefined) {
-        await setCachedValue(listCacheKey, weeks, CACHE_TTL.WEEKS)
+    if (!filters.tags && filters.moodMin === undefined && filters.moodMax === undefined) {
+      cachedWeeks = await getCachedValue<WeekResponse[]>(listCacheKey)
+      if (cachedWeeks) {
+        console.log(`✅ [CACHE_HIT] Using cached weeks list (no DB connection needed)`)
+        // Apply pagination to cached results
+        const paginatedWeeks = cachedWeeks.slice(filters.skip, filters.skip + filters.limit)
+        return NextResponse.json({
+          success: true,
+          data: {
+            weeks: paginatedWeeks,
+            count: paginatedWeeks.length,
+            total: cachedWeeks.length,
+          },
+          pagination: {
+            limit: filters.limit,
+            skip: filters.skip,
+            hasMore: filters.skip + filters.limit < cachedWeeks.length,
+          },
+          message: `Found ${paginatedWeeks.length} weeks`,
+          cached: true,
+          performanceMetrics: {
+            source: 'cache',
+            dbConnectionSkipped: true
+          }
+        })
       }
     }
+
+    // Cache miss - now connect to DB
+    console.log(`📊 [CACHE_MISS] Weeks not in cache or has filters, querying database...`)
+    await connectDB()
+    console.log('✅ [GET_WEEK] Database connected (after cache miss)')
+
+    let weeks
+    const query: WeekQuery = { userId: user.userId }
+
+    if (filters.startWeek !== undefined && filters.endWeek !== undefined) {
+      query.weekIndex = { $gte: filters.startWeek, $lte: filters.endWeek }
+    }
+
+    if (filters.tags && filters.tags.length > 0) {
+      query.tags = { $in: filters.tags }
+    }
+
+    if (filters.moodMin !== undefined || filters.moodMax !== undefined) {
+      query.mood = {}
+      if (filters.moodMin !== undefined) query.mood.$gte = filters.moodMin
+      if (filters.moodMax !== undefined) query.mood.$lte = filters.moodMax
+    }
+
+    weeks = await Week.find(query)
+      .sort({ weekIndex: 1 })
+      .limit(filters.limit)
+      .skip(filters.skip)
 
     const total = await Week.countDocuments({ userId: user.userId })
 
@@ -348,6 +386,12 @@ export async function GET(req: NextRequest) {
       })
     )
 
+    // ✅ CACHE the full list (if no tag/mood filters)
+    if (!filters.tags && filters.moodMin === undefined && filters.moodMax === undefined) {
+      await setCachedValue(listCacheKey, validatedWeeks, CACHE_TTL.WEEKS)
+      console.log(`💾 [CACHE_STORE] Cached ${validatedWeeks.length} weeks`)
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -360,7 +404,12 @@ export async function GET(req: NextRequest) {
         skip: filters.skip,
         hasMore: filters.skip + filters.limit < total,
       },
-      message: `Found ${validatedWeeks.length} weeks`
+      message: `Found ${validatedWeeks.length} weeks`,
+      cached: false,
+      performanceMetrics: {
+        source: 'database',
+        dbConnectionRequired: true
+      }
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -392,9 +441,7 @@ export async function DELETE(req: NextRequest) {
   try {
     console.log('🗑️ [DELETE_WEEK] Deleting week')
 
-    await connectDB()
-    console.log('✅ [DELETE_WEEK] Database connected')
-
+    // ✅ GET AUTH USER FIRST (before DB)
     const user = await getAuthUser()
     if (!user) {
       console.warn('⚠️ [DELETE_WEEK] Unauthorized')
@@ -410,10 +457,11 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
+    // ✅ PARSE & VALIDATE PARAMS (before DB)
     const { searchParams } = new URL(req.url)
     const weekIndexParam = searchParams.get("weekIndex")
 
-    // ✅ VALIDATE WEEK INDEX WITH ZOD
+    // ✅ VALIDATE WEEK INDEX WITH ZOD (before DB)
     const parsed = WeekIndexSchema.safeParse({
       weekIndex: weekIndexParam ? parseInt(weekIndexParam) : undefined
     })
@@ -436,6 +484,10 @@ export async function DELETE(req: NextRequest) {
         { status: 400 }
       )
     }
+
+    // ✅ NOW connect to database (after validation & auth)
+    await connectDB()
+    console.log('✅ [DELETE_WEEK] Database connected')
 
     const { weekIndex } = parsed.data
 

@@ -25,6 +25,10 @@ export const CACHE_KEYS = {
 
   // Tags: tags:{userId}
   TAGS: (userId: string) => `tags:${userId}`,
+
+  // Media: media:{userId}
+  MEDIA_LIST: (userId: string) => `media:${userId}`,
+  MEDIA_SINGLE: (userId: string, mediaId: string) => `media:${userId}:${mediaId}`,
 }
 
 /**
@@ -38,6 +42,7 @@ export const CACHE_TTL = {
   SETTINGS: 24 * 60 * 60, // 24 hours
   USER: 24 * 60 * 60, // 24 hours
   TAGS: 24 * 60 * 60, // 24 hours
+  MEDIA: 15 * 60, // 15 minutes
 }
 
 /**
@@ -189,6 +194,7 @@ export async function clearUserCache(userId: string): Promise<number> {
     CACHE_KEYS.WEEKS_LIST(userId),
     CACHE_KEYS.MILESTONES_LIST(userId),
     CACHE_KEYS.TAGS(userId),
+    CACHE_KEYS.MEDIA_LIST(userId),
   ]
 
   let totalDeleted = 0
@@ -228,13 +234,41 @@ export async function invalidateWeeksCache(userId: string, weekIndex?: number): 
 /**
  * Invalidate Milestones Cache (when milestone is updated/deleted)
  */
-export async function invalidateMilestonesCache(userId: string): Promise<number> {
-  console.log(`🔄 [CACHE] Invalidating milestones cache for user: ${userId}`)
+export async function invalidateMilestonesCache(userId: string, milestoneId?: string): Promise<number> {
+  console.log(`🔄 [CACHE] Invalidating milestones cache for user: ${userId}${milestoneId ? `, milestoneId: ${milestoneId}` : ''}`)
 
   const keys = [
     CACHE_KEYS.MILESTONES_LIST(userId),
     CACHE_KEYS.DASHBOARD(userId), // Dashboard might show milestone stats
   ]
+
+  if (milestoneId) {
+    keys.push(CACHE_KEYS.MILESTONES_SINGLE(userId, milestoneId))
+  }
+
+  let deletedCount = 0
+  for (const key of keys) {
+    const deleted = await deleteCachedValue(key)
+    if (deleted) deletedCount++
+  }
+
+  return deletedCount
+}
+
+/**
+ * Invalidate Media Cache (when media is uploaded/deleted)
+ */
+export async function invalidateMediaCache(userId: string, mediaId?: string): Promise<number> {
+  console.log(`🔄 [CACHE] Invalidating media cache for user: ${userId}${mediaId ? `, mediaId: ${mediaId}` : ''}`)
+
+  const keys = [
+    CACHE_KEYS.MEDIA_LIST(userId),
+    CACHE_KEYS.DASHBOARD(userId), // Dashboard might show media stats
+  ]
+
+  if (mediaId) {
+    keys.push(CACHE_KEYS.MEDIA_SINGLE(userId, mediaId))
+  }
 
   let deletedCount = 0
   for (const key of keys) {

@@ -39,16 +39,13 @@ export async function GET() {
 
     // ✅ TRY CACHE FIRST
     const cacheKey = CACHE_KEYS.MILESTONES_LIST(auth.userId)
-    const cachedMilestones = await getCachedValue(cacheKey)
+    const cachedData = await getCachedValue<{ milestones: any[]; count: number }>(cacheKey)
 
-    if (cachedMilestones) {
+    if (cachedData) {
       console.log(`✅ [GET_MILESTONES] Returning cached milestones`)
       return NextResponse.json({
         success: true,
-        data: {
-          milestones: cachedMilestones,
-          count: Array.isArray(cachedMilestones) ? cachedMilestones.length : 0,
-        },
+        data: cachedData,
         message: `Found milestones (cached)`,
         cached: true
       })
@@ -80,15 +77,17 @@ export async function GET() {
       })
     )
 
+    const payload = {
+      milestones: validatedMilestones,
+      count: validatedMilestones.length,
+    }
+
     // ✅ CACHE THE RESULT
-    await setCachedValue(cacheKey, validatedMilestones, CACHE_TTL.MILESTONES)
+    await setCachedValue(cacheKey, payload, CACHE_TTL.MILESTONES)
 
     return NextResponse.json({
       success: true,
-      data: {
-        milestones: validatedMilestones,
-        count: validatedMilestones.length,
-      },
+      data: payload,
       message: `Found ${validatedMilestones.length} milestones`
     })
   } catch (err) {
@@ -367,8 +366,8 @@ export async function PATCH(req: NextRequest) {
     })
 
     // ✅ INVALIDATE CACHE
-    console.log(`🔄 [CACHE] Invalidating milestones cache for user ${auth.userId}`)
-    await invalidateMilestonesCache(auth.userId)
+    console.log(`🔄 [CACHE] Invalidating milestones cache for user ${auth.userId}, milestone ${milestoneId}`)
+    await invalidateMilestonesCache(auth.userId, milestoneId)
 
     return NextResponse.json({
       success: true,
@@ -475,8 +474,8 @@ export async function DELETE(req: NextRequest) {
     console.log(`✅ [DELETE_MILESTONE] Deleted milestone:`, milestoneId)
 
     // ✅ INVALIDATE CACHE
-    console.log(`🔄 [CACHE] Invalidating milestones cache for user ${auth.userId}`)
-    await invalidateMilestonesCache(auth.userId)
+    console.log(`🔄 [CACHE] Invalidating milestones cache for user ${auth.userId}, milestone ${milestoneId}`)
+    await invalidateMilestonesCache(auth.userId, milestoneId)
 
     return NextResponse.json({
       success: true,

@@ -6,6 +6,13 @@ import cloudinary from '@/lib/cloudinary'
 import { UploadApiResponse } from 'cloudinary'
 import { MediaFilterSchema, MediaUploadSchema } from '@/validators/media.validator'
 import { z } from 'zod'
+import {
+  CACHE_KEYS,
+  CACHE_TTL,
+  getCachedValue,
+  setCachedValue,
+  invalidateMediaCache,
+} from '@/lib/cache'
 
 interface MediaQuery {
   userId: string
@@ -78,6 +85,36 @@ export async function GET(req: NextRequest) {
     const { weekIndex, type, startWeek, endWeek, limit, skip } = parsed.data
     const userId = user.userId
 
+    const shouldUseCache =
+      !weekIndex &&
+      !type &&
+      startWeek === undefined &&
+      endWeek === undefined &&
+      skip === 0 &&
+      limit === 20
+
+    // ✅ TRY CACHE FIRST (only for default unfiltered first-page query)
+    const cacheKey = CACHE_KEYS.MEDIA_LIST(userId)
+    const cachedData = await getCachedValue<{
+      media: any[]
+      count: number
+      total: number
+    }>(cacheKey)
+
+    if (cachedData && shouldUseCache) {
+      console.log(`✅ [GET_MEDIA] Returning cached media`)
+      return NextResponse.json({
+        success: true,
+        data: cachedData,
+        pagination: {
+          limit,
+          skip,
+          hasMore: skip + limit < cachedData.total,
+        },
+        cached: true,
+      })
+    }
+
     console.log('🔍 [GET_MEDIA] Fetching media for user:', userId)
     console.log('   Type filter:', type || 'none')
     console.log('   Week filter:', weekIndex || (startWeek ? `${startWeek}-${endWeek}` : 'none'))
@@ -109,13 +146,20 @@ export async function GET(req: NextRequest) {
 
     console.log(`✅ [GET_MEDIA] Found ${media.length} media items (total: ${total})`)
 
+    const payload = {
+      media,
+      count: media.length,
+      total,
+    }
+
+    // Cache the default unfiltered first-page query result
+    if (shouldUseCache) {
+      await setCachedValue(cacheKey, payload, CACHE_TTL.MEDIA)
+    }
+
     return NextResponse.json({
       success: true,
-      data: {
-        media,
-        count: media.length,
-        total,
-      },
+      data: payload,
       pagination: {
         limit,
         skip,
@@ -281,6 +325,10 @@ export async function POST(req: NextRequest) {
 
     console.log(`✅ [POST_MEDIA] Created media: ${name} for user ${userId}`)
 
+    // ✅ INVALIDATE CACHE
+    console.log(`🔄 [CACHE] Invalidating media cache for user ${userId}, media ${media._id.toString()}`)
+    await invalidateMediaCache(userId, media._id.toString())
+
     return NextResponse.json(
       {
         success: true,
@@ -416,6 +464,10 @@ export async function DELETE(req: NextRequest) {
     await Media.deleteOne({ _id: id })
 
     console.log(`✅ [DELETE_MEDIA] Deleted media: ${id}`)
+
+    // ✅ INVALIDATE CACHE
+    console.log(`🔄 [CACHE] Invalidating media cache for user ${user.userId}, media ${id}`)
+    await invalidateMediaCache(user.userId, id)
 
     return NextResponse.json({
       success: true,
