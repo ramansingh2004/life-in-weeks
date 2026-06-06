@@ -1,27 +1,24 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { CardPreview } from './CardPreview'
 import { SummaryCard } from './SummaryCard'
 import { MoodCard } from './MoodCard'
 import { MilestonesCard } from './MilestonesCard'
 import { ProgressCard } from './ProgressCard'
 import Sidebar from '@/components/Sidebar'
-// ✅ IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useMilestoneStore } from '@/store/useMilestoneStore'
+import { ChevronDown, Sparkles } from 'lucide-react'
 
 interface Note {
   weekIndex: number
   note: string
   mood: number
   tags?: string[]
-}
-
-interface Milestone {
-  category: string
 }
 
 interface MoodCounts {
@@ -50,32 +47,28 @@ type Theme = 'dark' | 'light' | 'gradient' | 'neon'
 type Format = 'square' | 'story' | 'rect'
 
 const CARD_OPTIONS = [
-  { id: 'summary', name: 'Summary', icon: '📊', desc: 'Your life stats overview' },
-  { id: 'mood', name: 'Mood Journey', icon: '😊', desc: 'Your mood over time' },
-  { id: 'milestones', name: 'Achievements', icon: '🏆', desc: 'Your milestones' },
-  { id: 'progress', name: 'Life Progress', icon: '📈', desc: 'Your life journey' },
+  { id: 'summary', name: 'Summary', icon: '📊', desc: 'Your life stats overview', color: 'from-emerald-500 to-teal-500' },
+  { id: 'mood', name: 'Mood Journey', icon: '😊', desc: 'Your mood over time', color: 'from-yellow-500 to-orange-500' },
+  { id: 'milestones', name: 'Achievements', icon: '🏆', desc: 'Your milestones', color: 'from-amber-500 to-red-500' },
+  { id: 'progress', name: 'Life Progress', icon: '📈', desc: 'Your life journey', color: 'from-blue-500 to-cyan-500' },
 ]
 
 const THEMES = [
-  { id: 'dark', name: 'Dark', color: 'bg-black' },
-  { id: 'light', name: 'Light', color: 'bg-white' },
-  { id: 'gradient', name: 'Gradient', color: 'bg-gradient-to-br from-purple-600 to-blue-600' },
-  { id: 'neon', name: 'Neon', color: 'bg-gradient-to-br from-cyan-400 to-purple-600' },
+  { id: 'dark', name: 'Dark', desc: 'Classic dark theme', icon: '🌙' },
+  { id: 'light', name: 'Light', desc: 'Clean light theme', icon: '☀️' },
+  { id: 'gradient', name: 'Gradient', desc: 'Smooth gradient', icon: '🌈' },
+  { id: 'neon', name: 'Neon', desc: 'Vibrant neon', icon: '✨' },
 ]
 
 const FORMATS = [
-  { id: 'square', name: 'Square', size: '1080x1080', ratio: '1:1', platform: 'Instagram' },
-  { id: 'story', name: 'Story', size: '1080x1920', ratio: '9:16', platform: 'Instagram/TikTok' },
-  { id: 'rect', name: 'Rectangle', size: '1200x630', ratio: '16:9', platform: 'Twitter/Facebook' },
+  { id: 'square', name: 'Square', size: '1080x1080', ratio: '1:1', platform: 'Instagram', emoji: '■' },
+  { id: 'story', name: 'Story', size: '1080x1920', ratio: '9:16', platform: 'Instagram/TikTok', emoji: '▬' },
+  { id: 'rect', name: 'Rectangle', size: '1200x630', ratio: '16:9', platform: 'Twitter/FB', emoji: '▭' },
 ]
 
 export function StatsCardGenerator() {
   const router = useRouter()
-  
-  // ✅ USE React Query hooks for auth and weeks
   const { user, isLoading: isLoadingUser } = useAuth()
- // const { weeks: backendWeeks, isLoading: isLoadingWeeks } = useWeeks()
-  
   const { notes } = useLifeStore()
   const { milestones } = useMilestoneStore()
 
@@ -83,15 +76,16 @@ export function StatsCardGenerator() {
   const [selectedTheme, setSelectedTheme] = useState<Theme>('dark')
   const [selectedFormat, setSelectedFormat] = useState<Format>('square')
   const [stats, setStats] = useState<Stats | null>(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
-  // ✅ IMPROVED: Check auth status with React Query
+  // ✅ Check auth
   useEffect(() => {
     if (!isLoadingUser && !user) {
       router.push('/login')
     }
   }, [isLoadingUser, user, router])
 
-  // ✅ CALCULATE stats from local Zustand data
+  // ✅ Calculate stats from Zustand stores
   useEffect(() => {
     function calculateStats() {
       const noteArray = Object.values(notes) as Note[]
@@ -146,7 +140,7 @@ export function StatsCardGenerator() {
 
       // Milestone categories
       const milestonesByCategory = new Map<string, number>()
-      milestones.forEach((m: Milestone) => {
+      milestones.forEach((m: any) => {
         milestonesByCategory.set(m.category, (milestonesByCategory.get(m.category) || 0) + 1)
       })
 
@@ -192,9 +186,19 @@ export function StatsCardGenerator() {
   if (isLoadingUser) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+          <div className="flex gap-1 justify-center mb-4">
+            {[0, 1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ opacity: [0.2, 1, 0.2] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                className="w-2 h-2 bg-zinc-600 rounded-full"
+              />
+            ))}
+          </div>
           <p className="text-zinc-400">Loading...</p>
-        </div>
+        </motion.div>
       </main>
     )
   }
@@ -203,91 +207,170 @@ export function StatsCardGenerator() {
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
       {/* Sidebar */}
       <Sidebar />
+
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-12"
+        >
           <button
             onClick={() => router.push('/grid')}
-            className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors mb-4"
+            className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors mb-4 flex items-center gap-1"
           >
             ← Back to grid
           </button>
-          <h1 className="text-3xl sm:text-5xl font-light tracking-tight mb-2">Stats Cards</h1>
-          <p className="text-zinc-600">Create and share your life statistics</p>
-        </div>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-light tracking-tight flex items-center gap-3 mb-2">
+                <span>📊</span>
+                Stats Cards
+              </h1>
+              <p className="text-zinc-600">Create shareable cards for your life statistics</p>
+            </div>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+              className="text-4xl"
+            >
+              ✨
+            </motion.div>
+          </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Controls */}
-          <div className="lg:col-span-1 space-y-8">
+          <div className="lg:col-span-1 space-y-6">
             {/* Card Type */}
-            <div>
-              <h3 className="text-sm font-semibold text-zinc-400 uppercase mb-4">Card Type</h3>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase mb-3 tracking-wide">
+                Card Type
+              </h3>
               <div className="space-y-2">
                 {CARD_OPTIONS.map((option) => (
-                  <button
+                  <motion.button
                     key={option.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setSelectedCard(option.id as CardType)}
-                    className={`w-full text-left p-4 rounded-lg border transition-all ${
+                    className={`w-full text-left p-4 rounded-lg border transition-all group ${
                       selectedCard === option.id
-                        ? 'bg-white text-black border-white'
+                        ? 'bg-white text-black border-white shadow-lg shadow-white/20'
                         : 'bg-zinc-900 text-white border-zinc-800 hover:border-zinc-700'
                     }`}
                   >
-                    <div className="text-xl mb-1">{option.icon}</div>
-                    <p className="font-medium">{option.name}</p>
-                    <p className="text-xs text-zinc-500">{option.desc}</p>
-                  </button>
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-2xl">{option.icon}</span>
+                      {selectedCard === option.id && <Sparkles className="w-4 h-4" />}
+                    </div>
+                    <p className="font-medium text-sm">{option.name}</p>
+                    <p className="text-xs text-zinc-500 group-hover:text-zinc-400 transition">
+                      {option.desc}
+                    </p>
+                  </motion.button>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
             {/* Theme */}
-            <div>
-              <h3 className="text-sm font-semibold text-zinc-400 uppercase mb-4">Theme</h3>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase mb-3 tracking-wide">
+                Theme
+              </h3>
               <div className="grid grid-cols-2 gap-2">
                 {THEMES.map((theme) => (
-                  <button
+                  <motion.button
                     key={theme.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedTheme(theme.id as Theme)}
                     className={`p-4 rounded-lg border transition-all ${
-                      selectedTheme === theme.id ? 'border-white' : 'border-zinc-800 hover:border-zinc-700'
+                      selectedTheme === theme.id
+                        ? 'border-emerald-400 bg-emerald-400/10'
+                        : 'border-zinc-800 hover:border-zinc-700'
                     }`}
                   >
-                    <div className={`h-8 rounded mb-2 ${theme.color}`} />
-                    <p className="text-xs text-center">{theme.name}</p>
-                  </button>
+                    <div className="text-2xl mb-2 text-center">{theme.icon}</div>
+                    <p className="text-xs text-center font-medium">{theme.name}</p>
+                    <p className="text-xs text-zinc-500 text-center">{theme.desc}</p>
+                  </motion.button>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
             {/* Format */}
-            <div>
-              <h3 className="text-sm font-semibold text-zinc-400 uppercase mb-4">Format</h3>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase mb-3 tracking-wide">
+                Format
+              </h3>
               <div className="space-y-2">
-                {FORMATS.map((format) => (
-                  <button
-                    key={format.id}
-                    onClick={() => setSelectedFormat(format.id as Format)}
+                {FORMATS.map((fmt) => (
+                  <motion.button
+                    key={fmt.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setSelectedFormat(fmt.id as Format)}
                     className={`w-full text-left p-3 rounded-lg border transition-all ${
-                      selectedFormat === format.id
-                        ? 'bg-emerald-600/20 border-emerald-600'
+                      selectedFormat === fmt.id
+                        ? 'bg-blue-600/20 border-blue-600'
                         : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
                     }`}
                   >
-                    <p className="font-medium text-sm">{format.name}</p>
-                    <p className="text-xs text-zinc-500">
-                      {format.size} • {format.platform}
-                    </p>
-                  </button>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">{fmt.name}</p>
+                        <p className="text-xs text-zinc-500">{fmt.size}</p>
+                      </div>
+                      <span className="text-xl">{fmt.emoji}</span>
+                    </div>
+                    <p className="text-xs text-zinc-600 mt-1">{fmt.platform}</p>
+                  </motion.button>
                 ))}
               </div>
-            </div>
+            </motion.div>
+
+            {/* Tips */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 }}
+              className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg"
+            >
+              <p className="text-xs font-medium text-zinc-300 mb-2 flex items-center gap-2">
+                💡 Quick Tips
+              </p>
+              <ul className="text-xs text-zinc-500 space-y-1">
+                <li>• Change themes to match your brand</li>
+                <li>• Square works best for Instagram</li>
+                <li>• Story format for TikTok/Reels</li>
+                <li>• Download in high resolution</li>
+              </ul>
+            </motion.div>
           </div>
 
           {/* Preview */}
-          <div className="lg:col-span-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="lg:col-span-2"
+          >
             <CardPreview card={renderCard()} format={selectedFormat} cardType={selectedCard} />
-          </div>
+          </motion.div>
         </div>
       </div>
     </main>
