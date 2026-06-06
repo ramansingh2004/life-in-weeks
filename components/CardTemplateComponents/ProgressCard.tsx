@@ -62,7 +62,6 @@ export function ProgressCard({ theme, stats }: ProgressCardProps) {
 
   // Estimate: 4000 weeks in 77 years (average)
   const totalWeeks = 4000
-  const progress = (stats.totalMemories / totalWeeks) * 100
   const yearsLogged = parseFloat((stats.totalMemories / 52).toFixed(1))
   const weeksRemaining = totalWeeks - stats.totalMemories
 
@@ -221,7 +220,7 @@ export function ProgressCard({ theme, stats }: ProgressCardProps) {
           <p className="text-xs opacity-60 mb-3 uppercase tracking-wide">Journey Status</p>
           <div className="space-y-2">
             <p className="text-sm font-light">
-              You're <span className={config.accent}>{lifePercentage.toFixed(1)}%</span> through your
+              You&apos;re <span className={config.accent}>{lifePercentage.toFixed(1)}%</span> through your
               documented life
             </p>
             <p className="text-xs opacity-60">

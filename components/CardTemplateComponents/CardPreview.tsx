@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import domtoimage from 'dom-to-image'
-import { Download, Copy, Share2, Check } from 'lucide-react'
+import { Download, Copy, Check } from 'lucide-react'
 
 interface CardPreviewProps {
   card: React.ReactNode

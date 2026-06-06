@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { CardPreview } from './CardPreview'
 import { SummaryCard } from './SummaryCard'
 import { MoodCard } from './MoodCard'
@@ -11,8 +11,8 @@ import { ProgressCard } from './ProgressCard'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/hooks/useQuery'
 import { useLifeStore } from '@/store/useCapsuleStore'
-import { useMilestoneStore } from '@/store/useMilestoneStore'
-import { ChevronDown, Sparkles } from 'lucide-react'
+import { useMilestoneStore, type Milestone } from '@/store/useMilestoneStore'
+import { Sparkles } from 'lucide-react'
 
 interface Note {
   weekIndex: number
@@ -76,7 +76,6 @@ export function StatsCardGenerator() {
   const [selectedTheme, setSelectedTheme] = useState<Theme>('dark')
   const [selectedFormat, setSelectedFormat] = useState<Format>('square')
   const [stats, setStats] = useState<Stats | null>(null)
-  const [showAdvanced, setShowAdvanced] = useState(false)
 
   // ✅ Check auth
   useEffect(() => {
@@ -140,7 +139,7 @@ export function StatsCardGenerator() {
 
       // Milestone categories
       const milestonesByCategory = new Map<string, number>()
-      milestones.forEach((m: any) => {
+      milestones.forEach((m: Milestone) => {
         milestonesByCategory.set(m.category, (milestonesByCategory.get(m.category) || 0) + 1)
       })
 
