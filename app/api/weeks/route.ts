@@ -343,7 +343,6 @@ export async function GET(req: NextRequest) {
     await connectDB()
     console.log('✅ [GET_WEEK] Database connected (after cache miss)')
 
-    let weeks
     const query: WeekQuery = { userId: user.userId }
 
     if (filters.startWeek !== undefined && filters.endWeek !== undefined) {
@@ -360,7 +359,7 @@ export async function GET(req: NextRequest) {
       if (filters.moodMax !== undefined) query.mood.$lte = filters.moodMax
     }
 
-    weeks = await Week.find(query)
+    const weeks = await Week.find(query)
       .sort({ weekIndex: 1 })
       .limit(filters.limit)
       .skip(filters.skip)

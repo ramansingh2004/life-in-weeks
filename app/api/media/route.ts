@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
     // ✅ TRY CACHE FIRST (only for default unfiltered first-page query)
     const cacheKey = CACHE_KEYS.MEDIA_LIST(userId)
     const cachedData = await getCachedValue<{
-      media: any[]
+      media: unknown[]
       count: number
       total: number
     }>(cacheKey)

@@ -39,7 +39,7 @@ export async function GET() {
 
     // ✅ TRY CACHE FIRST
     const cacheKey = CACHE_KEYS.MILESTONES_LIST(auth.userId)
-    const cachedData = await getCachedValue<{ milestones: any[]; count: number }>(cacheKey)
+    const cachedData = await getCachedValue<{ milestones: unknown[]; count: number }>(cacheKey)
 
     if (cachedData) {
       console.log(`✅ [GET_MILESTONES] Returning cached milestones`)
