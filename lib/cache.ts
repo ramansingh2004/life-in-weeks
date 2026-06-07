@@ -29,6 +29,10 @@ export const CACHE_KEYS = {
   // Media: media:{userId}
   MEDIA_LIST: (userId: string) => `media:${userId}`,
   MEDIA_SINGLE: (userId: string, mediaId: string) => `media:${userId}:${mediaId}`,
+
+  // ✅ NEW: Chapters: chapters:{userId}
+  CHAPTERS_LIST: (userId: string) => `chapters:${userId}`,
+  CHAPTER_MEDIA_LIST: (userId: string) => `chapter-media:${userId}`,
 }
 
 /**
@@ -43,6 +47,7 @@ export const CACHE_TTL = {
   USER: 24 * 60 * 60, // 24 hours
   TAGS: 24 * 60 * 60, // 24 hours
   MEDIA: 15 * 60, // 15 minutes
+  CHAPTERS: 24 * 60 * 60, // ✅ NEW: 24 hours
 }
 
 /**
@@ -184,7 +189,7 @@ export async function deleteCachedPatterns(userId: string, patterns: string[]): 
 
 /**
  * Clear All Cache for User
- * Deletes: dashboard, weeks, milestones, tags
+ * Deletes: dashboard, weeks, milestones, tags, media, chapters
  */
 export async function clearUserCache(userId: string): Promise<number> {
   console.log(`🗑️ [CACHE] Clearing all cache for user: ${userId}`)
@@ -195,6 +200,8 @@ export async function clearUserCache(userId: string): Promise<number> {
     CACHE_KEYS.MILESTONES_LIST(userId),
     CACHE_KEYS.TAGS(userId),
     CACHE_KEYS.MEDIA_LIST(userId),
+    CACHE_KEYS.CHAPTERS_LIST(userId),
+    CACHE_KEYS.CHAPTER_MEDIA_LIST(userId),
   ]
 
   let totalDeleted = 0
@@ -277,6 +284,27 @@ export async function invalidateMediaCache(userId: string, mediaId?: string): Pr
   }
 
   return deletedCount
+}
+
+/**
+ * ✅ NEW: Invalidate Chapters Cache (when chapters are generated)
+ */
+export async function invalidateChaptersCache(userId: string): Promise<boolean> {
+  console.log(`🔄 [CACHE] Invalidating chapters cache for user: ${userId}`)
+
+  const keys = [
+    CACHE_KEYS.CHAPTERS_LIST(userId),
+    CACHE_KEYS.CHAPTER_MEDIA_LIST(userId),
+    CACHE_KEYS.DASHBOARD(userId), // Dashboard might show chapter stats
+  ]
+
+  let deletedCount = 0
+  for (const key of keys) {
+    const deleted = await deleteCachedValue(key)
+    if (deleted) deletedCount++
+  }
+
+  return deletedCount > 0
 }
 
 /**

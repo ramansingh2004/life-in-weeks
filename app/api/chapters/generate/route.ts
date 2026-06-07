@@ -7,14 +7,16 @@ import { Media } from '@/models/Media.model'
 import { connectDB } from '@/lib/mongodb'
 import { detectChapterBreaks, generateChapterTitle, generateChapterDescription } from '@/lib/chapterDetection'
 import { LifeChapterCreateSchema, type LifeChapterCreate } from '@/validators/chapter.validator'
+import {
+  CACHE_KEYS,
+  deleteCachedValue,
+} from '@/lib/cache'
 
 export async function POST() {
   try {
     console.log('🎬 [GENERATE_CHAPTERS] Chapter generation started')
 
-    await connectDB()
-    console.log('✅ [GENERATE_CHAPTERS] Database connected')
-
+    // ✅ GET AUTH USER FIRST (before DB)
     const user = await getAuthUser()
 
     if (!user) {
@@ -30,6 +32,10 @@ export async function POST() {
         { status: 401 }
       )
     }
+
+    // ✅ NOW connect to database
+    await connectDB()
+    console.log('✅ [GENERATE_CHAPTERS] Database connected')
 
     const userId = user.userId || user.userId
 
@@ -140,6 +146,10 @@ export async function POST() {
     }
 
     console.log(`✅ [GENERATE_CHAPTERS] Created ${chapters.length} chapters`)
+
+    // ✅ INVALIDATE CACHE (chapters were generated, cache is now stale)
+    console.log(`🔄 [CACHE] Invalidating chapters cache for user ${userId}`)
+    await deleteCachedValue(CACHE_KEYS.CHAPTERS_LIST(userId))
 
     return NextResponse.json(
       {
