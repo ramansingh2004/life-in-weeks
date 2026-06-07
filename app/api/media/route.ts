@@ -26,13 +26,12 @@ interface MongoQuery {
   type?: string
 }
 
+// ✅ GET /api/media - Get all media for user (CACHE-FIRST)
 export async function GET(req: NextRequest) {
   try {
     console.log('📷 [GET_MEDIA] Fetching media')
 
-    await connectDB()
-    console.log('✅ [GET_MEDIA] Database connected')
-
+    // ✅ GET AUTH USER FIRST (lightweight, before DB)
     const user = await getAuthUser()
 
     if (!user) {
@@ -49,9 +48,9 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    // ✅ PARSE & VALIDATE QUERY PARAMS (before DB)
     const { searchParams } = new URL(req.url)
 
-    // ✅ VALIDATE QUERY PARAMS WITH ZOD
     const queryData = {
       weekIndex: searchParams.get('weekIndex') ? parseInt(searchParams.get('weekIndex')!) : undefined,
       type: (searchParams.get('type') || undefined) as 'image' | 'video' | 'audio' | undefined,
@@ -85,6 +84,7 @@ export async function GET(req: NextRequest) {
     const { weekIndex, type, startWeek, endWeek, limit, skip } = parsed.data
     const userId = user.userId
 
+    // ✅ DETERMINE IF WE CAN CACHE (no filters, first page)
     const shouldUseCache =
       !weekIndex &&
       !type &&
@@ -93,27 +93,39 @@ export async function GET(req: NextRequest) {
       skip === 0 &&
       limit === 20
 
-    // ✅ TRY CACHE FIRST (only for default unfiltered first-page query)
-    const cacheKey = CACHE_KEYS.MEDIA_LIST(userId)
-    const cachedData = await getCachedValue<{
-      media: unknown[]
-      count: number
-      total: number
-    }>(cacheKey)
+    // ✅ CHECK CACHE FIRST (before DB connection)
+    if (shouldUseCache) {
+      const cacheKey = CACHE_KEYS.MEDIA_LIST(userId)
+      const cachedData = await getCachedValue<{
+        media: unknown[]
+        count: number
+        total: number
+      }>(cacheKey)
 
-    if (cachedData && shouldUseCache) {
-      console.log(`✅ [GET_MEDIA] Returning cached media`)
-      return NextResponse.json({
-        success: true,
-        data: cachedData,
-        pagination: {
-          limit,
-          skip,
-          hasMore: skip + limit < cachedData.total,
-        },
-        cached: true,
-      })
+      if (cachedData) {
+        console.log(`✅ [CACHE_HIT] Returning cached media for user ${userId} (no DB connection needed)`)
+        return NextResponse.json({
+          success: true,
+          data: cachedData,
+          pagination: {
+            limit,
+            skip,
+            hasMore: skip + limit < cachedData.total,
+          },
+          message: `Found ${cachedData.count} media items`,
+          cached: true,
+          performanceMetrics: {
+            source: 'cache',
+            dbConnectionSkipped: true
+          }
+        })
+      }
     }
+
+    // ✅ CACHE MISS - Now connect to database
+    console.log(`📊 [CACHE_MISS] Media not in cache or has filters, querying database...`)
+    await connectDB()
+    console.log('✅ [GET_MEDIA] Database connected (after cache miss)')
 
     console.log('🔍 [GET_MEDIA] Fetching media for user:', userId)
     console.log('   Type filter:', type || 'none')
@@ -152,9 +164,11 @@ export async function GET(req: NextRequest) {
       total,
     }
 
-    // Cache the default unfiltered first-page query result
+    // ✅ CACHE THE RESULT (for default unfiltered first-page query only)
     if (shouldUseCache) {
+      const cacheKey = CACHE_KEYS.MEDIA_LIST(userId)
       await setCachedValue(cacheKey, payload, CACHE_TTL.MEDIA)
+      console.log(`💾 [CACHE_STORE] Cached media list for user ${userId}`)
     }
 
     return NextResponse.json({
@@ -166,6 +180,11 @@ export async function GET(req: NextRequest) {
         hasMore: skip + limit < total,
       },
       message: `Found ${media.length} media items`,
+      cached: false,
+      performanceMetrics: {
+        source: 'database',
+        dbConnectionRequired: true
+      }
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -193,13 +212,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// ✅ POST /api/media - Upload media
 export async function POST(req: NextRequest) {
   try {
     console.log('📤 [POST_MEDIA] Media upload started')
 
-    await connectDB()
-    console.log('✅ [POST_MEDIA] Database connected')
-
+    // ✅ GET AUTH USER FIRST (before DB)
     const user = await getAuthUser()
 
     if (!user) {
@@ -216,14 +234,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Parse FormData instead of JSON
+    // ✅ PARSE & VALIDATE FORMDATA (before DB)
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     const weekIndexStr = formData.get('weekIndex') as string | null
     const typeStr = formData.get('type') as string | null
     const nameStr = formData.get('name') as string | null
 
-    // ✅ VALIDATE UPLOAD DATA WITH ZOD (comprehensive validation)
     const uploadData = {
       file,
       weekIndex: weekIndexStr ? parseInt(weekIndexStr) : 0,
@@ -262,6 +279,10 @@ export async function POST(req: NextRequest) {
       weekIndex,
       mediaType: type,
     })
+
+    // ✅ NOW connect to database (after validation & auth)
+    await connectDB()
+    console.log('✅ [POST_MEDIA] Database connected')
 
     // Upload to Cloudinary using upload_stream with optimization
     const bytes = await validatedFile.arrayBuffer()
@@ -312,7 +333,7 @@ export async function POST(req: NextRequest) {
       type,
       weekIndex,
       publicId: uploadResult.public_id,
-      // ✅ NEW: Store compression data
+      // ✅ Store compression data
       metadata: {
         originalSize,
         compressedSize: uploadResult.bytes,
@@ -326,7 +347,7 @@ export async function POST(req: NextRequest) {
     console.log(`✅ [POST_MEDIA] Created media: ${name} for user ${userId}`)
 
     // ✅ INVALIDATE CACHE
-    console.log(`🔄 [CACHE] Invalidating media cache for user ${userId}, media ${media._id.toString()}`)
+    console.log(`🔄 [CACHE] Invalidating media cache for user ${userId}`)
     await invalidateMediaCache(userId, media._id.toString())
 
     return NextResponse.json(
@@ -372,13 +393,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// ✅ DELETE /api/media - Delete media
 export async function DELETE(req: NextRequest) {
   try {
     console.log('🗑️ [DELETE_MEDIA] Media deletion started')
 
-    await connectDB()
-    console.log('✅ [DELETE_MEDIA] Database connected')
-
+    // ✅ GET AUTH USER FIRST (before DB)
     const user = await getAuthUser()
 
     if (!user) {
@@ -395,10 +415,10 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
+    // ✅ PARSE & VALIDATE PARAMS (before DB)
     const { searchParams } = new URL(req.url)
     const mediaId = searchParams.get('id')
 
-    // ✅ VALIDATE MEDIA ID WITH ZOD
     const IdSchema = z.object({
       id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid media ID format'),
     })
@@ -423,6 +443,10 @@ export async function DELETE(req: NextRequest) {
         { status: 400 }
       )
     }
+
+    // ✅ NOW connect to database (after validation & auth)
+    await connectDB()
+    console.log('✅ [DELETE_MEDIA] Database connected')
 
     const { id } = parsed.data
 
@@ -466,7 +490,7 @@ export async function DELETE(req: NextRequest) {
     console.log(`✅ [DELETE_MEDIA] Deleted media: ${id}`)
 
     // ✅ INVALIDATE CACHE
-    console.log(`🔄 [CACHE] Invalidating media cache for user ${user.userId}, media ${id}`)
+    console.log(`🔄 [CACHE] Invalidating media cache for user ${user.userId}`)
     await invalidateMediaCache(user.userId, id)
 
     return NextResponse.json({

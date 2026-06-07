@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/getUser'
 import { Tag } from '@/models/Tag.model'
 import { connectDB } from '@/lib/mongodb'
-import { TagCreateSchema, TagResponseSchema, TagUpdateSchema } from '@/validators/tag.validator'
+import { TagCreateSchema, TagResponseSchema, TagUpdateSchema, TagResponse } from '@/validators/tag.validator'
 import {
   CACHE_KEYS,
   CACHE_TTL,
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     // ✅ CHECK CACHE FIRST (before DB connection)
     if (shouldUseCache) {
       const cached = await getCachedValue<{
-        tags: any[]
+        tags: TagResponse[]
         count: number
         total: number
       }>(cacheKey)
