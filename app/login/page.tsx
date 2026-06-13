@@ -2,11 +2,71 @@
 import { useState, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import Link from 'next/link'
 import { useEffect } from 'react'
 // ✅ IMPORT REACT QUERY HOOK
 import { useAuth } from '@/hooks/useQuery'
+
+// ✅ ANIMATED BACKGROUND COMPONENT
+function AnimatedBackground() {
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Base gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-950 to-black" />
+      
+      {/* Animated orbs */}
+      <motion.div
+        animate={{
+          x: [0, 100, 0],
+          y: [0, -50, 0],
+          opacity: [0.1, 0.3, 0.1],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute top-20 -left-32 w-96 h-96 bg-brand-orange rounded-full blur-3xl"
+      />
+      
+      <motion.div
+        animate={{
+          x: [0, -100, 0],
+          y: [0, 100, 0],
+          opacity: [0.05, 0.2, 0.05],
+        }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: 1,
+        }}
+        className="absolute bottom-20 -right-32 w-96 h-96 bg-brand-orange rounded-full blur-3xl"
+      />
+
+      {/* Floating grid lines */}
+      <svg className="absolute inset-0 w-full h-full opacity-5">
+        <defs>
+          <pattern
+            id="grid"
+            width="50"
+            height="50"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 50 0 L 0 0 0 50"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.5"
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+      </svg>
+    </div>
+  )
+}
 
 function LoginContent() {
   const router = useRouter()
@@ -19,6 +79,7 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<'oauth' | 'email'>('oauth')
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null)
 
   // ✅ SIMPLIFIED: Check both session (NextAuth) and user (React Query)
   //    If either indicates logged in, redirect
@@ -83,81 +144,192 @@ function LoginContent() {
   if (status === 'loading' || isLoadingUser) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center px-4">
-        <p className="text-zinc-400">Loading...</p>
+        <motion.div
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="text-zinc-400"
+        >
+          Loading...
+        </motion.div>
       </main>
     )
   }
 
-  return (
-    <main className="min-h-screen bg-black flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-sm"
-      >
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-light text-white mb-2">Welcome back</h1>
-          <p className="text-zinc-500 text-sm">Sign in to your life grid</p>
-        </div>
+  // ✅ STAGGER ANIMATION VARIANTS
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  }
 
-        {/* Tab Switcher */}
-        <div className="flex gap-2 mb-6 bg-zinc-900 p-1 rounded-lg">
-          <button
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: 'easeOut',
+      },
+    },
+  }
+
+  const tabContentVariants: Variants = {
+    hidden: { opacity: 0, y: 10, scale: 0.98 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.4,
+        ease: 'easeOut',
+      },
+    },
+    exit: {
+      opacity: 0,
+      y: -10,
+      scale: 0.98,
+      transition: {
+        duration: 0.3,
+      },
+    },
+  }
+
+  return (
+    <main className="min-h-screen bg-black flex items-center justify-center px-4 relative overflow-hidden">
+      {/* ✅ ANIMATED BACKGROUND */}
+      <AnimatedBackground />
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="w-full max-w-sm relative z-10"
+      >
+        {/* ✅ HEADER WITH ANIMATION */}
+        <motion.div variants={itemVariants} className="mb-8">
+          <motion.h1
+            initial={{ opacity: 0, letterSpacing: '0.1em' }}
+            animate={{ opacity: 1, letterSpacing: '0em' }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="text-3xl font-light text-white mb-2"
+          >
+            Welcome back
+          </motion.h1>
+          <motion.p
+            variants={itemVariants}
+            className="text-zinc-500 text-sm"
+          >
+            Sign in to your life grid
+          </motion.p>
+        </motion.div>
+
+        {/* ✅ TAB SWITCHER WITH ENHANCED ANIMATIONS */}
+        <motion.div
+          variants={itemVariants}
+          className="flex gap-2 mb-6 bg-zinc-900 p-1 rounded-lg relative overflow-hidden"
+        >
+          {/* Animated background pill */}
+          <motion.div
+            layout
+            layoutId="tabBackground"
+            className="absolute inset-y-1 bg-brand-orange rounded transition-colors"
+            style={{
+              left: tab === 'oauth' ? '4px' : '50%',
+              right: tab === 'oauth' ? '50%' : '4px',
+            }}
+            transition={{
+              type: 'spring',
+              stiffness: 300,
+              damping: 30,
+            }}
+          />
+
+          <motion.button
             onClick={() => {
               setTab('oauth')
               setError('')
             }}
-            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors ${
-              tab === 'oauth' ? 'bg-brand-orange text-black' : 'text-zinc-500 hover:text-white'
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors relative z-10 ${
+              tab === 'oauth' ? 'text-black' : 'text-zinc-500 hover:text-white'
             }`}
           >
             Google
-          </button>
-          <button
+          </motion.button>
+
+          <motion.button
             onClick={() => {
               setTab('email')
               setError('')
             }}
-            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors ${
-              tab === 'email' ? 'bg-brand-orange text-black' : 'text-zinc-500 hover:text-white'
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors relative z-10 ${
+              tab === 'email' ? 'text-black' : 'text-zinc-500 hover:text-white'
             }`}
           >
             Email
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
-        {/* Google OAuth Tab */}
+        {/* ✅ GOOGLE OAUTH TAB */}
         {tab === 'oauth' && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
+            variants={tabContentVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="space-y-3"
           >
+            {/* ✅ ERROR MESSAGE WITH SLIDE ANIMATION */}
             {error && (
               <motion.p
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-red-400 text-xs bg-red-950 p-3 rounded-lg"
+                initial={{ opacity: 0, x: -20, height: 0 }}
+                animate={{ opacity: 1, x: 0, height: 'auto' }}
+                exit={{ opacity: 0, x: -20, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-red-400 text-xs bg-red-950 p-3 rounded-lg overflow-hidden"
               >
                 {error}
               </motion.p>
             )}
 
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.02, boxShadow: '0 20px 25px -5px rgba(255, 140, 0, 0.3)' }}
               whileTap={{ scale: 0.97 }}
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full bg-brand-orange text-black rounded-xl py-3 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-brand-orange text-black rounded-xl py-3 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 relative overflow-hidden group"
             >
+              {/* ✅ SHINE EFFECT ON HOVER */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20"
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+              />
+
               {loading ? (
-                'Signing in...'
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="inline-block"
+                >
+                  ⏳
+                </motion.span>
               ) : (
                 <>
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <motion.svg
+                    className="w-5 h-5 group-hover:rotate-12"
+                    transition={{ duration: 0.3 }}
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       fill="currentColor"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -174,87 +346,177 @@ function LoginContent() {
                       fill="currentColor"
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
-                  </svg>
-                  Sign in with Google →
+                  </motion.svg>
+                  <span>Sign in with Google →</span>
                 </>
               )}
             </motion.button>
 
-            <p className="text-zinc-600 text-xs text-center">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="text-zinc-600 text-xs text-center"
+            >
               Quick and secure. No password needed.
-            </p>
+            </motion.p>
           </motion.div>
         )}
 
-        {/* Email/Password Tab */}
+        {/* ✅ EMAIL/PASSWORD TAB */}
         {tab === 'email' && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
+            variants={tabContentVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="space-y-3"
           >
+            {/* ✅ ERROR MESSAGE */}
             {error && (
               <motion.p
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-red-400 text-xs bg-red-950 p-3 rounded-lg"
+                initial={{ opacity: 0, x: -20, height: 0 }}
+                animate={{ opacity: 1, x: 0, height: 'auto' }}
+                exit={{ opacity: 0, x: -20, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-red-400 text-xs bg-red-950 p-3 rounded-lg overflow-hidden"
               >
                 {error}
               </motion.p>
             )}
 
-            <input
-              type="email"
-              placeholder="Email address"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-colors placeholder:text-zinc-650"
-            />
+            {/* ✅ EMAIL INPUT WITH FOCUS ANIMATION */}
+            <motion.div
+              whileFocus={{ scale: 1.01 }}
+              className="relative"
+            >
+              <input
+                type="email"
+                placeholder="Email address"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
+                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-all placeholder:text-zinc-650"
+              />
+              {/* ✅ ANIMATED FOCUS GLOW */}
+              {focusedField === 'email' && (
+                <motion.div
+                  layoutId="focusGlow"
+                  className="absolute inset-0 rounded-xl bg-brand-orange/10 pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                />
+              )}
+            </motion.div>
 
-            <input
-              type="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-colors placeholder:text-zinc-650"
-            />
+            {/* ✅ PASSWORD INPUT WITH FOCUS ANIMATION */}
+            <motion.div
+              whileFocus={{ scale: 1.01 }}
+              className="relative"
+            >
+              <input
+                type="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
+                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-orange transition-all placeholder:text-zinc-650"
+              />
+              {/* ✅ ANIMATED FOCUS GLOW */}
+              {focusedField === 'password' && (
+                <motion.div
+                  layoutId="focusGlow"
+                  className="absolute inset-0 rounded-xl bg-brand-orange/10 pointer-events-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                />
+              )}
+            </motion.div>
 
+            {/* ✅ SUBMIT BUTTON */}
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.02, boxShadow: '0 20px 25px -5px rgba(255, 140, 0, 0.3)' }}
               whileTap={{ scale: 0.97 }}
               onClick={handleEmailSignIn}
               disabled={loading}
-              className="w-full bg-brand-orange text-black rounded-xl py-3 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50"
+              className="w-full bg-brand-orange text-black rounded-xl py-3 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50 relative overflow-hidden group"
             >
-              {loading ? 'Signing in...' : 'Sign in →'}
+              {/* ✅ SHINE EFFECT */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20"
+                animate={{ x: ['-100%', '100%'] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+              />
+              <span className="relative">
+                {loading ? 'Signing in...' : 'Sign in →'}
+              </span>
             </motion.button>
 
-            <p className="text-zinc-600 text-xs text-center">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-zinc-600 text-xs text-center"
+            >
               Use your email and password to sign in.
-            </p>
+            </motion.p>
           </motion.div>
         )}
 
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px bg-zinc-800" />
+        {/* ✅ DIVIDER WITH ANIMATION */}
+        <motion.div variants={itemVariants} className="flex items-center gap-3 my-6">
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="flex-1 h-px bg-zinc-800 origin-left"
+          />
           <span className="text-zinc-700 text-xs">or</span>
-          <div className="flex-1 h-px bg-zinc-800" />
-        </div>
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+            className="flex-1 h-px bg-zinc-800 origin-right"
+          />
+        </motion.div>
 
-        {/* Sign up link */}
-        <p className="text-zinc-600 text-xs text-center">
+        {/* ✅ SIGN UP LINK WITH HOVER ANIMATION */}
+        <motion.div variants={itemVariants} className="text-zinc-600 text-xs text-center">
           No account yet?{' '}
-          <Link href="/register" className="text-zinc-400 hover:text-white transition-colors">
-            Create one free
-          </Link>
-        </p>
+          <motion.span
+            className="inline-block"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link
+              href="/register"
+              className="text-zinc-400 hover:text-white transition-colors relative"
+            >
+              Create one free
+              <motion.span
+                className="absolute bottom-0 left-0 h-0.5 bg-brand-orange"
+                initial={{ scaleX: 0 }}
+                whileHover={{ scaleX: 1 }}
+                transition={{ duration: 0.3 }}
+                style={{ originX: 0 }}
+              />
+            </Link>
+          </motion.span>
+        </motion.div>
 
-        {/* Privacy */}
-        <p className="text-zinc-800 text-xs text-center mt-6">
+        {/* ✅ PRIVACY WITH FADE IN */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9 }}
+          className="text-zinc-800 text-xs text-center mt-6"
+        >
           Your data is stored securely in the cloud
-        </p>
+        </motion.p>
       </motion.div>
     </main>
   )
@@ -265,7 +527,13 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <main className="min-h-screen bg-black text-white flex items-center justify-center px-4">
-          <p className="text-zinc-400">Loading...</p>
+          <motion.p
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-zinc-400"
+          >
+            Loading...
+          </motion.p>
         </main>
       }
     >
