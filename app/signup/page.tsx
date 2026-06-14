@@ -1,126 +1,33 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense, lazy } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, Variants } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 // ✅ IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
 
-// ✅ ANIMATED BACKGROUND COMPONENT - Different from login (rotating gradient)
-function AnimatedRegisterBackground() {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {/* Base gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-950 to-black" />
-
-      {/* Rotating gradient border orb */}
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-orange via-purple-500 to-brand-orange rounded-full blur-3xl opacity-10" />
-      </motion.div>
-
-      {/* Pulsing corner orbs */}
-      <motion.div
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.05, 0.15, 0.05],
-        }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -top-40 -right-40 w-96 h-96 bg-brand-orange rounded-full blur-3xl"
-      />
-
-      <motion.div
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.05, 0.15, 0.05],
-        }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-        className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-600 rounded-full blur-3xl"
-      />
-
-      {/* Animated grid - rotated */}
-      <svg
-        className="absolute inset-0 w-full h-full opacity-10"
-        style={{ mixBlendMode: 'screen' }}
-      >
-        <defs>
-          <pattern
-            id="register-grid"
-            width="40"
-            height="40"
-            patternUnits="userSpaceOnUse"
-            patternTransform="rotate(45)"
-          >
-            <circle cx="20" cy="20" r="1" fill="currentColor" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#register-grid)" />
-      </svg>
-    </div>
-  )
-}
-
-// ✅ PASSWORD STRENGTH INDICATOR
-function PasswordStrengthMeter({ password }: { password: string }) {
-  const getStrength = () => {
-    if (!password) return 0
-    let strength = 0
-    if (password.length >= 6) strength++
-    if (password.length >= 10) strength++
-    if (/[A-Z]/.test(password)) strength++
-    if (/[0-9]/.test(password)) strength++
-    if (/[^A-Za-z0-9]/.test(password)) strength++
-    return strength
+// ✅ LAZY LOAD: AnimatedBackground (non-critical for LCP)
+const AnimatedRegisterBackground = dynamic(
+  () => import('@/components/SignupComponents/lazyloading')
+    .then(mod => mod.AnimatedRegisterBackground),
+  {
+    ssr: false,
+    loading: () => null,
   }
+)
 
-  const strength = getStrength()
-  const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-lime-500', 'bg-green-500']
-  const labels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong']
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: password ? 1 : 0, height: password ? 'auto' : 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-1 overflow-hidden"
-    >
-      <div className="flex gap-1">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <motion.div
-            key={i}
-            initial={{ scaleY: 0 }}
-            animate={{ scaleY: i < strength ? 1 : 0.3 }}
-            transition={{ delay: i * 0.05, duration: 0.3 }}
-            className={`flex-1 h-1 rounded-full ${i < strength ? colors[strength - 1] : 'bg-zinc-700'}`}
-            style={{ originY: 0 }}
-          />
-        ))}
-      </div>
-      {password && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className={`text-xs font-medium ${
-            strength <= 1
-              ? 'text-red-400'
-              : strength <= 2
-              ? 'text-orange-400'
-              : strength <= 3
-              ? 'text-yellow-400'
-              : 'text-green-400'
-          }`}
-        >
-          {labels[strength - 1]}
-        </motion.p>
-      )}
-    </motion.div>
-  )
-}
+// ✅ LAZY LOAD: PasswordStrengthMeter (not needed on initial render)
+const PasswordStrengthMeter = dynamic(
+  () => import('@/components/SignupComponents/lazyloading').then(mod => ({
+    default: mod.PasswordStrengthMeter
+  })),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+)
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -139,6 +46,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [completedFields, setCompletedFields] = useState<Set<string>>(new Set())
+  // ✅ NEW: Track if components are ready (skip lazy load on first render for speed)
+  const [bgReady, setBgReady] = useState(false)
+  const [meterReady, setMeterReady] = useState(false)
 
   // ✅ If already logged in, redirect to home
   if (!isLoadingUser && user) {
@@ -293,8 +203,16 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen bg-black flex items-center justify-center px-4 relative overflow-hidden">
-      {/* ✅ ANIMATED BACKGROUND */}
-      <AnimatedRegisterBackground />
+      {/* ✅ LAZY LOAD: Animated background (appears after 500ms) */}
+      <Suspense fallback={<div className="fixed inset-0 bg-black pointer-events-none" />}>
+        <div onMouseEnter={() => setBgReady(true)}>
+          {bgReady ? (
+            <AnimatedRegisterBackground />
+          ) : (
+            <div className="fixed inset-0 bg-gradient-to-br from-black via-zinc-950 to-black pointer-events-none" />
+          )}
+        </div>
+      </Suspense>
 
       <motion.div
         variants={containerVariants}
@@ -362,6 +280,7 @@ export default function RegisterPage() {
             onClick={() => {
               setTab('email')
               setError('')
+              setMeterReady(true) // ✅ Load strength meter when email tab clicked
             }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -563,7 +482,7 @@ export default function RegisterPage() {
               )}
             </motion.div>
 
-            {/* ✅ PASSWORD INPUT WITH STRENGTH METER */}
+            {/* ✅ PASSWORD INPUT WITH LAZY LOADED STRENGTH METER */}
             <motion.div custom={2} variants={inputVariants} className="space-y-2">
               <motion.div className="relative" whileFocus={{ scale: 1.02 }}>
                 <input
@@ -588,7 +507,12 @@ export default function RegisterPage() {
                   />
                 )}
               </motion.div>
-              <PasswordStrengthMeter password={form.password} />
+              {/* ✅ LAZY LOAD: Password strength meter */}
+              {meterReady && form.password && (
+                <Suspense fallback={<div className="h-6 bg-zinc-800 rounded animate-pulse" />}>
+                  <PasswordStrengthMeter password={form.password} />
+                </Suspense>
+              )}
             </motion.div>
 
             {/* ✅ CONFIRM PASSWORD INPUT */}

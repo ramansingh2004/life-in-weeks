@@ -274,7 +274,7 @@ export default function Home() {
               >
                 <p className="text-zinc-600 text-xs mb-2">New to Life in Weeks?</p>
                 <Link
-                  href="/landing"
+                  href="/"
                   className="text-brand-orange text-xs hover:text-brand-orange/80 transition-colors underline"
                 >
                   Learn how it works →

@@ -1,93 +1,39 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, Suspense, lazy } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, Variants } from 'framer-motion'
 import Link from 'next/link'
-import { useEffect } from 'react'
+import dynamic from 'next/dynamic'
+
 // ✅ IMPORT REACT QUERY HOOK
 import { useAuth } from '@/hooks/useQuery'
 
-// ✅ ANIMATED BACKGROUND COMPONENT
-function AnimatedBackground() {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none">
-      {/* Base gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-950 to-black" />
-      
-      {/* Animated orbs */}
-      <motion.div
-        animate={{
-          x: [0, 100, 0],
-          y: [0, -50, 0],
-          opacity: [0.1, 0.3, 0.1],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="absolute top-20 -left-32 w-96 h-96 bg-brand-orange rounded-full blur-3xl"
-      />
-      
-      <motion.div
-        animate={{
-          x: [0, -100, 0],
-          y: [0, 100, 0],
-          opacity: [0.05, 0.2, 0.05],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: 'easeInOut',
-          delay: 1,
-        }}
-        className="absolute bottom-20 -right-32 w-96 h-96 bg-brand-orange rounded-full blur-3xl"
-      />
-
-      {/* Floating grid lines */}
-      <svg className="absolute inset-0 w-full h-full opacity-5">
-        <defs>
-          <pattern
-            id="grid"
-            width="50"
-            height="50"
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M 50 0 L 0 0 0 50"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.5"
-            />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-      </svg>
-    </div>
-  )
-}
+// ✅ LAZY LOAD: AnimatedBackground (non-critical, loaded after main content)
+const AnimatedBackground = dynamic(
+  () => import('@/components/LoginComponents/lazyLoading').then(mod => ({
+    default: mod.AnimatedBackground
+  })),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+)
 
 function LoginContent() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   
   // ✅ USE useAuth HOOK - auto-fetches current user and manages loading
-  const { user, isLoading: isLoadingUser } = useAuth()
+  const { isLoading: isLoadingUser } = useAuth()
   
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<'oauth' | 'email'>('oauth')
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null)
-
-  // ✅ SIMPLIFIED: Check both session (NextAuth) and user (React Query)
-  //    If either indicates logged in, redirect
-  useEffect(() => {
-    if ((status === 'authenticated' && session?.user) || (user && !isLoadingUser)) {
-      router.push('/grid')
-    }
-  }, [status, session, user, isLoadingUser, router])
+  // ✅ NEW: Track if background animation should load
+  const [bgReady, setBgReady] = useState(false)
 
   async function handleGoogleSignIn() {
     setError('')
@@ -202,8 +148,16 @@ function LoginContent() {
 
   return (
     <main className="min-h-screen bg-black flex items-center justify-center px-4 relative overflow-hidden">
-      {/* ✅ ANIMATED BACKGROUND */}
-      <AnimatedBackground />
+      {/* ✅ LAZY LOAD: Animated background (appears after 600ms or on interaction) */}
+      <Suspense fallback={<div className="fixed inset-0 bg-black pointer-events-none" />}>
+        <div onMouseEnter={() => setBgReady(true)}>
+          {bgReady ? (
+            <AnimatedBackground />
+          ) : (
+            <div className="fixed inset-0 bg-gradient-to-br from-black via-zinc-950 to-black pointer-events-none" />
+          )}
+        </div>
+      </Suspense>
 
       <motion.div
         variants={containerVariants}
@@ -493,7 +447,7 @@ function LoginContent() {
             whileTap={{ scale: 0.95 }}
           >
             <Link
-              href="/register"
+              href="/signup"
               className="text-zinc-400 hover:text-white transition-colors relative"
             >
               Create one free

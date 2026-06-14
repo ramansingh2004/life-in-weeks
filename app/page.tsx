@@ -1,7 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useQuery'
 import { ArrowRight, Calendar, Zap, Eye, Lock, Share2, BarChart3, Brain } from 'lucide-react'
 
 const fadeInUp = {
@@ -20,6 +24,16 @@ const staggerContainer = {
 }
 
 export default function LandingPage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  const { user, isLoading: isLoadingUser } = useAuth()
+
+  useEffect(() => {
+    if ((status === 'authenticated' && session?.user) || (user && !isLoadingUser)) {
+      router.push('/grid')
+    }
+  }, [status, session, user, isLoadingUser, router])
+
   return (
     <div className="min-h-screen bg-brand-black text-brand-white selection:bg-brand-orange/30">
       {/* Navigation */}
