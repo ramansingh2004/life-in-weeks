@@ -97,19 +97,19 @@ export default function SignUpPage() {
   const [bgReady, setBgReady] = useState(false)
   const [meterReady, setMeterReady] = useState(false)
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBgReady(true)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
   // ✅ If already logged in, redirect to home
   if (!isLoadingUser && user) {
     router.push('/')
     return null
   }
-
-  useEffect(() => {
-  const timer = setTimeout(() => {
-    setBgReady(true)
-  }, 1000)
-
-  return () => clearTimeout(timer)
-}, [])
 
   // ✅ Track completed fields
   const updateField = (fieldName: string, value: string) => {
