@@ -51,7 +51,6 @@ export default function GridPage() {
   } = useLifeStore()
   const { milestones, syncFromBackend: syncMilestones, getMilestone } = useMilestoneStore()
 
-  const [stats, setStats] = useState({ lived: 0, remaining: 0, total: 0 })
   const [tooltip, setTooltip] = useState<{
     text: string
     x: number
@@ -64,6 +63,21 @@ export default function GridPage() {
   const [hydrated, setHydrated] = useState(false)
   // NEW: Highlight state for search results
   const [highlightedWeekIndex, setHighlightedWeekIndex] = useState<number | null>(null)
+
+  const weeks = useMemo(() => {
+    if (!storedDate) return []
+    return generateWeeks(new Date(storedDate), lifeExpectancy)
+  }, [storedDate, lifeExpectancy])
+
+  const stats = useMemo(() => {
+  const lived = weeks.filter(w => w.isPast).length
+
+  return {
+    lived,
+    remaining: weeks.length - lived,
+    total: weeks.length,
+  }
+}, [weeks])
 
   const animatedLived = useCountUp(stats.lived)
   const animatedRemaining = useCountUp(stats.remaining)
@@ -100,17 +114,6 @@ export default function GridPage() {
   }, [hydrated, user, isLoadingUser, setBirthDate, setLifeExpectancy, syncFromBackend, syncMilestones, isSynced, router])
 
   const birthDateObj = storedDate ? new Date(storedDate) : null
-
-  const weeks = useMemo(() => {
-    if (!storedDate) return []
-    return generateWeeks(new Date(storedDate), lifeExpectancy)
-  }, [storedDate, lifeExpectancy])
-
-  useEffect(() => {
-    if (weeks.length === 0) return
-    const lived = weeks.filter((w) => w.isPast).length
-    setStats({ lived, remaining: weeks.length - lived, total: weeks.length })
-  }, [weeks.length, weeks])
 
   const currentAge = birthDateObj
     ? Math.floor(differenceInWeeks(new Date(), birthDateObj) / 52)

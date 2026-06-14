@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, Variants } from 'framer-motion'
@@ -9,9 +9,9 @@ import Link from 'next/link'
 import { useAuth } from '@/hooks/useQuery'
 
 // ✅ LAZY LOAD: AnimatedBackground (non-critical for LCP)
-const AnimatedRegisterBackground = dynamic(
+const AnimatedSignUpBackground = dynamic(
   () => import('@/components/SignupComponents/lazyloading')
-    .then(mod => mod.AnimatedRegisterBackground),
+    .then(mod => mod.AnimatedSignUpBackground),
   {
     ssr: false,
     loading: () => null,
@@ -29,7 +29,53 @@ const PasswordStrengthMeter = dynamic(
   }
 )
 
-export default function RegisterPage() {
+// ✅ ANIMATION VARIANTS
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+        delayChildren: 0.1,
+      },
+    },
+  }
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: 'easeOut' },
+    },
+  }
+
+  const tabContentVariants: Variants = {
+    hidden: { opacity: 0, y: 15, scale: 0.97 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.4, ease: 'easeOut' },
+    },
+    exit: {
+      opacity: 0,
+      y: -15,
+      scale: 0.97,
+      transition: { duration: 0.3 },
+    },
+  }
+
+  const inputVariants: Variants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      x: 0,
+      transition: { delay: i * 0.08, duration: 0.4, ease: 'easeOut' },
+    }),
+  }
+
+export default function SignUpPage() {
   const router = useRouter()
 
   // ✅ USE useAuth to check if already logged in
@@ -55,6 +101,14 @@ export default function RegisterPage() {
     router.push('/')
     return null
   }
+
+  useEffect(() => {
+  const timer = setTimeout(() => {
+    setBgReady(true)
+  }, 1000)
+
+  return () => clearTimeout(timer)
+}, [])
 
   // ✅ Track completed fields
   const updateField = (fieldName: string, value: string) => {
@@ -155,59 +209,13 @@ export default function RegisterPage() {
     )
   }
 
-  // ✅ ANIMATION VARIANTS
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.12,
-        delayChildren: 0.1,
-      },
-    },
-  }
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: 'easeOut' },
-    },
-  }
-
-  const tabContentVariants: Variants = {
-    hidden: { opacity: 0, y: 15, scale: 0.97 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.4, ease: 'easeOut' },
-    },
-    exit: {
-      opacity: 0,
-      y: -15,
-      scale: 0.97,
-      transition: { duration: 0.3 },
-    },
-  }
-
-  const inputVariants: Variants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: (i: number) => ({
-      opacity: 1,
-      x: 0,
-      transition: { delay: i * 0.08, duration: 0.4, ease: 'easeOut' },
-    }),
-  }
-
   return (
     <main className="min-h-screen bg-black flex items-center justify-center px-4 relative overflow-hidden">
       {/* ✅ LAZY LOAD: Animated background (appears after 500ms) */}
       <Suspense fallback={<div className="fixed inset-0 bg-black pointer-events-none" />}>
         <div onMouseEnter={() => setBgReady(true)}>
           {bgReady ? (
-            <AnimatedRegisterBackground />
+            <AnimatedSignUpBackground />
           ) : (
             <div className="fixed inset-0 bg-gradient-to-br from-black via-zinc-950 to-black pointer-events-none" />
           )}
@@ -223,9 +231,9 @@ export default function RegisterPage() {
         {/* ✅ HEADER WITH GRADIENT TEXT ANIMATION */}
         <motion.div variants={itemVariants} className="mb-8">
           <motion.h1
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            initial={{ opacity: 0}}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
             className="text-3xl font-light text-white mb-2 relative"
           >
             Create account
@@ -266,9 +274,7 @@ export default function RegisterPage() {
               setTab('oauth')
               setError('')
             }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors relative z-10 ${
+            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors relative z-10 transition-transform hover:scale-105 active:scale-95 ${
               tab === 'oauth' ? 'text-black' : 'text-zinc-500 hover:text-white'
             }`}
           >
@@ -282,9 +288,7 @@ export default function RegisterPage() {
               setError('')
               setMeterReady(true) // ✅ Load strength meter when email tab clicked
             }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors relative z-10 ${
+            className={`flex-1 py-2 rounded text-sm font-semibold transition-colors relative z-10 transition-transform hover:scale-105 active:scale-95 ${
               tab === 'email' ? 'text-black' : 'text-zinc-500 hover:text-white'
             }`}
           >

@@ -20,6 +20,51 @@ const AnimatedBackground = dynamic(
   }
 )
 
+// ✅ STAGGER ANIMATION VARIANTS
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  }
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: 'easeOut',
+      },
+    },
+  }
+
+  const tabContentVariants: Variants = {
+    hidden: { opacity: 0, y: 10, scale: 0.98 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.4,
+        ease: 'easeOut',
+      },
+    },
+    exit: {
+      opacity: 0,
+      y: -10,
+      scale: 0.98,
+      transition: {
+        duration: 0.3,
+      },
+    },
+  }
+
 function LoginContent() {
   const router = useRouter()
   const { status } = useSession()
@@ -32,8 +77,6 @@ function LoginContent() {
   const [error, setError] = useState('')
   const [tab, setTab] = useState<'oauth' | 'email'>('oauth')
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null)
-  // ✅ NEW: Track if background animation should load
-  const [bgReady, setBgReady] = useState(false)
 
   async function handleGoogleSignIn() {
     setError('')
@@ -101,63 +144,10 @@ function LoginContent() {
     )
   }
 
-  // ✅ STAGGER ANIMATION VARIANTS
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  }
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        ease: 'easeOut',
-      },
-    },
-  }
-
-  const tabContentVariants: Variants = {
-    hidden: { opacity: 0, y: 10, scale: 0.98 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        duration: 0.4,
-        ease: 'easeOut',
-      },
-    },
-    exit: {
-      opacity: 0,
-      y: -10,
-      scale: 0.98,
-      transition: {
-        duration: 0.3,
-      },
-    },
-  }
-
   return (
     <main className="min-h-screen bg-black flex items-center justify-center px-4 relative overflow-hidden">
-      {/* ✅ LAZY LOAD: Animated background (appears after 600ms or on interaction) */}
-      <Suspense fallback={<div className="fixed inset-0 bg-black pointer-events-none" />}>
-        <div onMouseEnter={() => setBgReady(true)}>
-          {bgReady ? (
-            <AnimatedBackground />
-          ) : (
-            <div className="fixed inset-0 bg-gradient-to-br from-black via-zinc-950 to-black pointer-events-none" />
-          )}
-        </div>
-      </Suspense>
+      {/* ✅ LAZY LOAD: Animated background*/}
+        <AnimatedBackground />
 
       <motion.div
         variants={containerVariants}

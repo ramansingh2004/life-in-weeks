@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 
 // ✅ ANIMATED BACKGROUND COMPONENT - Different from login (rotating gradient)
-export function AnimatedRegisterBackground() {
+export function AnimatedSignUpBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
       {/* Base gradient */}
