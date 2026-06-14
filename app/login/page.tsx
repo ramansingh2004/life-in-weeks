@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense, lazy } from 'react'
+import { useState, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, Variants } from 'framer-motion'

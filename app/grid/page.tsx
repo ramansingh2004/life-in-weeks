@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useMemo, lazy, Suspense } from 'react'
+import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { differenceInWeeks, addWeeks, format, getYear } from 'date-fns'
@@ -62,12 +62,8 @@ export default function GridPage() {
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false)
   const [selectedMilestoneWeek, setSelectedMilestoneWeek] = useState<Week | null>(null)
   const [hydrated, setHydrated] = useState(false)
-  // ✅ NEW: Highlight state for search results
+  // NEW: Highlight state for search results
   const [highlightedWeekIndex, setHighlightedWeekIndex] = useState<number | null>(null)
-  // ✅ NEW: Track if sidebar should render (lazy)
-  const [sidebarReady, setSidebarReady] = useState(false)
-  // ✅ NEW: Track if modals should render
-  const [modalsReady, setModalsReady] = useState(false)
 
   const animatedLived = useCountUp(stats.lived)
   const animatedRemaining = useCountUp(stats.remaining)
@@ -75,14 +71,6 @@ export default function GridPage() {
 
   useEffect(() => {
     setHydrated(true)
-    // Load sidebar after main content (150ms delay)
-    const sidebarTimer = setTimeout(() => setSidebarReady(true), 150)
-    // Load modals after main content (300ms delay)
-    const modalsTimer = setTimeout(() => setModalsReady(true), 300)
-    return () => {
-      clearTimeout(sidebarTimer)
-      clearTimeout(modalsTimer)
-    }
   }, [])
 
   // ✅ SIMPLIFIED: useAuth hook handles user fetching
@@ -137,7 +125,6 @@ export default function GridPage() {
     setSelectedWeek(week)
     const data = getNote(week.index)
     setViewMode(!!data)
-    setModalsReady(true) // ✅ Ensure modals are loaded when clicked
   }
 
   // ✅ IMPROVED: Check both user loading AND weeks loading
@@ -164,7 +151,7 @@ export default function GridPage() {
   return (
     <main className="min-h-screen bg-black text-white">
       {/* ✅ LAZY LOAD: Sidebar (appears after 150ms) */}
-      {sidebarReady && (
+      {(
         <Suspense fallback={<div className="w-14 sm:w-64 bg-zinc-950 fixed left-0 top-0 h-screen" />}>
           <Sidebar />
         </Suspense>
@@ -268,7 +255,6 @@ export default function GridPage() {
                               e.preventDefault()
                               setSelectedMilestoneWeek(week)
                               setMilestoneModalOpen(true)
-                              setModalsReady(true) // ✅ Ensure modals are loaded
                             }}
                             onMouseEnter={(e) => {
                               const rect = (e.target as HTMLElement).getBoundingClientRect()
@@ -309,7 +295,6 @@ export default function GridPage() {
                                 e.stopPropagation()
                                 setSelectedMilestoneWeek(week)
                                 setMilestoneModalOpen(true)
-                                setModalsReady(true) // ✅ Ensure modals are loaded
                               }}
                               title={milestone.title}
                             >
@@ -373,9 +358,10 @@ export default function GridPage() {
       </div>
 
       {/* ✅ LAZY LOAD: Modals (appears after 300ms or on interaction) */}
-      {modalsReady && (
+      {(
         <>
-          {viewMode ? (
+          {selectedWeek &&
+          viewMode ? (
             <Suspense fallback={null}>
               <MemoryViewCard
                 week={selectedWeek}
@@ -399,12 +385,13 @@ export default function GridPage() {
             </Suspense>
           )}
 
-          <Suspense fallback={null}>
-            <MilestoneModal
-              isOpen={milestoneModalOpen}
-              onClose={() => {
-                setMilestoneModalOpen(false)
-                setSelectedMilestoneWeek(null)
+          {milestoneModalOpen && (
+            <Suspense fallback={null}>
+              <MilestoneModal
+                isOpen={milestoneModalOpen}
+                onClose={() => {
+                  setMilestoneModalOpen(false)
+                  setSelectedMilestoneWeek(null)
               }}
               weekIndex={selectedMilestoneWeek?.index || 0}
               date={selectedMilestoneWeek?.date || ''}
@@ -413,8 +400,10 @@ export default function GridPage() {
               }
             />
           </Suspense>
-        </>
-      )}
+          )}
+
+          </>
+          )}
 
       {/* Tooltip */}
       {tooltip && (
