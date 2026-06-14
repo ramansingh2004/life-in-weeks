@@ -10,6 +10,7 @@ import { useMilestoneStore } from '@/store/useMilestoneStore'
 // ✅ IMPORT REACT QUERY HOOKS
 import { useAuth, useWeeks } from '@/hooks/useQuery'
 import dynamic from 'next/dynamic'
+import {GridSkeleton} from '@/components/GridSkeleton'
 
 // ✅ LAZY LOAD: Components that aren't needed for initial LCP
 const Sidebar = dynamic(() => import('@/components/Sidebar'))
@@ -132,23 +133,7 @@ export default function GridPage() {
 
   // ✅ IMPROVED: Check both user loading AND weeks loading
   if (!hydrated || isLoadingUser || isLoadingWeeks) {
-    return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <div className="flex gap-1 justify-center mb-4">
-            {[0, 1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                animate={{ opacity: [0.2, 1, 0.2] }}
-                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                className="w-2 h-2 bg-zinc-600 rounded-[1px]"
-              />
-            ))}
-          </div>
-          <p className="text-zinc-600 text-xs">Building your life grid...</p>
-        </motion.div>
-      </main>
-    )
+    return <GridSkeleton />
   }
 
   return (

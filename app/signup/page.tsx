@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 // ✅ IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
+import {SignupSkeleton} from '@/components/SignupComponents/SignupSkeleton'
 
 // ✅ LAZY LOAD: AnimatedBackground (non-critical for LCP)
 const AnimatedSignUpBackground = dynamic(
@@ -196,17 +197,7 @@ export default function SignUpPage() {
 
   // ✅ Show loading while checking auth status
   if (isLoadingUser) {
-    return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center px-4">
-        <motion.div
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="text-zinc-400"
-        >
-          Loading...
-        </motion.div>
-      </main>
-    )
+    return <SignupSkeleton />
   }
 
   return (

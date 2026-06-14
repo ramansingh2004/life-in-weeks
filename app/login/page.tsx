@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, Variants } from 'framer-motion'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import {LoginSkeleton} from '@/components/LoginComponents/LoginSkeleton'
 
 // ✅ IMPORT REACT QUERY HOOK
 import { useAuth } from '@/hooks/useQuery'
@@ -131,17 +132,7 @@ function LoginContent() {
 
   // ✅ IMPROVED: Check both NextAuth session AND React Query user
   if (status === 'loading' || isLoadingUser) {
-    return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center px-4">
-        <motion.div
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="text-zinc-400"
-        >
-          Loading...
-        </motion.div>
-      </main>
-    )
+    return <LoginSkeleton />
   }
 
   return (
