@@ -1,5 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
+import Sidebar from '@/components/Sidebar'
 
 const shimmerTransition = (delay = 0) => ({
   duration: 2,
@@ -11,8 +12,8 @@ const shimmerTransition = (delay = 0) => ({
 export function PhotoGallerySkeleton() {
   return (
     <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
-      {/* Sidebar placeholder */}
-      <div className="hidden sm:block fixed left-0 top-0 w-64 h-screen bg-zinc-950 border-r border-zinc-900" />
+      {/* Sidebar */}
+      <Sidebar />
 
       <div className="max-w-7xl mx-auto">
         {/* Header skeleton */}

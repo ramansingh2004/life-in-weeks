@@ -193,8 +193,8 @@ export function PhotoGallery() {
     resetPagination()
   }, [searchTerm, dateRange, resetPagination])
 
-  // ✅ Show loading while checking auth
-  if (isLoadingUser) {
+  // ✅ Show loading while checking auth or fetching photos
+  if (isLoadingUser || isLoading) {
     return <PhotoGallerySkeleton />
   }
 
@@ -218,18 +218,6 @@ export function PhotoGallery() {
           >
             Back to Grid
           </button>
-        </div>
-      </main>
-    )
-  }
-
-  // Show loading state
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
-        <div className="max-w-6xl mx-auto text-center py-20">
-          <div className="text-6xl mb-4 animate-bounce">📸</div>
-          <h1 className="text-2xl font-light">Loading your photos...</h1>
         </div>
       </main>
     )
