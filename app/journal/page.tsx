@@ -8,7 +8,7 @@ import { WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from '@/typesDefined'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/hooks/useQuery'
 import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
-
+import { JournalSkeleton } from '@/components/JournalSkeleton'
 type Filter = 'all' | 'memories' | 'dreams'
 
 export default function JournalPage() {
@@ -103,23 +103,7 @@ export default function JournalPage() {
 
   // ✅ SHOW LOADING while checking auth
   if (isLoadingUser) {
-    return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <div className="flex gap-1 justify-center mb-4">
-            {[0, 1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                animate={{ opacity: [0.2, 1, 0.2] }}
-                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                className="w-2 h-2 bg-zinc-600 rounded-[1px]"
-              />
-            ))}
-          </div>
-          <p className="text-zinc-600 text-xs">Loading...</p>
-        </motion.div>
-      </main>
-    )
+    return <JournalSkeleton />
   }
 
   if (!hydrated || !user) {
