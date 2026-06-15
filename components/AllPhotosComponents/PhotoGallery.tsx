@@ -11,6 +11,7 @@ import { PhotoViewer } from './PhotoViewer'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/hooks/useQuery'
 import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
+import { PhotoGallerySkeleton } from './PhotoGallerySkeleton'
 
 type PhotoItem = {
   _id: string
@@ -194,14 +195,7 @@ export function PhotoGallery() {
 
   // ✅ Show loading while checking auth
   if (isLoadingUser) {
-    return (
-      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
-        <div className="max-w-6xl mx-auto text-center py-20">
-          <div className="text-6xl mb-4 animate-bounce">📸</div>
-          <h1 className="text-2xl font-light">Loading...</h1>
-        </div>
-      </main>
-    )
+    return <PhotoGallerySkeleton />
   }
 
   // Show error state
