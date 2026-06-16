@@ -257,7 +257,7 @@ export async function GET(req: NextRequest) {
       const week = await Week.findOne({
         userId: user.userId,
         weekIndex: queryData.weekIndex,
-      })
+      }).lean()
 
       if (!week) {
         console.warn('⚠️ [GET_WEEK] Week not found:', queryData.weekIndex)
@@ -363,6 +363,7 @@ export async function GET(req: NextRequest) {
       .sort({ weekIndex: 1 })
       .limit(filters.limit)
       .skip(filters.skip)
+      .lean()
 
     const total = await Week.countDocuments({ userId: user.userId })
 

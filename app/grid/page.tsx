@@ -71,14 +71,23 @@ export default function GridPage() {
   }, [storedDate, lifeExpectancy])
 
   const stats = useMemo(() => {
-  const lived = weeks.filter(w => w.isPast).length
+  if (!storedDate) {
+    return { lived: 0, remaining: 0, total: 0 }
+  }
+
+  const lived = differenceInWeeks(
+    new Date(),
+    new Date(storedDate)
+  )
+
+  const total = lifeExpectancy * 52
 
   return {
     lived,
-    remaining: weeks.length - lived,
-    total: weeks.length,
+    remaining: total - lived,
+    total,
   }
-}, [weeks])
+}, [storedDate, lifeExpectancy])
 
   const animatedLived = useCountUp(stats.lived)
   const animatedRemaining = useCountUp(stats.remaining)

@@ -45,5 +45,7 @@ const WeekSchema = new Schema<IWeek>({
 WeekSchema.index({ userId: 1, weekIndex: 1 }, { unique: true })
 WeekSchema.index({ userId: 1, tags: 1 })        // NEW: for filtering by tag
 WeekSchema.index({ userId: 1, date: 1 })
+WeekSchema.index({ userId: 1 })
+WeekSchema.index({ userId: 1, mood: 1 })
 
 export const Week = models.Week || model<IWeek>("Week", WeekSchema)
