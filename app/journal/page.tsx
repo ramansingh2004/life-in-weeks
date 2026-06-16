@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
@@ -13,13 +13,12 @@ type Filter = 'all' | 'memories' | 'dreams'
 
 export default function JournalPage() {
   const router = useRouter()
-  
+
   const { user, isLoading: isLoadingUser } = useAuth()
   const { notes, birthDate } = useLifeStore()
-  
+
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
-  const [allEntries, setAllEntries] = useState<WeekData[]>([])
   const [hydrated, setHydrated] = useState(false)
 
   const totalNotesCount = Object.values(notes).filter((n) => n.note && n.note !== '<p></p>').length
@@ -38,19 +37,19 @@ export default function JournalPage() {
     onLoadMore: async (cursor) => {
       // Simulate loading delay
       await new Promise((resolve) => setTimeout(resolve, 300))
-      
+
       // Get filtered entries
-      const filtered = getFilteredEntries()
-      
+      const filtered = filteredEntries
+
       if (cursor === null) {
         // First load
         return filtered.slice(0, 20)
       }
-      
+
       // Find current cursor position
       const cursorIndex = filtered.findIndex((e) => e.weekIndex === (cursor as number))
       const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0
-      
+
       return filtered.slice(startIndex, startIndex + 20)
     },
   })
@@ -60,34 +59,32 @@ export default function JournalPage() {
   }, [])
 
   // Get filtered entries based on current filter and search
-  const getFilteredEntries = useCallback((): WeekData[] => {
-    const allNotes = Object.values(notes)
+  const filteredEntries = useMemo(() => {
+    return Object.values(notes)
       .filter((n) => n.note && n.note !== '<p></p>')
       .sort((a, b) => b.weekIndex - a.weekIndex)
+      .filter((entry) => {
+        const matchesFilter =
+          filter === 'all' ||
+          (filter === 'memories' && entry.isPast) ||
+          (filter === 'dreams' && !entry.isPast)
 
-    return allNotes.filter((entry) => {
-      const matchesFilter =
-        filter === 'all' ||
-        (filter === 'memories' && entry.isPast) ||
-        (filter === 'dreams' && !entry.isPast)
+        const matchesSearch =
+          search === '' ||
+          entry.note.toLowerCase().includes(search.toLowerCase()) ||
+          entry.date.toLowerCase().includes(search.toLowerCase())
 
-      const matchesSearch =
-        search === '' ||
-        entry.note.toLowerCase().includes(search.toLowerCase()) ||
-        entry.date.toLowerCase().includes(search.toLowerCase())
-
-      return matchesFilter && matchesSearch
-    })
+        return matchesFilter && matchesSearch
+      })
   }, [notes, filter, search])
 
   // Load initial entries when filter/search changes
   useEffect(() => {
     if (!hydrated) return
-    
-    const filtered = getFilteredEntries()
-    setAllEntries(filtered)
+
+    const filtered = filteredEntries
     resetPagination()
-    
+
     // Load first batch
     setTimeout(() => {
       const initial = filtered.slice(0, 20)
@@ -95,7 +92,7 @@ export default function JournalPage() {
         // Trigger pagination to load initial items
       }
     }, 0)
-  }, [filter, search, hydrated, getFilteredEntries, resetPagination])
+  }, [filter, search, hydrated, filteredEntries, resetPagination])
 
   function stripHtml(html: string) {
     return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -131,7 +128,7 @@ export default function JournalPage() {
           </button>
         </div>
         <p className="text-zinc-600 text-xs">
-          {allEntries.length} {allEntries.length === 1 ? 'entry' : 'entries'} written
+          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'} written
         </p>
       </div>
 
@@ -154,10 +151,9 @@ export default function JournalPage() {
             onClick={() => setFilter(f)}
             className={`
               px-4 py-1.5 rounded-full text-xs capitalize transition-all border duration-300
-              ${
-                filter === f
-                  ? 'bg-[#FCA311] text-black border-[#FCA311] font-semibold shadow-md shadow-[#FCA311]/10'
-                  : 'border-zinc-800/80 text-zinc-400 hover:border-[#FCA311]/50 hover:text-[#FCA311]'
+              ${filter === f
+                ? 'bg-[#FCA311] text-black border-[#FCA311] font-semibold shadow-md shadow-[#FCA311]/10'
+                : 'border-zinc-800/80 text-zinc-400 hover:border-[#FCA311]/50 hover:text-[#FCA311]'
               }
             `}
           >
@@ -180,7 +176,7 @@ export default function JournalPage() {
               Go to grid →
             </button>
           </div>
-        ) : allEntries.length === 0 ? (
+        ) : filteredEntries.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-zinc-600 text-sm">
               No entries match your search.
@@ -203,11 +199,10 @@ export default function JournalPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span
-                        className={`text-xs px-2 py-0.5 rounded-full border ${
-                          entry.isPast
-                            ? 'border-zinc-700 text-zinc-400 bg-black/20'
-                            : 'border-[#FCA311]/40 text-[#FCA311] bg-[#FCA311]/5'
-                        }`}
+                        className={`text-xs px-2 py-0.5 rounded-full border ${entry.isPast
+                          ? 'border-zinc-700 text-zinc-400 bg-black/20'
+                          : 'border-[#FCA311]/40 text-[#FCA311] bg-[#FCA311]/5'
+                          }`}
                       >
                         {entry.isPast ? 'Memory' : 'Dream'}
                       </span>
@@ -225,17 +220,16 @@ export default function JournalPage() {
                   {/* Mood dot */}
                   {entry.mood > 0 && (
                     <div
-                      className={`w-2 h-2 rounded-full mt-1 ${
-                        entry.mood === 1
-                          ? 'bg-red-500'
-                          : entry.mood === 2
-                            ? 'bg-orange-500'
-                            : entry.mood === 3
-                              ? 'bg-yellow-500'
-                              : entry.mood === 4
-                                ? 'bg-green-500'
-                                : 'bg-emerald-400'
-                      }`}
+                      className={`w-2 h-2 rounded-full mt-1 ${entry.mood === 1
+                        ? 'bg-red-500'
+                        : entry.mood === 2
+                          ? 'bg-orange-500'
+                          : entry.mood === 3
+                            ? 'bg-yellow-500'
+                            : entry.mood === 4
+                              ? 'bg-green-500'
+                              : 'bg-emerald-400'
+                        }`}
                     />
                   )}
                 </div>
