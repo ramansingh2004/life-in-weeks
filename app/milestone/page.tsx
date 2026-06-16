@@ -7,7 +7,7 @@ import { useMilestoneStore, Milestone } from "@/store/useMilestoneStore"
 import MilestoneModal from "@/components/MilestoneModal"
 import Sidebar from "@/components/Sidebar"
 import { CATEGORY_COLORS } from "@/typesDefined"
-
+import {MilestonesSkeleton} from "@/components/MilestonesSkeleton"
 
 export default function MilestonesPage() {
   const router = useRouter()
@@ -53,11 +53,7 @@ export default function MilestonesPage() {
   const categories = Array.from(new Set(milestones.map((m) => m.category)))
 
   if (!hydrated || loading) {
-    return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-zinc-600 text-xs">Loading milestones...</div>
-      </main>
-    )
+    return <MilestonesSkeleton />
   }
 
   return (

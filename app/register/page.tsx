@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useAuthStore } from '@/store/useAuthStore'
-// ✅ IMPORT REACT QUERY HOOKS
+import { RegisterSkeleton } from '@/components/RegisterSkeleton'
+// IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
 
 const QUOTES = [
@@ -16,12 +17,12 @@ const QUOTES = [
   "Time is the only currency that can't be earned back.",
 ]
 
-export default function Home() {
+export default function Register() {
   const router = useRouter()
   const { birthDate, lifeExpectancy, setBirthDate, setLifeExpectancy } = useLifeStore()
   const { user, setUser } = useAuthStore()
 
-  // ✅ REPLACE: const [error, setError] = useState("")
+  // REPLACE: const [error, setError] = useState("")
   //    with useAuth hook that auto-manages loading state
   const {
     user: backendUser,
@@ -43,7 +44,7 @@ export default function Home() {
     setHydrated(true)
   }, [])
 
-  // ✅ REPLACED: async loadUser() { await getMe() }
+  // REPLACED: async loadUser() { await getMe() }
   //    with: useAuth hook that auto-fetches and caches user
   //    Benefits: Auto caching, auto refetch on focus, built-in loading state
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function Home() {
       return
     }
 
-    // ✅ REPLACED: try/catch with fetch("/api/auth/profile")
+    // REPLACED: try/catch with fetch("/api/auth/profile")
     //    with: updateProfile mutation
     //    Benefits: Auto cache update, built-in error handling, stale time aware
     updateProfile(
@@ -111,14 +112,10 @@ export default function Home() {
     )
   }
 
-  // ✅ REPLACED: if (!hydrated)
+  // REPLACED: if (!hydrated)
   //    Now also checks isLoadingUser from useAuth
   if (!hydrated || isLoadingUser) {
-    return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-zinc-600 text-xs">Loading...</div>
-      </main>
-    )
+    return <RegisterSkeleton />
   }
 
   return (
@@ -243,7 +240,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* ✅ SHOW ERRORS FROM MULTIPLE SOURCES */}
+              {/* SHOW ERRORS FROM MULTIPLE SOURCES */}
               {(error || updateProfileError || authError) && (
                 <motion.p
                   initial={{ opacity: 0, x: -8 }}
@@ -254,7 +251,7 @@ export default function Home() {
                 </motion.p>
               )}
 
-              {/* ✅ DISABLE BUTTON WHILE UPDATING */}
+              {/* DISABLE BUTTON WHILE UPDATING */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
@@ -265,7 +262,7 @@ export default function Home() {
                 {isUpdatingProfile ? 'Saving...' : 'See my life →'}
               </motion.button>
 
-              {/* ✅ NEW: LINK TO LANDING PAGE */}
+              {/* NEW: LINK TO LANDING PAGE */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
