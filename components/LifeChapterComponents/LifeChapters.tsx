@@ -10,6 +10,7 @@ import { ChapterCard } from './ChapterCard'
 import { ChapterDetailModal } from './ChapterDetailModal'
 import { Chapter } from '@/typesDefined'
 import Sidebar from '@/components/Sidebar'
+import {LifeChaptersSkeleton} from './LifeChaptersSkeleton'
 // ✅ IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
 
@@ -131,25 +132,8 @@ export function LifeChapters() {
     : null
 
   // ✅ Show loading while checking auth
-  if (isLoadingUser) {
-    return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-zinc-400">Loading...</p>
-        </div>
-      </main>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-black text-white pt-16 sm:pt-20 px-4 sm:px-6 pb-10">
-        <div className="max-w-6xl mx-auto text-center py-20">
-          <div className="text-6xl mb-4 animate-bounce">📖</div>
-          <h1 className="text-2xl font-light">Generating your life story...</h1>
-        </div>
-      </main>
-    )
+  if (isLoadingUser || isLoading) {
+    return <LifeChaptersSkeleton />
   }
 
   if (chapters.length === 0) {
