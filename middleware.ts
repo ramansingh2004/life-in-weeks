@@ -20,8 +20,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // If user is logged in and tries to access login/register, redirect to grid
-  if ((pathname === "/login" || pathname === "/register") && token) {
+  // If user is logged in and tries to access login/signup, redirect to grid
+  if ((pathname === "/login" || pathname === "/signup") && token) {
     return NextResponse.redirect(new URL("/grid", request.url))
   }
 
@@ -42,5 +42,6 @@ export const config = {
     // Auth routes
     "/login",
     "/register",
+    "/signup",
   ],
 }

@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { motion, Variants, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useAuth } from '@/hooks/useQuery'
-import { SignupSkeleton } from '@/components/SignupComponents/SignupSkeleton'
 import { User, Mail, Lock, ArrowLeft, Shield, CheckCircle, Star } from 'lucide-react'
 
 // ✅ LAZY LOAD: AnimatedSignUpBackground (non-critical for LCP)
@@ -79,9 +77,6 @@ const inputVariants: Variants = {
 export default function SignUpPage() {
   const router = useRouter()
 
-  // ✅ USE useAuth to check if already logged in
-  const { user, isLoading: isLoadingUser } = useAuth()
-
   const [tab, setTab] = useState<'oauth' | 'email'>('oauth')
   const [form, setForm] = useState({
     name: '',
@@ -103,12 +98,6 @@ export default function SignUpPage() {
 
     return () => clearTimeout(timer)
   }, [])
-
-  // ✅ If already logged in, redirect to home
-  if (!isLoadingUser && user) {
-    router.push('/')
-    return null
-  }
 
   // ✅ Track completed fields
   const updateField = (fieldName: string, value: string) => {
@@ -192,11 +181,6 @@ export default function SignUpPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Show loading while checking auth status
-  if (isLoadingUser) {
-    return <SignupSkeleton />
   }
 
   return (

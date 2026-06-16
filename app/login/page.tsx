@@ -1,12 +1,10 @@
 'use client'
 import { useState, Suspense, useEffect } from 'react'
-import { signIn, useSession } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, Variants, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { LoginSkeleton } from '@/components/LoginComponents/LoginSkeleton'
-import { useAuth } from '@/hooks/useQuery'
 import { Mail, Lock, ArrowLeft, Shield, Clock, Calendar } from 'lucide-react'
 
 // ✅ LAZY LOAD: AnimatedBackground (non-critical, loaded after main content)
@@ -73,10 +71,6 @@ const QUOTES = [
 
 function LoginContent() {
   const router = useRouter()
-  const { status } = useSession()
-
-  // ✅ USE useAuth HOOK - auto-fetches current user and manages loading
-  const { isLoading: isLoadingUser } = useAuth()
 
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
@@ -141,11 +135,6 @@ function LoginContent() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // ✅ IMPROVED: Check both NextAuth session AND React Query user
-  if (status === 'loading' || isLoadingUser) {
-    return <LoginSkeleton />
   }
 
   return (
