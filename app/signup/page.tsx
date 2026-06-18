@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense, useEffect } from 'react'
+import { useState, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, Variants, AnimatePresence } from 'framer-motion'
@@ -88,16 +88,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [completedFields, setCompletedFields] = useState<Set<string>>(new Set())
-  const [bgReady, setBgReady] = useState(false)
   const [meterReady, setMeterReady] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setBgReady(true)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   // ✅ Track completed fields
   const updateField = (fieldName: string, value: string) => {
@@ -186,13 +177,9 @@ export default function SignUpPage() {
   return (
     <main className="min-h-screen bg-black flex lg:grid lg:grid-cols-12 relative overflow-hidden">
       {/* ✅ LAZY LOAD: Animated background */}
-      <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-br from-black via-zinc-950 to-black pointer-events-none" />}>
-        {bgReady ? (
+      {
           <AnimatedSignUpBackground />
-        ) : (
-          <div className="fixed inset-0 bg-gradient-to-br from-black via-zinc-950 to-black pointer-events-none" />
-        )}
-      </Suspense>
+        }
 
       {/* BACK BUTTON */}
       <Link

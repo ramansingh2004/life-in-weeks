@@ -3,14 +3,13 @@ import { useEffect, useState, useMemo, useCallback, Suspense, memo } from 'react
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { differenceInWeeks, addWeeks, format, getYear } from 'date-fns'
-import { Week, WeekData, MOOD_COLORS } from '@/typesDefined'
+import { Week, WeekData, MOOD_COLORS, IMilestone } from '@/typesDefined'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useMilestoneStore } from '@/store/useMilestoneStore'
 import { useAuth, useWeeks } from '@/hooks/useQuery'
-import dynamic from 'next/dynamic'
-import { GridSkeleton } from '@/components/GridSkeleton'
 
+import dynamic from 'next/dynamic'
 // ✅ LCP OPTIMIZATION 1: Preload critical components with lower priority
 const Sidebar = dynamic(() => import('@/components/Sidebar'), {
   loading: () => <div className="w-14 sm:w-64 bg-zinc-950 fixed left-0 top-0 h-screen" />,
@@ -97,7 +96,7 @@ interface WeekSquareProps {
   week: Week
   noted: boolean
   moodColor: string | null
-  milestone: any
+  milestone: IMilestone | null
   isHighlighted: boolean
   onWeekClick: (week: Week) => void
   onMilestoneClick: (week: Week) => void
@@ -190,18 +189,19 @@ const WeekSquare = memo(({
     </div>
   )
 })
+WeekSquare.displayName = 'WeekSquare'
 
 // ✅ LCP OPTIMIZATION 7: Memoized grid component
 interface WeekGridProps {
   weeks: Week[]
   years: number[]
   highlightedWeekIndex: number | null
-  getNote: (index: number) => any
+  getNote: (index: number) => WeekData | undefined
   hasNote: (index: number) => boolean
-  getMilestone: (index: number) => any
+  getMilestone: (index: number) => IMilestone | undefined
   onWeekClick: (week: Week) => void
   onMilestoneClick: (week: Week) => void
-  onTooltip: (tooltip: any) => void
+  onTooltip: (tooltip: { text: string; x: number; y: number } | null) => void
   onContextMenu: (e: React.MouseEvent, week: Week) => void
 }
 
@@ -238,7 +238,7 @@ const WeekGridComponent = memo(({
                 const note = getNote(week.index)
                 const moodColor = note?.mood ? MOOD_COLORS[note.mood] : null
                 const noted = hasNote(week.index)
-                const milestone = getMilestone(week.index)
+                const milestone = getMilestone(week.index) ?? null
                 const isHighlighted = highlightedWeekIndex === week.index
 
                 return (
@@ -271,6 +271,7 @@ const WeekGridComponent = memo(({
     </div>
   )
 })
+WeekGridComponent.displayName = 'WeekGridComponent'
 
 // ✅ LCP OPTIMIZATION 8: Skeleton that matches above-the-fold layout
 const AboveTheFoldSkeleton = () => (

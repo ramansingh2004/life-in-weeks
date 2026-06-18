@@ -4,10 +4,10 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, Variants, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { Mail, Lock, ArrowLeft, Shield, Clock, Calendar } from 'lucide-react'
+import dynamic from 'next/dynamic'
 
-// ✅ LAZY LOAD: AnimatedBackground (non-critical, loaded after main content)
+//✅ LAZY LOAD: AnimatedBackground (non-critical, loaded after main content)
 const AnimatedBackground = dynamic(
   () => import('@/components/LoginComponents/lazyLoading').then(mod => ({
     default: mod.AnimatedBackground
