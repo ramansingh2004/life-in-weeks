@@ -11,7 +11,6 @@ import { PhotoViewer } from './PhotoViewer'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/hooks/useQuery'
 import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
-import { PhotoGallerySkeleton } from './PhotoGallerySkeleton'
 
 type PhotoItem = {
   _id: string
@@ -38,7 +37,6 @@ export function PhotoGallery() {
   const resetPaginationRef = useRef<(() => void) | null>(null)
 
   const [allPhotos, setAllPhotos] = useState<PhotoItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoItem | null>(null)
@@ -86,7 +84,6 @@ export function PhotoGallery() {
 
     async function fetchPhotos() {
       try {
-        setIsLoading(true)
         setError(null)
 
         console.log('📸 Fetching photos from /api/media?type=image')
@@ -107,7 +104,6 @@ export function PhotoGallery() {
         if (mediaArray.length === 0) {
           console.log('⚠️ No photos found')
           setAllPhotos([])
-          setIsLoading(false)
           return
         }
 
@@ -149,7 +145,6 @@ export function PhotoGallery() {
         setError(message)
         setAllPhotos([])
       } finally {
-        setIsLoading(false)
       }
     }
 
@@ -193,11 +188,6 @@ export function PhotoGallery() {
     resetPagination()
   }, [searchTerm, dateRange, resetPagination])
 
-  // ✅ Show loading while checking auth or fetching photos
-  if (isLoadingUser || isLoading) {
-    return <PhotoGallerySkeleton />
-  }
-
   // Show error state
   if (error) {
     return (
@@ -207,7 +197,6 @@ export function PhotoGallery() {
           <h1 className="text-2xl sm:text-3xl font-light mb-4">Error Loading Photos</h1>
           <p className="text-zinc-400 mb-6">{error}</p>
           <button
-            onClick={() => setIsLoading(true)}
             className="px-6 py-3 bg-[#FCA311] hover:bg-[#FCA311]/90 text-black font-semibold rounded-lg transition mr-4 shadow-md hover:shadow-[0_0_10px_rgba(252,163,17,0.2)]"
           >
             Try Again
