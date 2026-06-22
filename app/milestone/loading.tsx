@@ -1,4 +1,4 @@
-export function MilestonesSkeleton() {
+export default function MilestonesSkeleton() {
   return (
     <main className="min-h-screen bg-black text-white pt-14 sm:pt-10 px-4 py-10">
       {/* Sidebar placeholder */}

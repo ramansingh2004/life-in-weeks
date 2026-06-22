@@ -1,4 +1,4 @@
-export function JournalSkeleton() {
+export default function JournalSkeleton() {
   return (
     <main className="min-h-screen bg-black text-white px-4 sm:px-6 pt-16 sm:pt-10 pb-10">
       {/* Sidebar placeholder */}

@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { useAuthStore } from '@/store/useAuthStore'
-import { RegisterSkeleton } from '@/components/RegisterSkeleton'
 // IMPORT REACT QUERY HOOKS
 import { useAuth } from '@/hooks/useQuery'
 
@@ -110,12 +109,6 @@ export default function Register() {
         },
       }
     )
-  }
-
-  // REPLACED: if (!hydrated)
-  //    Now also checks isLoadingUser from useAuth
-  if (!hydrated || isLoadingUser) {
-    return <RegisterSkeleton />
   }
 
   return (

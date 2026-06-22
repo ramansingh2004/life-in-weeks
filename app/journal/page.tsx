@@ -8,13 +8,12 @@ import { WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from '@/typesDefined'
 import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/hooks/useQuery'
 import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
-import { JournalSkeleton } from '@/components/JournalSkeleton'
 type Filter = 'all' | 'memories' | 'dreams'
 
 export default function JournalPage() {
   const router = useRouter()
 
-  const { user, isLoading: isLoadingUser } = useAuth()
+  const { user } = useAuth()
   const { notes, birthDate } = useLifeStore()
 
   const [filter, setFilter] = useState<Filter>('all')
@@ -96,11 +95,6 @@ export default function JournalPage() {
 
   function stripHtml(html: string) {
     return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-  }
-
-  // ✅ SHOW LOADING while checking auth
-  if (isLoadingUser) {
-    return <JournalSkeleton />
   }
 
   if (!hydrated || !user) {

@@ -1,4 +1,4 @@
-export function RegisterSkeleton() {
+export default function RegisterSkeleton() {
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4 sm:px-6 relative overflow-hidden">
       {/* Background grid decoration */}

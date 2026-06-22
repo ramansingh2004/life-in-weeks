@@ -7,13 +7,10 @@ import { useMilestoneStore, Milestone } from "@/store/useMilestoneStore"
 import MilestoneModal from "@/components/MilestoneModal"
 import Sidebar from "@/components/Sidebar"
 import { CATEGORY_COLORS } from "@/typesDefined"
-import {MilestonesSkeleton} from "@/components/MilestonesSkeleton"
 
 export default function MilestonesPage() {
   const router = useRouter()
-  //const { user } = useAuthStore()
   const { milestones, syncFromBackend } = useMilestoneStore()
-  const [loading, setLoading] = useState(true)
   const [hydrated, setHydrated] = useState(false)
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -37,7 +34,6 @@ export default function MilestonesPage() {
         }
 
         await syncFromBackend()
-        setLoading(false)
       } catch (err) {
         console.error("Init error:", err)
         router.push("/login")
@@ -51,10 +47,6 @@ export default function MilestonesPage() {
   const filtered = filter ? sorted.filter((m) => m.category === filter) : sorted
 
   const categories = Array.from(new Set(milestones.map((m) => m.category)))
-
-  if (!hydrated || loading) {
-    return <MilestonesSkeleton />
-  }
 
   return (
     <main className="min-h-screen bg-black text-white pt-14 sm:pt-10 px-4 py-10">
@@ -83,11 +75,10 @@ export default function MilestonesPage() {
       <div className="max-w-3xl mx-auto mb-8 flex gap-2 flex-wrap">
         <button
           onClick={() => setFilter(null)}
-          className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
-            filter === null
+          className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${filter === null
               ? "border-white bg-white text-black"
               : "border-zinc-700 text-zinc-400 hover:border-zinc-600"
-          }`}
+            }`}
         >
           All
         </button>
@@ -97,11 +88,10 @@ export default function MilestonesPage() {
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`px-3 py-1.5 rounded-lg border text-xs transition-colors flex items-center gap-1.5 ${
-                filter === cat
+              className={`px-3 py-1.5 rounded-lg border text-xs transition-colors flex items-center gap-1.5 ${filter === cat
                   ? "border-white bg-white text-black"
                   : "border-zinc-700 text-zinc-400 hover:border-zinc-600"
-              }`}
+                }`}
             >
               <span>{colors.icon}</span>
               {cat.charAt(0).toUpperCase() + cat.slice(1)}
