@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,25 +14,26 @@ import {
   Heart,
   LockKeyhole,
   Sparkles,
-} from 'lucide-react'
-import { useLifeStore } from '@/store/useCapsuleStore'
-import { useAuthStore } from '@/store/useAuthStore'
-import { useAuth } from '@/hooks/useQuery'
+} from "lucide-react";
+import { useLifeStore } from "@/store/useCapsuleStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useAuth } from "@/hooks/useQuery";
 
 const QUOTES = [
-  'The average person lives just 4,000 weeks.',
-  'Most of your Mondays are already behind you.',
-  'You have lived more weeks than you think.',
+  "The average person lives just 4,000 weeks.",
+  "Most of your Mondays are already behind you.",
+  "You have lived more weeks than you think.",
   "Time is the only currency that can't be earned back.",
-]
+];
 
-const previewWeeks = Array.from({ length: 240 }, (_, index) => index)
-const ease = [0.22, 1, 0.36, 1] as const
+const previewWeeks = Array.from({ length: 240 }, (_, index) => index);
+const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Register() {
-  const router = useRouter()
-  const { birthDate, lifeExpectancy, setBirthDate, setLifeExpectancy } = useLifeStore()
-  const { user, setUser } = useAuthStore()
+  const router = useRouter();
+  const { birthDate, lifeExpectancy, setBirthDate, setLifeExpectancy } =
+    useLifeStore();
+  const { user, setUser } = useAuthStore();
 
   const {
     user: backendUser,
@@ -41,31 +42,31 @@ export default function Register() {
     updateProfile,
     isUpdatingProfile,
     updateProfileError,
-  } = useAuth()
+  } = useAuth();
 
-  const authError = isError ? new Error('Authentication failed') : null
-  const [error, setError] = useState('')
-  const [started, setStarted] = useState(false)
-  const [quoteIndex, setQuoteIndex] = useState<number | null>(null)
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => {
-    setHydrated(true)
-    setQuoteIndex(Math.floor(Math.random() * QUOTES.length))
-  }, [])
+  const authError = isError ? new Error("Authentication failed") : null;
+  const [error, setError] = useState("");
+  const [started, setStarted] = useState(false);
+  const [quoteIndex, setQuoteIndex] = useState<number | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (!hydrated || isLoadingUser) return
+    setHydrated(true);
+    setQuoteIndex(Math.floor(Math.random() * QUOTES.length));
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || isLoadingUser) return;
 
     if (backendUser) {
-      setUser(backendUser)
+      setUser(backendUser);
 
       if (backendUser.birthDate) {
-        setBirthDate(backendUser.birthDate)
+        setBirthDate(backendUser.birthDate);
       }
 
       if (backendUser.lifeExpectancy) {
-        setLifeExpectancy(backendUser.lifeExpectancy)
+        setLifeExpectancy(backendUser.lifeExpectancy);
       }
     }
   }, [
@@ -75,52 +76,57 @@ export default function Register() {
     setUser,
     setBirthDate,
     setLifeExpectancy,
-  ])
+  ]);
 
   async function handleStart() {
     if (!birthDate) {
-      setError('Please enter your birth date')
-      return
+      setError("Please enter your birth date");
+      return;
     }
 
     if (new Date(birthDate) > new Date()) {
-      setError('Birth date cannot be in the future')
-      return
+      setError("Birth date cannot be in the future");
+      return;
     }
 
     if (!user) {
       localStorage.setItem(
-        'tempLifeData',
-        JSON.stringify({ birthDate, lifeExpectancy })
-      )
-      router.push('/login')
-      return
+        "tempLifeData",
+        JSON.stringify({ birthDate, lifeExpectancy }),
+      );
+      router.push("/login");
+      return;
     }
 
     updateProfile(
       { birthDate, lifeExpectancy },
       {
         onSuccess: () => {
-          setBirthDate(birthDate)
-          setLifeExpectancy(lifeExpectancy)
-          setStarted(true)
-          setTimeout(() => router.push('/grid'), 600)
+          setBirthDate(birthDate);
+          setLifeExpectancy(lifeExpectancy);
+          setStarted(true);
+          setTimeout(() => router.push("/grid"), 600);
         },
         onError: (profileError) => {
-          console.error('Error saving profile:', profileError)
-          setError('Failed to save profile')
+          console.error("Error saving profile:", profileError);
+          setError("Failed to save profile");
         },
-      }
-    )
+      },
+    );
   }
 
-  const displayedError = error || updateProfileError?.message || authError?.message
+  const displayedError =
+    error || updateProfileError?.message || authError?.message;
 
   return (
     <main className="h-[100svh] overflow-hidden bg-[#fffaf0] text-[#252422] selection:bg-[#eb5e28]/25">
       <nav className="absolute inset-x-0 top-0 z-50">
         <div className="mx-auto flex h-16 max-w-[1500px] items-center justify-between px-5 sm:px-8 lg:px-10">
-          <Link href="/" className="group flex items-center gap-3" aria-label="Life in Weeks home">
+          <Link
+            href="/"
+            className="group flex items-center gap-3"
+            aria-label="Life in Weeks home"
+          >
             <span className="grid grid-cols-4 gap-1" aria-hidden="true">
               {Array.from({ length: 7 }, (_, index) => (
                 <span
@@ -149,7 +155,12 @@ export default function Register() {
           <div className="absolute -left-56 -top-52 h-[560px] w-[560px] rounded-full border border-white/20" />
           <div className="absolute -bottom-80 -right-64 h-[720px] w-[720px] rounded-full border border-white/20" />
           <div className="absolute right-[8%] top-[14%] h-44 w-44 rounded-full border border-[#f0c955]/70" />
-          <span className="absolute right-[12%] top-[19%] text-[#f0c955]" aria-hidden="true">✦</span>
+          <span
+            className="absolute right-[12%] top-[19%] text-[#f0c955]"
+            aria-hidden="true"
+          >
+            ✦
+          </span>
 
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -181,24 +192,33 @@ export default function Register() {
           >
             <div className="flex items-start justify-between border-b border-[#252422]/10 pb-4">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#eb5e28]">Your lifetime</p>
-                <p className="mt-1 text-2xl font-bold tracking-[-0.05em]">4,160 weeks</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#eb5e28]">
+                  Your lifetime
+                </p>
+                <p className="mt-1 text-2xl font-bold tracking-[-0.05em]">
+                  4,160 weeks
+                </p>
               </div>
-              <span className="rounded-full border border-[#252422]/10 px-3 py-1.5 text-[9px] font-semibold text-[#77726a]">80 years</span>
+              <span className="rounded-full border border-[#252422]/10 px-3 py-1.5 text-[9px] font-semibold text-[#77726a]">
+                80 years
+              </span>
             </div>
 
-            <div className="my-4 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-1" aria-hidden="true">
+            <div
+              className="my-4 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-1"
+              aria-hidden="true"
+            >
               {previewWeeks.map((week) => (
                 <span
                   key={week}
                   className={`aspect-square rounded-[2px] ${
                     week < 88
                       ? week % 17 === 0
-                        ? 'bg-[#eb5e28]'
+                        ? "bg-[#eb5e28]"
                         : week % 29 === 0
-                          ? 'bg-[#f0c955]'
-                          : 'bg-[#252422]'
-                      : 'bg-[#ded8ce]'
+                          ? "bg-[#f0c955]"
+                          : "bg-[#252422]"
+                      : "bg-[#ded8ce]"
                   }`}
                 />
               ))}
@@ -217,11 +237,16 @@ export default function Register() {
             className="relative z-10 flex items-center justify-between gap-6 border-t border-white/20 pt-4"
           >
             <p className="max-w-sm font-serif text-sm italic text-white/85">
-              {quoteIndex !== null ? `“${QUOTES[quoteIndex]}”` : 'Your weeks become your story.'}
+              {quoteIndex !== null
+                ? `“${QUOTES[quoteIndex]}”`
+                : "Your weeks become your story."}
             </p>
             <div className="flex -space-x-2" aria-hidden="true">
-              {['bg-[#f0c955]', 'bg-[#87b9ad]', 'bg-[#fffaf0]'].map((color) => (
-                <span key={color} className={`grid h-9 w-9 place-items-center rounded-full border-2 border-[#eb5e28] text-[#252422] ${color}`}>
+              {["bg-[#f0c955]", "bg-[#87b9ad]", "bg-[#fffaf0]"].map((color) => (
+                <span
+                  key={color}
+                  className={`grid h-9 w-9 place-items-center rounded-full border-2 border-[#eb5e28] text-[#252422] ${color}`}
+                >
                   <Heart className="h-3.5 w-3.5" />
                 </span>
               ))}
@@ -233,9 +258,10 @@ export default function Register() {
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.22]"
             style={{
-              backgroundImage: 'radial-gradient(rgba(37,36,34,0.22) 1px, transparent 1px)',
-              backgroundSize: '26px 26px',
-              maskImage: 'linear-gradient(to bottom, black, transparent 75%)',
+              backgroundImage:
+                "radial-gradient(rgba(37,36,34,0.22) 1px, transparent 1px)",
+              backgroundSize: "26px 26px",
+              maskImage: "linear-gradient(to bottom, black, transparent 75%)",
             }}
           />
 
@@ -255,7 +281,9 @@ export default function Register() {
                   </p>
                   <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.06em] sm:text-6xl">
                     Begin with
-                    <span className="block font-serif font-normal italic text-[#eb5e28]">this week.</span>
+                    <span className="block font-serif font-normal italic text-[#eb5e28]">
+                      this week.
+                    </span>
                   </h1>
                   <p className="mt-5 max-w-lg text-sm leading-6 text-[#6d6861]">
                     Add two simple details and see your lifetime become visible.
@@ -267,26 +295,34 @@ export default function Register() {
                     <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#252422] text-[#fffaf0]">
                       <CalendarDays className="h-5 w-5" strokeWidth={1.8} />
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#eb5e28]">Your starting point</p>
-                    <h2 className="mt-2 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">Create your life map</h2>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#eb5e28]">
+                      Your starting point
+                    </p>
+                    <h2 className="mt-2 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
+                      Create your life map
+                    </h2>
                     <p className="mt-2 hidden text-sm leading-6 text-[#6d6861] sm:block">
-                      Your birth date places you on the map. You can change your life expectancy at any time.
+                      Your birth date places you on the map. You can change your
+                      life expectancy at any time.
                     </p>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="birthDate" className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#625f59]">
+                      <label
+                        htmlFor="birthDate"
+                        className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.14em] text-[#625f59]"
+                      >
                         Your birth date
                       </label>
                       <input
                         id="birthDate"
                         type="date"
                         value={birthDate}
-                        max={new Date().toISOString().split('T')[0]}
+                        max={new Date().toISOString().split("T")[0]}
                         onChange={(event) => {
-                          setBirthDate(event.target.value)
-                          setError('')
+                          setBirthDate(event.target.value);
+                          setError("");
                         }}
                         className="h-11 w-full rounded-xl border border-[#252422]/12 bg-[#f3ede2] px-4 text-sm font-medium text-[#252422] outline-none transition-all focus:border-[#eb5e28] focus:ring-4 focus:ring-[#eb5e28]/10"
                       />
@@ -295,10 +331,15 @@ export default function Register() {
                     <div className="rounded-xl border border-[#252422]/10 bg-[#f3ede2] p-3 sm:p-4">
                       <div className="mb-3 flex items-start justify-between gap-4">
                         <div>
-                          <label htmlFor="lifeExpectancy" className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#625f59]">
+                          <label
+                            htmlFor="lifeExpectancy"
+                            className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#625f59]"
+                          >
                             Life expectancy
                           </label>
-                          <p className="mt-1 hidden text-xs text-[#77726a] sm:block">Used to calculate your complete grid</p>
+                          <p className="mt-1 hidden text-xs text-[#77726a] sm:block">
+                            Used to calculate your complete grid
+                          </p>
                         </div>
                         <span className="shrink-0 rounded-full bg-[#252422] px-3 py-1.5 text-xs font-bold text-[#fffaf0]">
                           {lifeExpectancy} years
@@ -310,7 +351,9 @@ export default function Register() {
                         min="50"
                         max="100"
                         value={lifeExpectancy}
-                        onChange={(event) => setLifeExpectancy(Number(event.target.value))}
+                        onChange={(event) =>
+                          setLifeExpectancy(Number(event.target.value))
+                        }
                         className="h-2 w-full cursor-pointer accent-[#eb5e28]"
                       />
                       <div className="mt-2 flex justify-between text-[10px] font-semibold text-[#9a9287]">
@@ -340,7 +383,11 @@ export default function Register() {
                       disabled={isUpdatingProfile}
                       className="group flex min-h-11 w-full items-center justify-center gap-4 rounded-full bg-[#252422] px-6 text-sm font-bold text-[#fffaf0] shadow-lg transition-colors hover:bg-[#eb5e28] disabled:cursor-not-allowed disabled:opacity-55"
                     >
-                      {isUpdatingProfile ? 'Saving your details...' : user ? 'Build my life grid' : 'Continue to sign in'}
+                      {isUpdatingProfile
+                        ? "Saving your details..."
+                        : user
+                          ? "Build my life grid"
+                          : "Continue to sign in"}
                       {!isUpdatingProfile && (
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                       )}
@@ -349,12 +396,18 @@ export default function Register() {
 
                   <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[#252422]/10 pt-4">
                     {[
-                      { icon: Grid3X3, label: 'Life grid' },
-                      { icon: BookOpen, label: 'Journal' },
-                      { icon: BarChart3, label: 'Insights' },
+                      { icon: Grid3X3, label: "Life grid" },
+                      { icon: BookOpen, label: "Journal" },
+                      { icon: BarChart3, label: "Insights" },
                     ].map((feature) => (
-                      <div key={feature.label} className="flex flex-col items-center gap-2 text-center text-[10px] font-semibold text-[#77726a]">
-                        <feature.icon className="h-4 w-4 text-[#eb5e28]" strokeWidth={1.8} />
+                      <div
+                        key={feature.label}
+                        className="flex flex-col items-center gap-2 text-center text-[10px] font-semibold text-[#77726a]"
+                      >
+                        <feature.icon
+                          className="h-4 w-4 text-[#eb5e28]"
+                          strokeWidth={1.8}
+                        />
                         {feature.label}
                       </div>
                     ))}
@@ -369,10 +422,11 @@ export default function Register() {
                   <span className="hidden h-1 w-1 rounded-full bg-[#bdb5a9] sm:block" />
                   {user ? (
                     <span className="flex items-center gap-2">
-                      Signed in as <strong className="text-[#252422]">{user.name}</strong>
+                      Signed in as{" "}
+                      <strong className="text-[#252422]">{user.name}</strong>
                       <button
                         onClick={async () => {
-                          await useAuthStore.getState().logout()
+                          await useAuthStore.getState().logout();
                         }}
                         className="font-semibold text-[#eb5e28] hover:underline"
                       >
@@ -381,8 +435,11 @@ export default function Register() {
                     </span>
                   ) : (
                     <span>
-                      Already have an account?{' '}
-                      <Link href="/login" className="font-bold text-[#eb5e28] hover:underline">
+                      Already have an account?{" "}
+                      <Link
+                        href="/login"
+                        className="font-bold text-[#eb5e28] hover:underline"
+                      >
                         Sign in
                       </Link>
                     </span>
@@ -403,19 +460,27 @@ export default function Register() {
                       <motion.span
                         key={index}
                         animate={{ opacity: [0.25, 1, 0.25] }}
-                        transition={{ duration: 0.9, repeat: Infinity, delay: index * 0.14 }}
+                        transition={{
+                          duration: 0.9,
+                          repeat: Infinity,
+                          delay: index * 0.14,
+                        }}
                         className="h-2.5 w-2.5 rounded-[2px] bg-[#fffaf0]"
                       />
                     ))}
                   </div>
                 </div>
-                <h2 className="text-3xl font-semibold tracking-[-0.045em]">Building your life map</h2>
-                <p className="mt-3 text-sm text-[#6d6861]">Placing every week into perspective...</p>
+                <h2 className="text-3xl font-semibold tracking-[-0.045em]">
+                  Building your life map
+                </h2>
+                <p className="mt-3 text-sm text-[#6d6861]">
+                  Placing every week into perspective...
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
         </section>
       </div>
     </main>
-  )
+  );
 }

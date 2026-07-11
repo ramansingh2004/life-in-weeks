@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,58 +11,58 @@ import {
   PenLine,
   Search,
   Sparkles,
-} from 'lucide-react'
-import Sidebar from '@/components/Sidebar'
-import { useLifeStore } from '@/store/useCapsuleStore'
-import { MOOD_LABELS, MOOD_TEXT_COLORS, WeekData } from '@/typesDefined'
-import { useAuth } from '@/hooks/useQuery'
+} from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import { useLifeStore } from "@/store/useCapsuleStore";
+import { MOOD_LABELS, MOOD_TEXT_COLORS, WeekData } from "@/typesDefined";
+import { useAuth } from "@/hooks/useQuery";
 import {
   InfiniteScrollLoader,
   useCursorPagination,
-} from '@/hooks/useCursorPagination'
+} from "@/hooks/useCursorPagination";
 
-type Filter = 'all' | 'memories' | 'dreams'
+type Filter = "all" | "memories" | "dreams";
 
 const filterLabels: Record<Filter, string> = {
-  all: 'All entries',
-  memories: 'Memories',
-  dreams: 'Dreams',
-}
+  all: "All entries",
+  memories: "Memories",
+  dreams: "Dreams",
+};
 
 export default function JournalPage() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const { notes, birthDate } = useLifeStore()
+  const router = useRouter();
+  const { user } = useAuth();
+  const { notes, birthDate } = useLifeStore();
 
-  const [filter, setFilter] = useState<Filter>('all')
-  const [search, setSearch] = useState('')
-  const [hydrated, setHydrated] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [filter, setFilter] = useState<Filter>("all");
+  const [search, setSearch] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const totalNotesCount = Object.values(notes).filter(
-    (note) => note.note && note.note !== '<p></p>'
-  ).length
+    (note) => note.note && note.note !== "<p></p>",
+  ).length;
 
   const filteredEntries = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase()
+    const normalizedSearch = search.trim().toLowerCase();
 
     return Object.values(notes)
-      .filter((note) => note.note && note.note !== '<p></p>')
+      .filter((note) => note.note && note.note !== "<p></p>")
       .sort((first, second) => second.weekIndex - first.weekIndex)
       .filter((entry) => {
         const matchesFilter =
-          filter === 'all' ||
-          (filter === 'memories' && entry.isPast) ||
-          (filter === 'dreams' && !entry.isPast)
+          filter === "all" ||
+          (filter === "memories" && entry.isPast) ||
+          (filter === "dreams" && !entry.isPast);
 
         const matchesSearch =
-          normalizedSearch === '' ||
+          normalizedSearch === "" ||
           entry.note.toLowerCase().includes(normalizedSearch) ||
-          entry.date.toLowerCase().includes(normalizedSearch)
+          entry.date.toLowerCase().includes(normalizedSearch);
 
-        return matchesFilter && matchesSearch
-      })
-  }, [notes, filter, search])
+        return matchesFilter && matchesSearch;
+      });
+  }, [notes, filter, search]);
 
   const {
     items: paginatedEntries,
@@ -75,44 +75,47 @@ export default function JournalPage() {
     itemsPerPage: 20,
     getCursorFromItem: (item) => item.weekIndex,
     onLoadMore: async (cursor) => {
-      await new Promise((resolve) => setTimeout(resolve, 300))
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       if (cursor === null) {
-        return filteredEntries.slice(0, 20)
+        return filteredEntries.slice(0, 20);
       }
 
       const cursorIndex = filteredEntries.findIndex(
-        (entry) => entry.weekIndex === (cursor as number)
-      )
-      const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0
+        (entry) => entry.weekIndex === (cursor as number),
+      );
+      const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
 
-      return filteredEntries.slice(startIndex, startIndex + 20)
+      return filteredEntries.slice(startIndex, startIndex + 20);
     },
-  })
+  });
 
   useEffect(() => {
-    setHydrated(true)
-  }, [])
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
-    if (!hydrated) return
-    resetPagination()
-  }, [filter, search, hydrated, filteredEntries, resetPagination])
+    if (!hydrated) return;
+    resetPagination();
+  }, [filter, search, hydrated, filteredEntries, resetPagination]);
 
   function stripHtml(html: string) {
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+    return html
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function getMoodDot(mood: number) {
-    if (mood === 1) return 'bg-red-500'
-    if (mood === 2) return 'bg-orange-500'
-    if (mood === 3) return 'bg-[#f0c955]'
-    if (mood === 4) return 'bg-[#87b9ad]'
-    return 'bg-emerald-500'
+    if (mood === 1) return "bg-red-500";
+    if (mood === 2) return "bg-orange-500";
+    if (mood === 3) return "bg-[#f0c955]";
+    if (mood === 4) return "bg-[#87b9ad]";
+    return "bg-emerald-500";
   }
 
   if (!hydrated || !user || !birthDate) {
-    return null
+    return null;
   }
 
   return (
@@ -121,7 +124,7 @@ export default function JournalPage() {
 
       <div
         className={`px-4 pb-16 pt-20 transition-transform duration-300 ease-out sm:px-6 sm:pt-12 ${
-          isSidebarOpen ? 'lg:translate-x-24' : 'translate-x-0'
+          isSidebarOpen ? "lg:translate-x-24" : "translate-x-0"
         }`}
       >
         <div className="mx-auto max-w-5xl">
@@ -133,7 +136,7 @@ export default function JournalPage() {
               </div>
 
               <button
-                onClick={() => router.push('/grid')}
+                onClick={() => router.push("/grid")}
                 className="group inline-flex items-center gap-2 rounded-full border border-[#252422]/10 bg-white/65 px-4 py-2.5 text-xs font-bold transition-all hover:border-[#eb5e28]/40 hover:text-[#eb5e28]"
               >
                 <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
@@ -144,7 +147,10 @@ export default function JournalPage() {
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h1 className="text-5xl font-semibold leading-none tracking-[-0.065em] sm:text-6xl">
-                  Your <span className="font-serif font-normal italic text-[#eb5e28]">Journal</span>
+                  Your{" "}
+                  <span className="font-serif font-normal italic text-[#eb5e28]">
+                    Journal
+                  </span>
                 </h1>
                 <p className="mt-4 max-w-xl text-sm leading-6 text-[#6d6861]">
                   A private collection of the ordinary days, turning points,
@@ -158,7 +164,8 @@ export default function JournalPage() {
                     Written
                   </p>
                   <p className="mt-1 text-xl font-bold tracking-[-0.04em]">
-                    {totalNotesCount} {totalNotesCount === 1 ? 'entry' : 'entries'}
+                    {totalNotesCount}{" "}
+                    {totalNotesCount === 1 ? "entry" : "entries"}
                   </p>
                 </div>
                 <div className="grid w-14 place-items-center rounded-2xl bg-[#f0c955]">
@@ -187,8 +194,8 @@ export default function JournalPage() {
                   onClick={() => setFilter(filterValue)}
                   className={`rounded-full border px-4 py-2 text-xs font-bold transition-all ${
                     filter === filterValue
-                      ? 'border-[#252422] bg-[#252422] text-[#fffaf0] shadow-sm'
-                      : 'border-[#252422]/10 bg-transparent text-[#77726a] hover:border-[#eb5e28]/40 hover:text-[#eb5e28]'
+                      ? "border-[#252422] bg-[#252422] text-[#fffaf0] shadow-sm"
+                      : "border-[#252422]/10 bg-transparent text-[#77726a] hover:border-[#eb5e28]/40 hover:text-[#eb5e28]"
                   }`}
                 >
                   {filterLabels[filterValue]}
@@ -215,7 +222,7 @@ export default function JournalPage() {
                   to remember.
                 </p>
                 <button
-                  onClick={() => router.push('/grid')}
+                  onClick={() => router.push("/grid")}
                   className="group mt-6 inline-flex items-center gap-3 rounded-full bg-[#252422] px-6 py-3 text-sm font-bold text-[#fffaf0] transition-colors hover:bg-[#eb5e28]"
                 >
                   Go to your grid
@@ -233,8 +240,8 @@ export default function JournalPage() {
                 </p>
                 <button
                   onClick={() => {
-                    setSearch('')
-                    setFilter('all')
+                    setSearch("");
+                    setFilter("all");
                   }}
                   className="mt-5 text-xs font-bold text-[#eb5e28] hover:underline"
                 >
@@ -254,12 +261,14 @@ export default function JournalPage() {
                         opacity: { delay: Math.min(index * 0.035, 0.35) },
                         y: { delay: Math.min(index * 0.035, 0.35) },
                       }}
-                      onClick={() => router.push(`/grid?week=${entry.weekIndex}`)}
+                      onClick={() =>
+                        router.push(`/grid?week=${entry.weekIndex}`)
+                      }
                       className="group relative cursor-pointer rounded-[1.5rem] border border-[#252422]/10 bg-white/70 p-5 pl-16 shadow-sm transition-all hover:border-[#eb5e28]/35 hover:shadow-[0_18px_50px_rgba(37,36,34,0.09)] sm:p-6 sm:pl-20"
                     >
                       <div
                         className={`absolute left-4 top-6 grid h-7 w-7 place-items-center rounded-full border-4 border-[#fffaf0] sm:left-5 sm:h-8 sm:w-8 ${
-                          entry.isPast ? 'bg-[#403d39]' : 'bg-[#eb5e28]'
+                          entry.isPast ? "bg-[#403d39]" : "bg-[#eb5e28]"
                         }`}
                       >
                         <span className="h-1.5 w-1.5 rounded-full bg-[#fffaf0]" />
@@ -271,18 +280,20 @@ export default function JournalPage() {
                             <span
                               className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${
                                 entry.isPast
-                                  ? 'border-[#252422]/10 bg-[#f3ede2] text-[#625f59]'
-                                  : 'border-[#eb5e28]/20 bg-[#eb5e28]/10 text-[#c9491c]'
+                                  ? "border-[#252422]/10 bg-[#f3ede2] text-[#625f59]"
+                                  : "border-[#eb5e28]/20 bg-[#eb5e28]/10 text-[#c9491c]"
                               }`}
                             >
-                              {entry.isPast ? 'Memory' : 'Dream'}
+                              {entry.isPast ? "Memory" : "Dream"}
                             </span>
 
                             {entry.mood > 0 && (
                               <span
                                 className={`flex items-center gap-1.5 text-xs font-semibold ${MOOD_TEXT_COLORS[entry.mood]}`}
                               >
-                                <span className={`h-2 w-2 rounded-full ${getMoodDot(entry.mood)}`} />
+                                <span
+                                  className={`h-2 w-2 rounded-full ${getMoodDot(entry.mood)}`}
+                                />
                                 {MOOD_LABELS[entry.mood]}
                               </span>
                             )}
@@ -319,5 +330,5 @@ export default function JournalPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }

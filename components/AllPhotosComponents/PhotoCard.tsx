@@ -1,65 +1,57 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Image from 'next/image'
-import { motion } from 'framer-motion'
-
-type PhotoItem = {
-  _id: string
-  weekIndex: number
-  url: string
-  name: string
-  createdAt: Date
-  weekDate?: string
-}
+import { useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { CalendarDays, Maximize2 } from "lucide-react";
+import type { PhotoItem } from "./PhotoGallery";
 
 interface PhotoCardProps {
-  photo: PhotoItem
-  onClick: () => void
+  photo: PhotoItem;
+  onClick: () => void;
+  aspectClass?: string;
 }
 
-export function PhotoCard({ photo, onClick }: PhotoCardProps) {
-  const [isLoading, setIsLoading] = useState(true)
+export function PhotoCard({
+  photo,
+  onClick,
+  aspectClass = "aspect-[4/5]",
+}: PhotoCardProps) {
+  const [isLoading, setIsLoading] = useState(true);
 
   return (
     <motion.button
       onClick={onClick}
-      className="relative group overflow-hidden rounded-lg cursor-pointer w-full break-inside-avoid hover:ring-1 hover:ring-[#FCA311] hover:shadow-[0_0_15px_rgba(252,163,17,0.2)] transition-all duration-300"
-      whileHover={{ scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      whileHover={{ y: -4 }}
+      transition={{ type: "spring", stiffness: 300, damping: 28 }}
+      className="group relative block w-full overflow-hidden rounded-[1.5rem] border border-[#252422]/10 bg-[#f7ead7] text-left shadow-sm transition-shadow hover:shadow-[0_18px_45px_rgba(37,36,34,0.15)]"
     >
-      {/* Image */}
-      <div className="relative aspect-auto bg-[#14213D]">
+      <div className={`relative ${aspectClass}`}>
         <Image
           src={photo.url}
-          alt={photo.name}
-          width={150}
-          height={150}
+          alt={photo.name || `Photo from week ${photo.weekIndex + 1}`}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           onLoad={() => setIsLoading(false)}
-          className={`w-full h-auto object-cover transition-opacity duration-300 ${
-            isLoading ? 'opacity-0' : 'opacity-100'
-          }`}
+          className={`object-cover transition duration-700 group-hover:scale-105 ${isLoading ? "opacity-0" : "opacity-100"}`}
         />
-
         {isLoading && (
-          <div className="absolute inset-0 bg-[#14213D] animate-pulse" />
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-[#f7ead7] to-[#e5dac9]" />
         )}
       </div>
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
-        <div className="w-full p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <p className="text-sm text-white font-semibold truncate">{photo.name}</p>
-          <p className="text-xs text-[#FCA311] font-medium mt-1">
-            Week {photo.weekIndex + 1}
-          </p>
-        </div>
-      </div>
-
-      {/* Zoom Icon */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/60 border border-zinc-800/80 backdrop-blur rounded-full p-2">
-        <span className="text-[#FCA311] text-sm">🔍</span>
+      <div className="absolute inset-0 bg-gradient-to-t from-[#252422]/90 via-[#252422]/5 to-transparent opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
+      <span className="absolute right-3 top-3 grid h-9 w-9 translate-y-1 place-items-center rounded-full border border-white/15 bg-[#252422]/45 text-white opacity-0 backdrop-blur-md transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+        <Maximize2 className="h-4 w-4" />
+      </span>
+      <div className="absolute inset-x-0 bottom-0 translate-y-1 p-4 text-[#fffaf0] transition-transform duration-300 group-hover:translate-y-0">
+        <p className="truncate text-sm font-bold">
+          {photo.name || "Untitled memory"}
+        </p>
+        <p className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f0c955]">
+          <CalendarDays className="h-3 w-3" /> Week {photo.weekIndex + 1}
+        </p>
       </div>
     </motion.button>
-  )
+  );
 }
