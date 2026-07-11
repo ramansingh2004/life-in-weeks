@@ -1,248 +1,197 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { useMemo } from 'react'
+import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 interface ProgressStats {
-  totalMemories: number
-  lifeExpectancy?: number
-  birthDate?: string
+  totalMemories: number;
+  lifeExpectancy?: number;
+  birthDate?: string;
 }
-
 interface ProgressCardProps {
-  theme: 'dark' | 'light' | 'gradient' | 'neon'
-  stats: ProgressStats
+  theme: "dark" | "light" | "gradient" | "neon";
+  stats: ProgressStats;
 }
 
-const THEME_CONFIG = {
+const THEMES = {
   dark: {
-    bg: 'bg-black',
-    text: 'text-white',
-    accent: 'text-blue-400',
-    accentBg: 'bg-blue-400/10',
-    divider: 'border-zinc-800',
-    progressBg: 'bg-zinc-800/50',
+    shell: "bg-[#252422] text-[#fffaf0]",
+    muted: "text-white/45",
+    panel: "bg-white/[0.06] border-white/10",
+    accent: "text-[#f0c955]",
+    track: "bg-white/10",
   },
   light: {
-    bg: 'bg-white',
-    text: 'text-black',
-    accent: 'text-blue-600',
-    accentBg: 'bg-blue-600/10',
-    divider: 'border-zinc-200',
-    progressBg: 'bg-zinc-200/50',
+    shell: "bg-[#fffaf0] text-[#252422]",
+    muted: "text-[#252422]/50",
+    panel: "bg-white/70 border-[#252422]/10",
+    accent: "text-[#eb5e28]",
+    track: "bg-[#252422]/10",
   },
   gradient: {
-    bg: 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900',
-    text: 'text-white',
-    accent: 'text-cyan-300',
-    accentBg: 'bg-cyan-300/10',
-    divider: 'border-slate-700',
-    progressBg: 'bg-slate-700/50',
+    shell:
+      "bg-gradient-to-br from-[#87b9ad] via-[#bed8cf] to-[#fffaf0] text-[#252422]",
+    muted: "text-[#252422]/50",
+    panel: "bg-white/45 border-white/40",
+    accent: "text-[#c9471a]",
+    track: "bg-[#252422]/10",
   },
   neon: {
-    bg: 'bg-black',
-    text: 'text-white',
-    accent: 'text-blue-400',
-    accentBg: 'bg-blue-400/10',
-    divider: 'border-blue-400/20',
-    progressBg: 'bg-blue-400/10',
+    shell: "bg-[#252422] text-[#fffaf0]",
+    muted: "text-white/45",
+    panel: "bg-[#87b9ad]/10 border-[#87b9ad]/35",
+    accent: "text-[#87b9ad]",
+    track: "bg-[#87b9ad]/15",
   },
-}
+};
 
-const LIFE_MILESTONES = [
-  { year: 0, label: 'Birth', emoji: '👶' },
-  { year: 18, label: 'Adult', emoji: '🎓' },
-  { year: 30, label: 'Peak', emoji: '💪' },
-  { year: 50, label: 'Wisdom', emoji: '🧠' },
-  { year: 70, label: 'Legacy', emoji: '👴' },
-]
+const MILESTONES = [
+  { year: 0, label: "Begin" },
+  { year: 18, label: "Grow" },
+  { year: 30, label: "Build" },
+  { year: 50, label: "Guide" },
+  { year: 70, label: "Legacy" },
+];
 
 export function ProgressCard({ theme, stats }: ProgressCardProps) {
-  const config = THEME_CONFIG[theme]
-
-  // Estimate: 4000 weeks in 77 years (average)
-  const totalWeeks = 4000
-  const yearsLogged = parseFloat((stats.totalMemories / 52).toFixed(1))
-  const weeksRemaining = totalWeeks - stats.totalMemories
-
-  // Calculate what percentage of life is documented
-  const lifePercentage = useMemo(() => {
-    return Math.min((stats.totalMemories / totalWeeks) * 100, 100)
-  }, [stats.totalMemories])
-
-  // Calculate milestones passed
-  const milestonesPassed = useMemo(() => {
-    return LIFE_MILESTONES.filter((m) => m.year <= yearsLogged)
-  }, [yearsLogged])
+  const config = THEMES[theme];
+  const lifeYears = stats.lifeExpectancy || 80;
+  const totalWeeks = lifeYears * 52;
+  const documentedWeeks = Math.min(stats.totalMemories, totalWeeks);
+  const yearsLogged = documentedWeeks / 52;
+  const remaining = Math.max(totalWeeks - documentedWeeks, 0);
+  const percentage = useMemo(
+    () => Math.min((documentedWeeks / totalWeeks) * 100, 100),
+    [documentedWeeks, totalWeeks],
+  );
 
   return (
     <div
-      className={`w-full h-full ${config.bg} ${config.text} flex flex-col items-center justify-center p-16 relative overflow-hidden`}
+      className={`relative flex h-full w-full flex-col overflow-hidden p-12 ${config.shell}`}
     >
-      {/* Background decoration */}
-      {theme === 'neon' && (
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-1/3 w-40 h-40 bg-blue-400 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-40 h-40 bg-cyan-500 rounded-full blur-3xl" />
+      <div className="absolute -bottom-52 -right-40 h-[34rem] w-[34rem] rounded-full border-[90px] border-[#87b9ad] opacity-[0.08]" />
+      <header className="relative z-10 flex items-end justify-between border-b border-current/15 pb-9">
+        <div>
+          <p
+            className={`text-sm font-bold uppercase tracking-[0.28em] ${config.accent}`}
+          >
+            The long view
+          </p>
+          <h1 className="mt-4 text-5xl font-semibold tracking-[-0.065em]">
+            Life in{" "}
+            <span className="font-serif font-normal italic">motion.</span>
+          </h1>
         </div>
-      )}
+        <p className={`max-w-64 text-right text-sm leading-6 ${config.muted}`}>
+          A visual record of the weeks you have chosen to remember.
+        </p>
+      </header>
 
-      <div className="relative z-10 w-full">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-center mb-10"
-        >
-          <div className={`text-5xl mb-4 inline-block ${config.accentBg} px-4 py-2 rounded-lg`}>
-            📈
+      <div className="relative z-10 flex flex-1 flex-col justify-center py-8">
+        <div className="flex items-end justify-between gap-8">
+          <div>
+            <p
+              className={`text-xs font-bold uppercase tracking-[0.18em] ${config.muted}`}
+            >
+              Life documented
+            </p>
+            <p className="mt-4 text-[6rem] font-semibold leading-none tracking-[-0.085em]">
+              {percentage.toFixed(1)}
+              <span className={`text-4xl ${config.accent}`}>%</span>
+            </p>
           </div>
-          <h1 className="text-3xl font-light tracking-tight">Your Life Journey</h1>
-          <p className={`text-sm opacity-60 mt-2`}>Progress through life</p>
-        </motion.div>
-
-        {/* Main Progress Display */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className={`text-center mb-10 p-8 rounded-lg ${config.accentBg} border border-current border-opacity-20`}
-        >
-          <div className="grid grid-cols-2 gap-8 mb-6">
-            {/* Weeks Logged */}
-            <div>
-              <p className="text-xs opacity-70 mb-2">Weeks Logged</p>
-              <div className={`text-3xl font-light ${config.accent}`}>{stats.totalMemories}</div>
-              <p className="text-xs opacity-50 mt-1">of {totalWeeks.toLocaleString()}</p>
-            </div>
-
-            {/* Years Logged */}
-            <div>
-              <p className="text-xs opacity-70 mb-2">Years Documented</p>
-              <div className={`text-3xl font-light ${config.accent}`}>{yearsLogged}</div>
-              <p className="text-xs opacity-50 mt-1">years of life</p>
-            </div>
-          </div>
-
-          {/* Progress Percentage */}
-          <div className={`text-5xl font-light ${config.accent}`}>{lifePercentage.toFixed(1)}%</div>
-          <p className="text-xs opacity-60 mt-2">Life Documented</p>
-        </motion.div>
-
-        {/* Main Progress Bar with Milestones */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="w-full mb-8"
-        >
-          <p className="text-xs opacity-60 mb-3 uppercase tracking-wide">Your Timeline</p>
-
-          {/* Large progress bar */}
-          <div className={`h-12 rounded-full overflow-hidden ${config.progressBg} border border-current border-opacity-20 relative`}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${lifePercentage}%` }}
-              transition={{ delay: 0.4, duration: 1.2, ease: 'easeOut' }}
-              className={`h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 shadow-lg`}
+          <div
+            className={`grid min-w-[340px] grid-cols-2 gap-px overflow-hidden rounded-[2rem] border ${config.panel}`}
+          >
+            <Stat
+              label="Weeks saved"
+              value={documentedWeeks.toLocaleString()}
+              muted={config.muted}
             />
+            <Stat
+              label="Years recorded"
+              value={yearsLogged.toFixed(1)}
+              muted={config.muted}
+            />
+            <Stat
+              label="Total horizon"
+              value={totalWeeks.toLocaleString()}
+              muted={config.muted}
+            />
+            <Stat
+              label="Weeks ahead"
+              value={remaining.toLocaleString()}
+              muted={config.muted}
+            />
+          </div>
+        </div>
 
-            {/* Milestone markers */}
-            {LIFE_MILESTONES.map((milestone, idx) => {
-              const markerPosition = (milestone.year / 77) * 100
-              const isPassed = milestone.year <= yearsLogged
-
+        <div className="mt-9">
+          <div className="relative pb-12">
+            <div
+              className={`h-5 overflow-hidden rounded-full border border-current/10 ${config.track}`}
+            >
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${percentage}%` }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+                className="h-full rounded-full bg-gradient-to-r from-[#eb5e28] via-[#f0c955] to-[#87b9ad]"
+              />
+            </div>
+            {MILESTONES.map((milestone) => {
+              const left = Math.min((milestone.year / lifeYears) * 100, 100);
               return (
-                <motion.div
+                <div
                   key={milestone.year}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 + idx * 0.1 }}
-                  style={{ left: `${markerPosition}%` }}
-                  className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 text-lg ${
-                    isPassed ? 'opacity-100' : 'opacity-40'
-                  }`}
-                  title={milestone.label}
+                  style={{ left: `${left}%` }}
+                  className="absolute top-0 -translate-x-1/2"
                 >
-                  {milestone.emoji}
-                </motion.div>
-              )
+                  <span
+                    className={`mx-auto block h-5 w-px ${milestone.year <= yearsLogged ? "bg-[#eb5e28]" : "bg-current opacity-25"}`}
+                  />
+                  <p
+                    className={`mt-3 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.1em] ${config.muted}`}
+                  >
+                    {milestone.year}y · {milestone.label}
+                  </p>
+                </div>
+              );
             })}
           </div>
-
-          {/* Milestone labels */}
-          <div className="flex justify-between text-xs opacity-50 mt-2">
-            {LIFE_MILESTONES.map((m) => (
-              <span key={m.year} className={m.year <= yearsLogged ? config.accent : ''}>
-                {m.year}y
-              </span>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Divider */}
-        <div className={`h-px border-t ${config.divider} my-8`} />
-
-        {/* Stats Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="w-full grid grid-cols-2 gap-4 mb-8"
-        >
-          {/* Documented */}
-          <div className={`p-4 rounded-lg ${config.accentBg} border border-current border-opacity-20`}>
-            <p className="text-xs opacity-70 mb-2">Weeks Documented</p>
-            <p className={`text-2xl font-light ${config.accent}`}>{stats.totalMemories}</p>
-            <p className="text-xs opacity-50 mt-1">
-              {((stats.totalMemories / totalWeeks) * 100).toFixed(0)}% recorded
-            </p>
-          </div>
-
-          {/* Remaining */}
-          <div className={`p-4 rounded-lg ${config.accentBg} border border-current border-opacity-20`}>
-            <p className="text-xs opacity-70 mb-2">Weeks Remaining</p>
-            <p className={`text-2xl font-light ${config.accent}`}>{weeksRemaining}</p>
-            <p className="text-xs opacity-50 mt-1">
-              {((weeksRemaining / totalWeeks) * 100).toFixed(0)}% ahead
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Life Insights */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="text-center"
-        >
-          <p className="text-xs opacity-60 mb-3 uppercase tracking-wide">Journey Status</p>
-          <div className="space-y-2">
-            <p className="text-sm font-light">
-              You&apos;re <span className={config.accent}>{lifePercentage.toFixed(1)}%</span> through your
-              documented life
-            </p>
-            <p className="text-xs opacity-60">
-              {milestonesPassed.length === 0
-                ? 'Your journey is just beginning'
-                : `You've passed ${milestonesPassed.length} major life milestone${
-                    milestonesPassed.length > 1 ? 's' : ''
-                  }`}
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
-          className="text-center mt-8"
-        >
-          <p className="text-xs opacity-40">Every week is a moment in your story</p>
-        </motion.div>
+        </div>
       </div>
+
+      <footer className="relative z-10 flex items-center justify-between border-t border-current/15 pt-8">
+        <p className={`text-sm ${config.muted}`}>
+          The story is measured in moments, not percentages.
+        </p>
+        <p
+          className={`text-xs font-bold uppercase tracking-[0.2em] ${config.accent}`}
+        >
+          Life in Weeks
+        </p>
+      </footer>
     </div>
-  )
+  );
+}
+
+function Stat({
+  label,
+  value,
+  muted,
+}: {
+  label: string;
+  value: string;
+  muted: string;
+}) {
+  return (
+    <div className="border border-current/5 p-6">
+      <p
+        className={`text-[10px] font-bold uppercase tracking-[0.14em] ${muted}`}
+      >
+        {label}
+      </p>
+      <p className="mt-3 text-3xl font-semibold tracking-[-0.05em]">{value}</p>
+    </div>
+  );
 }

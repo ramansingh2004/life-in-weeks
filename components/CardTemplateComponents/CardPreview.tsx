@@ -1,274 +1,250 @@
-'use client'
+"use client";
 
-import { useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import domtoimage from 'dom-to-image'
-import { Download, Copy, Check } from 'lucide-react'
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import domtoimage from "dom-to-image";
+import {
+  Check,
+  Clipboard,
+  Download,
+  Image as ImageIcon,
+  LoaderCircle,
+  Share2,
+} from "lucide-react";
 
 interface CardPreviewProps {
-  card: React.ReactNode
-  format: 'square' | 'story' | 'rect'
-  cardType: string
+  card: ReactNode;
+  format: "square" | "story" | "rect";
+  cardType: string;
 }
 
 const FORMAT_DIMS = {
-  square: { width: 1080, height: 1080, ratio: '1:1', platform: 'Instagram' },
-  story: { width: 1080, height: 1920, ratio: '9:16', platform: 'Instagram/TikTok' },
-  rect: { width: 1200, height: 630, ratio: '16:9', platform: 'Twitter/Facebook' },
-}
+  square: { width: 1080, height: 1080, ratio: "1:1", platform: "Instagram" },
+  story: {
+    width: 1080,
+    height: 1920,
+    ratio: "9:16",
+    platform: "Stories / Reels",
+  },
+  rect: { width: 1200, height: 630, ratio: "16:9", platform: "X / Facebook" },
+};
+
+type Status = "idle" | "working" | "success" | "error";
 
 export function CardPreview({ card, format, cardType }: CardPreviewProps) {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const dims = FORMAT_DIMS[format]
-  const [isDownloading, setIsDownloading] = useState(false)
-  const [isCopied, setIsCopied] = useState(false)
-  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'downloading' | 'success' | 'error'>(
-    'idle'
-  )
+  const cardRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const dims = FORMAT_DIMS[format];
+  const [scale, setScale] = useState(0.5);
+  const [downloadStatus, setDownloadStatus] = useState<Status>("idle");
+  const [copyStatus, setCopyStatus] = useState<Status>("idle");
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    function updateScale() {
+      if (!stage) return;
+      const availableWidth = Math.max(stage.clientWidth - 48, 240);
+      const availableHeight = format === "story" ? 720 : 660;
+      setScale(
+        Math.min(availableWidth / dims.width, availableHeight / dims.height, 1),
+      );
+    }
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [dims.height, dims.width, format]);
+
+  async function createPng() {
+    if (!cardRef.current) throw new Error("Card preview is unavailable");
+    return domtoimage.toPng(cardRef.current, {
+      quality: 1,
+      width: dims.width,
+      height: dims.height,
+      style: { transform: "none", transformOrigin: "top left" },
+    });
+  }
 
   async function downloadCard() {
-    if (!cardRef.current) return
-
-    setIsDownloading(true)
-    setDownloadStatus('downloading')
-
+    setDownloadStatus("working");
     try {
-      const scale = 2
-      const dataUrl = await domtoimage.toPng(cardRef.current, {
-        quality: 0.95,
-        width: cardRef.current.offsetWidth * scale,
-        height: cardRef.current.offsetHeight * scale,
-        style: {
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-        },
-      })
-
-      const link = document.createElement('a')
-      link.href = dataUrl
-      link.download = `life-stats-${cardType}-${format}-${Date.now()}.png`
-      link.click()
-
-      setDownloadStatus('success')
-      setTimeout(() => setDownloadStatus('idle'), 2000)
+      const dataUrl = await createPng();
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `life-in-weeks-${cardType}-${format}-${Date.now()}.png`;
+      link.click();
+      setDownloadStatus("success");
     } catch (error) {
-      console.error('Failed to download card:', error)
-      setDownloadStatus('error')
-      setTimeout(() => setDownloadStatus('idle'), 2000)
+      console.error("Failed to download card:", error);
+      setDownloadStatus("error");
     } finally {
-      setIsDownloading(false)
+      window.setTimeout(() => setDownloadStatus("idle"), 2200);
     }
   }
 
   async function copyToClipboard() {
-    if (!cardRef.current) return
-
+    setCopyStatus("working");
     try {
-      const scale = 2
-      const dataUrl = await domtoimage.toPng(cardRef.current, {
-        quality: 0.95,
-        width: cardRef.current.offsetWidth * scale,
-        height: cardRef.current.offsetHeight * scale,
-        style: {
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-        },
-      })
-
-      const response = await fetch(dataUrl)
-      const blob = await response.blob()
-
-      const item = new ClipboardItem({ 'image/png': blob })
-      await navigator.clipboard.write([item])
-
-      setIsCopied(true)
-      setTimeout(() => setIsCopied(false), 2000)
+      const dataUrl = await createPng();
+      const blob = await (await fetch(dataUrl)).blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+      setCopyStatus("success");
     } catch (error) {
-      console.error('Failed to copy card:', error)
+      console.error("Failed to copy card:", error);
+      setCopyStatus("error");
+    } finally {
+      window.setTimeout(() => setCopyStatus("idle"), 2200);
     }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6"
-    >
-      {/* Preview Container */}
-      <div className="bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-xl p-8 flex items-center justify-center min-h-[500px] overflow-auto shadow-2xl">
+    <div className="space-y-4">
+      <div className="overflow-hidden rounded-[2rem] border border-[#252422]/10 bg-[#252422] shadow-[0_25px_70px_rgba(37,36,34,0.16)]">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 text-[#fffaf0]">
+          <div className="flex items-center gap-3">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/8">
+              <ImageIcon className="h-4 w-4 text-[#f0c955]" />
+            </span>
+            <div>
+              <p className="text-xs font-bold">Live preview</p>
+              <p className="mt-0.5 text-[9px] uppercase tracking-[0.14em] text-white/35">
+                Export-ready canvas
+              </p>
+            </div>
+          </div>
+          <span className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] font-semibold text-white/55">
+            {Math.round(scale * 100)}% view
+          </span>
+        </div>
+
         <div
-          ref={cardRef}
-          style={{
-            width: `${dims.width}px`,
-            height: `${dims.height}px`,
-          }}
-          className="flex items-center justify-center rounded-lg overflow-hidden shadow-2xl flex-shrink-0"
+          ref={stageRef}
+          className="grid min-h-[540px] place-items-center overflow-hidden bg-[radial-gradient(circle_at_top,#3b3936_0,#252422_56%)] p-6 sm:min-h-[680px]"
         >
-          {card}
+          <div
+            style={{ width: dims.width * scale, height: dims.height * scale }}
+            className="relative shrink-0 shadow-[0_24px_70px_rgba(0,0,0,0.35)]"
+          >
+            <div
+              ref={cardRef}
+              style={{
+                width: dims.width,
+                height: dims.height,
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+              }}
+              className="overflow-hidden"
+            >
+              {card}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Format Info Grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="grid grid-cols-4 gap-3 p-4 bg-zinc-900 border border-zinc-800 rounded-lg"
-      >
-        <div className="text-center">
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Format</p>
-          <p className="text-sm font-light">{dims.ratio}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Platform</p>
-          <p className="text-sm font-light">{dims.platform}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Size</p>
-          <p className="text-sm font-light">{dims.width}x{dims.height}px</p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Type</p>
-          <p className="text-sm font-light">PNG • Transparent</p>
-        </div>
-      </motion.div>
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[#252422]/10 bg-white/65 p-3 sm:grid-cols-4">
+        <Info label="Ratio" value={dims.ratio} />
+        <Info label="Canvas" value={`${dims.width} × ${dims.height}`} />
+        <Info label="Best for" value={dims.platform} />
+        <Info label="File" value="High-res PNG" />
+      </div>
 
-      {/* Action Buttons */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="flex gap-3"
-      >
-        {/* Download Button */}
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ActionButton
           onClick={downloadCard}
-          disabled={isDownloading || downloadStatus !== 'idle'}
-          className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-            downloadStatus === 'success'
-              ? 'bg-emerald-600 text-white'
-              : downloadStatus === 'error'
-                ? 'bg-red-600 text-white'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-          }`}
-        >
-          <AnimatePresence mode="wait">
-            {downloadStatus === 'success' ? (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                <span>Downloaded</span>
-              </motion.div>
-            ) : downloadStatus === 'error' ? (
-              <motion.div
-                key="error"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2"
-              >
-                <span>Failed</span>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="download"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download PNG</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
-
-        {/* Copy Button */}
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          status={downloadStatus}
+          idleLabel="Save PNG"
+          successLabel="Saved"
+          icon={Download}
+          primary
+        />
+        <ActionButton
           onClick={copyToClipboard}
-          className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-            isCopied
-              ? 'bg-blue-600 text-white'
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
-          }`}
-        >
-          <AnimatePresence mode="wait">
-            {isCopied ? (
-              <motion.div
-                key="copied"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                <span>Copied</span>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="copy"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center gap-2"
-              >
-                <Copy className="w-4 h-4" />
-                <span>Copy to Clipboard</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </motion.div>
+          status={copyStatus}
+          idleLabel="Copy image"
+          successLabel="Copied"
+          icon={Clipboard}
+        />
+      </div>
 
-      {/* Tips */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg"
-      >
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-zinc-400 flex items-center gap-2">
-            <span>💡</span> Pro Tips
-          </p>
-          <ul className="text-xs text-zinc-500 space-y-1 ml-4">
-            <li>• Download works best in Chrome/Edge browsers</li>
-            <li>• PNG format supports transparent backgrounds</li>
-            <li>• Paste directly into social media or design tools</li>
-            <li>• Use different formats for different platforms</li>
-          </ul>
-        </div>
-      </motion.div>
-
-      {/* Social Links */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="text-center text-xs text-zinc-600"
-      >
-        <p>
-          Share your stats on{' '}
-          <a href="#" className="text-emerald-400 hover:text-emerald-300 transition">
-            Twitter
-          </a>
-          {' '}&{' '}
-          <a href="#" className="text-blue-400 hover:text-blue-300 transition">
-            Instagram
-          </a>
+      <div className="flex items-start gap-3 rounded-2xl border border-[#87b9ad]/30 bg-[#87b9ad]/12 p-4 text-[#375f57]">
+        <Share2 className="mt-0.5 h-4 w-4 shrink-0" />
+        <p className="text-xs leading-5">
+          <span className="font-bold">Ready to share.</span> Use square for a
+          feed post, story for vertical screens, and landscape for link
+          previews.
         </p>
-      </motion.div>
-    </motion.div>
-  )
+      </div>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-[#f7ead7]/65 px-3 py-3">
+      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9a9287]">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-xs font-bold text-[#252422]">{value}</p>
+    </div>
+  );
+}
+
+function ActionButton({
+  onClick,
+  status,
+  idleLabel,
+  successLabel,
+  icon: Icon,
+  primary = false,
+}: {
+  onClick: () => void;
+  status: Status;
+  idleLabel: string;
+  successLabel: string;
+  icon: typeof Download;
+  primary?: boolean;
+}) {
+  const busy = status === "working";
+  return (
+    <motion.button
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      disabled={busy}
+      className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold transition disabled:cursor-wait ${primary ? "bg-[#eb5e28] text-white shadow-lg shadow-[#eb5e28]/20 hover:bg-[#d94f20]" : "border border-[#252422]/15 bg-white/70 text-[#252422] hover:border-[#252422]/30"}`}
+    >
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={status}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          className="flex items-center gap-2"
+        >
+          {busy ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+          ) : status === "success" ? (
+            <Check className="h-4 w-4" />
+          ) : status === "error" ? (
+            <span className="text-base">!</span>
+          ) : (
+            <Icon className="h-4 w-4" />
+          )}
+          {busy
+            ? "Rendering..."
+            : status === "success"
+              ? successLabel
+              : status === "error"
+                ? "Try again"
+                : idleLabel}
+        </motion.span>
+      </AnimatePresence>
+    </motion.button>
+  );
 }

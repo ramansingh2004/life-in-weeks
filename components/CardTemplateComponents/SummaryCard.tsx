@@ -1,172 +1,162 @@
-'use client'
+"use client";
 
-import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { motion } from "framer-motion";
 
 interface SummaryStats {
-  totalMemories: number
-  averageMood: number | string
-  currentStreak: number
-  totalMilestones: number
-  topTags: string[]
+  totalMemories: number;
+  averageMood: number | string;
+  currentStreak: number;
+  totalMilestones: number;
+  topTags: string[];
 }
 
 interface SummaryCardProps {
-  theme: 'dark' | 'light' | 'gradient' | 'neon'
-  stats: SummaryStats
+  theme: "dark" | "light" | "gradient" | "neon";
+  stats: SummaryStats;
 }
 
-const THEME_CONFIG = {
+const THEMES = {
   dark: {
-    bg: 'bg-black',
-    text: 'text-white',
-    accent: 'text-emerald-400',
-    accentBg: 'bg-emerald-400/10',
-    divider: 'border-zinc-800',
+    shell: "bg-[#252422] text-[#fffaf0]",
+    muted: "text-white/50",
+    panel: "bg-white/[0.07] border-white/10",
+    accent: "text-[#f0c955]",
+    chip: "bg-[#eb5e28] text-white",
   },
   light: {
-    bg: 'bg-white',
-    text: 'text-black',
-    accent: 'text-emerald-600',
-    accentBg: 'bg-emerald-600/10',
-    divider: 'border-zinc-200',
+    shell: "bg-[#fffaf0] text-[#252422]",
+    muted: "text-[#252422]/50",
+    panel: "bg-white/70 border-[#252422]/10",
+    accent: "text-[#eb5e28]",
+    chip: "bg-[#252422] text-[#fffaf0]",
   },
   gradient: {
-    bg: 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900',
-    text: 'text-white',
-    accent: 'text-cyan-300',
-    accentBg: 'bg-cyan-300/10',
-    divider: 'border-slate-700',
+    shell:
+      "bg-gradient-to-br from-[#eb5e28] via-[#ed7548] to-[#f0c955] text-[#252422]",
+    muted: "text-[#252422]/55",
+    panel: "bg-[#fffaf0]/45 border-white/30",
+    accent: "text-[#fffaf0]",
+    chip: "bg-[#252422] text-[#fffaf0]",
   },
   neon: {
-    bg: 'bg-black',
-    text: 'text-white',
-    accent: 'text-cyan-400',
-    accentBg: 'bg-cyan-400/10',
-    divider: 'border-cyan-400/30',
+    shell: "bg-[#252422] text-[#fffaf0]",
+    muted: "text-white/50",
+    panel: "bg-[#87b9ad]/10 border-[#87b9ad]/35",
+    accent: "text-[#87b9ad]",
+    chip: "bg-[#f0c955] text-[#252422]",
   },
-}
+};
 
 export function SummaryCard({ theme, stats }: SummaryCardProps) {
-  const config = THEME_CONFIG[theme]
-  const [activeMetric, setActiveMetric] = useState<number>(0)
-
+  const config = THEMES[theme];
   const metrics = [
     {
       value: stats.totalMemories,
-      label: 'Memories',
-      icon: '📖',
-      description: 'weeks documented',
+      label: "Memories",
+      note: "weeks documented",
+      mark: "01",
     },
     {
       value: stats.averageMood,
-      label: 'Avg Mood',
-      icon: '😊',
-      description: 'out of 5',
+      label: "Average mood",
+      note: "out of five",
+      mark: "02",
     },
     {
       value: stats.currentStreak,
-      label: 'Streak',
-      icon: '🔥',
-      description: 'consecutive weeks',
+      label: "Current streak",
+      note: "consecutive weeks",
+      mark: "03",
     },
     {
       value: stats.totalMilestones,
-      label: 'Achievements',
-      icon: '🏆',
-      description: 'milestones reached',
+      label: "Milestones",
+      note: "moments celebrated",
+      mark: "04",
     },
-  ]
+  ];
 
   return (
     <div
-      className={`w-full h-full ${config.bg} ${config.text} flex flex-col items-center justify-center p-16 relative overflow-hidden`}
+      className={`relative flex h-full w-full flex-col overflow-hidden p-12 ${config.shell}`}
     >
-      {/* Background decoration */}
-      {theme === 'neon' && (
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-40 h-40 bg-cyan-400 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-600 rounded-full blur-3xl" />
-        </div>
+      <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full border border-current opacity-10" />
+      <div className="absolute -bottom-44 -left-32 h-[30rem] w-[30rem] rounded-full border border-current opacity-10" />
+      {theme === "neon" && (
+        <div className="absolute right-20 top-20 h-72 w-72 rounded-full bg-[#87b9ad]/15 blur-[90px]" />
       )}
 
-      <div className="relative z-10 w-full">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-center mb-12"
-        >
-          <div className={`text-5xl mb-4 inline-block ${config.accentBg} px-4 py-2 rounded-lg`}>
-            📊
-          </div>
-          <h1 className="text-3xl font-light tracking-tight">Your Life Summary</h1>
-          <p className={`text-sm opacity-60 mt-2`}>Life in Weeks</p>
-        </motion.div>
-
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          {metrics.map((metric, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 + idx * 0.05 }}
-              whileHover={{ scale: 1.02 }}
-              onClick={() => setActiveMetric(idx)}
-              className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                activeMetric === idx
-                  ? `border-current ${config.accent} ${config.accentBg}`
-                  : `border-opacity-20 border-white hover:border-opacity-40`
-              }`}
-            >
-              <div className="text-2xl mb-2">{metric.icon}</div>
-              <div className={`text-2xl font-light ${config.accent}`}>{metric.value}</div>
-              <p className="text-xs opacity-60 mt-1">{metric.label}</p>
-              <p className="text-xs opacity-40 mt-0.5">{metric.description}</p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div className={`h-px border-t ${config.divider} my-8`} />
-
-        {/* Top Tags */}
-        {stats.topTags.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-center"
+      <header className="relative z-10 flex items-start justify-between border-b border-current/15 pb-10">
+        <div>
+          <p
+            className={`text-sm font-bold uppercase tracking-[0.28em] ${config.accent}`}
           >
-            <p className="text-xs opacity-60 mb-3 uppercase tracking-wide">Your Themes</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {stats.topTags.map((tag, idx) => (
-                <motion.span
-                  key={tag}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.45 + idx * 0.05 }}
-                  className={`text-xs px-3 py-1.5 rounded-full ${config.accentBg} ${config.accent} border border-current border-opacity-30`}
-                >
-                  #{tag}
-                </motion.span>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="text-center mt-8"
+            Life in Weeks
+          </p>
+          <h1 className="mt-4 max-w-2xl text-5xl font-semibold leading-[0.95] tracking-[-0.065em]">
+            A life,{" "}
+            <span className="font-serif font-normal italic">
+              in perspective.
+            </span>
+          </h1>
+        </div>
+        <span
+          className={`rounded-full px-5 py-3 text-sm font-bold ${config.chip}`}
         >
-          <p className="text-xs opacity-40">Created with Life in Weeks</p>
-        </motion.div>
+          Your summary
+        </span>
+      </header>
+
+      <div className="relative z-10 grid flex-1 grid-cols-4 content-center gap-4 py-8">
+        {metrics.map((metric, index) => (
+          <motion.div
+            key={metric.label}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.06 }}
+            className={`rounded-[1.5rem] border p-5 ${config.panel}`}
+          >
+            <div className="flex items-start justify-between">
+              <p
+                className={`text-sm font-bold uppercase tracking-[0.16em] ${config.muted}`}
+              >
+                {metric.label}
+              </p>
+              <span className={`text-xs font-bold ${config.accent}`}>
+                {metric.mark}
+              </span>
+            </div>
+            <p className="mt-6 text-5xl font-semibold tracking-[-0.06em]">
+              {metric.value}
+            </p>
+            <p className={`mt-3 text-sm ${config.muted}`}>{metric.note}</p>
+          </motion.div>
+        ))}
       </div>
+
+      <footer className="relative z-10 flex min-h-14 items-center justify-between border-t border-current/15 pt-8">
+        <div className="flex flex-wrap gap-2">
+          {stats.topTags.length ? (
+            stats.topTags.map((tag) => (
+              <span
+                key={tag}
+                className={`rounded-full border border-current/15 px-4 py-2 text-xs font-bold ${config.muted}`}
+              >
+                #{tag}
+              </span>
+            ))
+          ) : (
+            <span className={`text-sm ${config.muted}`}>
+              Your themes will appear here
+            </span>
+          )}
+        </div>
+        <p
+          className={`text-xs font-bold uppercase tracking-[0.2em] ${config.muted}`}
+        >
+          Every week counts
+        </p>
+      </footer>
     </div>
-  )
+  );
 }
