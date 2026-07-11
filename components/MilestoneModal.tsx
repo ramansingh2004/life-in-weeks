@@ -1,29 +1,37 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Milestone, useMilestoneStore } from '@/store/useMilestoneStore'
-import toast from 'react-hot-toast'
-// ✅ IMPORT REACT QUERY HOOKS
-import { useMilestones } from '@/hooks/useQuery'
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  CalendarDays,
+  Check,
+  Flag,
+  LoaderCircle,
+  Trash2,
+  X,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import { type Milestone, useMilestoneStore } from "@/store/useMilestoneStore";
+import { useMilestones } from "@/hooks/useQuery";
 
 const CATEGORIES = [
-  { id: 'career', label: 'Career', icon: '💼' },
-  { id: 'education', label: 'Education', icon: '🎓' },
-  { id: 'health', label: 'Health', icon: '💪' },
-  { id: 'family', label: 'Family', icon: '👨‍👩‍👧‍👦' },
-  { id: 'travel', label: 'Travel', icon: '✈️' },
-  { id: 'personal', label: 'Personal', icon: '✨' },
-  { id: 'other', label: 'Other', icon: '📌' },
-]
+  { id: "career", label: "Career", icon: "💼" },
+  { id: "education", label: "Education", icon: "🎓" },
+  { id: "health", label: "Health", icon: "💪" },
+  { id: "family", label: "Family", icon: "👨‍👩‍👧‍👦" },
+  { id: "travel", label: "Travel", icon: "✈️" },
+  { id: "personal", label: "Personal", icon: "✨" },
+  { id: "other", label: "Other", icon: "📌" },
+];
 
 type Props = {
-  isOpen: boolean
-  onClose: () => void
-  weekIndex: number
-  date: string
-  existingMilestone?: Milestone
-}
+  isOpen: boolean;
+  onClose: () => void;
+  weekIndex: number;
+  date: string;
+  existingMilestone?: Milestone;
+};
 
 export default function MilestoneModal({
   isOpen,
@@ -32,131 +40,120 @@ export default function MilestoneModal({
   date,
   existingMilestone,
 }: Props) {
-  // ✅ USE React Query hooks for milestone mutations
   const {
     createMilestone,
     updateMilestone: updateMilestoneMutation,
     deleteMilestone,
     isLoading: isMutating,
-  } = useMilestones()
-
-  const { addMilestone, updateMilestone, removeMilestone } = useMilestoneStore()
-
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState<string>('personal')
-  const [icon, setIcon] = useState('✦')
-  const [error, setError] = useState('')
+  } = useMilestones();
+  const { addMilestone, updateMilestone, removeMilestone } =
+    useMilestoneStore();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("personal");
+  const [icon, setIcon] = useState("✨");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      if (existingMilestone) {
-        setTitle(existingMilestone.title)
-        setDescription(existingMilestone.description)
-        setCategory(existingMilestone.category)
-        setIcon(existingMilestone.icon)
-      } else {
-        setTitle('')
-        setDescription('')
-        setCategory('personal')
-        setIcon('✦')
-      }
-      setError('')
+    if (!isOpen) return;
+    if (existingMilestone) {
+      setTitle(existingMilestone.title);
+      setDescription(existingMilestone.description);
+      setCategory(existingMilestone.category);
+      setIcon(existingMilestone.icon);
+    } else {
+      setTitle("");
+      setDescription("");
+      setCategory("personal");
+      setIcon("✨");
     }
-  }, [existingMilestone, isOpen])
+    setError("");
+  }, [existingMilestone, isOpen]);
 
-  // Prevent background scroll when modal is open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.body.style.overflow = 'unset'
-      }
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !isMutating) onClose();
     }
-  }, [isOpen])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, isMutating, onClose]);
 
-  // ✅ SIMPLIFIED: Use React Query mutations instead of manual fetch
-  async function handleSave() {
-    if (!title.trim()) {
-      setError('Title is required')
-      return
+  function handleSave() {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) {
+      setError("Give this milestone a title before saving.");
+      return;
     }
-
-    setError('')
+    setError("");
 
     if (existingMilestone) {
-      // ✅ UPDATE milestone with React Query mutation
       updateMilestoneMutation(
         {
           milestoneId: existingMilestone._id,
-          title,
-          description,
+          title: cleanTitle,
+          description: description.trim(),
           category,
           icon,
         },
         {
-          onSuccess: (updatedMilestone) => {
-            updateMilestone(existingMilestone._id, updatedMilestone)
-            toast.success('Milestone updated')
-            console.log('✅ Milestone updated:', updatedMilestone._id)
-            onClose()
+          onSuccess: (updated) => {
+            updateMilestone(existingMilestone._id, updated);
+            toast.success("Milestone updated");
+            onClose();
           },
-          onError: (error) => {
-            const message = error instanceof Error ? error.message : 'Failed to update milestone'
-            setError(message)
-            toast.error(message)
-            console.error('Update error:', error)
-          },
-        }
-      )
-    } else {
-      // ✅ CREATE milestone with React Query mutation
-      createMilestone(
-        {
-          weekIndex,
-          title,
-          description,
-          category,
-          icon,
-          date,
+          onError: (cause) => showError(cause, "Failed to update milestone"),
         },
-        {
-          onSuccess: (newMilestone) => {
-            addMilestone(newMilestone)
-            toast.success('Milestone created')
-            console.log('✅ Milestone created:', newMilestone._id)
-            onClose()
-          },
-          onError: (error) => {
-            const message = error instanceof Error ? error.message : 'Failed to create milestone'
-            setError(message)
-            toast.error(message)
-            console.error('Create error:', error)
-          },
-        }
-      )
+      );
+      return;
     }
+
+    createMilestone(
+      {
+        weekIndex,
+        title: cleanTitle,
+        description: description.trim(),
+        category,
+        icon,
+        date,
+      },
+      {
+        onSuccess: (created) => {
+          addMilestone(created);
+          toast.success("Milestone created");
+          onClose();
+        },
+        onError: (cause) => showError(cause, "Failed to create milestone"),
+      },
+    );
   }
 
-  // ✅ DELETE with React Query mutation
-  async function handleDelete() {
-    if (!existingMilestone) return
-    if (!confirm('Delete this milestone?')) return
+  function showError(cause: unknown, fallback: string) {
+    const message = cause instanceof Error ? cause.message : fallback;
+    setError(message);
+    toast.error(message);
+    console.error(fallback, cause);
+  }
 
+  function handleDelete() {
+    if (
+      !existingMilestone ||
+      !window.confirm("Delete this milestone? This cannot be undone.")
+    )
+      return;
     deleteMilestone(existingMilestone._id, {
       onSuccess: () => {
-        removeMilestone(existingMilestone._id)
-        toast.success('Milestone deleted')
-        console.log('✅ Milestone deleted')
-        onClose()
+        removeMilestone(existingMilestone._id);
+        toast.success("Milestone deleted");
+        onClose();
       },
-      onError: (error) => {
-        const message = error instanceof Error ? error.message : 'Failed to delete milestone'
-        setError(message)
-        toast.error(message)
-        console.error('Delete error:', error)
-      },
-    })
+      onError: (cause) => showError(cause, "Failed to delete milestone"),
+    });
   }
 
   return (
@@ -166,138 +163,197 @@ export default function MilestoneModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center px-4"
-          onClick={onClose}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#252422]/75 p-3 backdrop-blur-md sm:p-6"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target && !isMutating) onClose();
+          }}
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md max-h-[90vh] p-4 sm:p-6 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+          <motion.section
+            initial={{ opacity: 0, y: 22, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 270, damping: 25 }}
+            className="max-h-[92svh] w-full max-w-xl overflow-y-auto rounded-[2rem] border border-[#252422]/10 bg-[#fffaf0] text-[#252422] shadow-[0_30px_100px_rgba(37,36,34,0.35)]"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <span className="text-zinc-500 text-xs uppercase tracking-widest">🎯 Milestone</span>
-                <h2 className="text-white text-lg font-light mt-1">Week {weekIndex + 1}</h2>
-                <p className="text-zinc-600 text-xs mt-0.5">{date}</p>
-              </div>
-              <button
-                onClick={onClose}
-                className="text-zinc-600 hover:text-zinc-400 text-xl leading-none transition-colors"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Title */}
-            <div className="mb-4">
-              <label className="text-zinc-500 text-xs uppercase tracking-widest block mb-2">
-                Title
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value)
-                  setError('')
-                }}
-                placeholder="e.g., Got my first job"
-                className="w-full bg-zinc-800/50 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-orange transition-colors"
-                maxLength={50}
-                disabled={isMutating}
-              />
-              <p className="text-zinc-700 text-xs mt-1">{title.length}/50</p>
-            </div>
-
-            {/* Description */}
-            <div className="mb-4">
-              <label className="text-zinc-500 text-xs uppercase tracking-widest block mb-2">
-                Description (optional)
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Add more details..."
-                className="w-full bg-zinc-800/50 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-orange transition-colors resize-none"
-                rows={2}
-                maxLength={200}
-                disabled={isMutating}
-              />
-              <p className="text-zinc-700 text-xs mt-1">{description.length}/200</p>
-            </div>
-
-            {/* Category */}
-            <div className="mb-4">
-              <label className="text-zinc-500 text-xs uppercase tracking-widest block mb-2">
-                Category
-              </label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setCategory(cat.id)
-                      setIcon(cat.icon)
-                    }}
-                    disabled={isMutating}
-                    className={`p-2 rounded-lg border text-xs transition-all text-center ${
-                      category === cat.id
-                        ? 'border-brand-orange bg-brand-orange text-black font-semibold'
-                        : 'border-zinc-700 hover:border-brand-orange'
-                    }`}
-                  >
-                    <span className="text-lg block">{cat.icon}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="text-zinc-600 text-xs mt-1">
-                {CATEGORIES.find((c) => c.id === category)?.label}
-              </p>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-red-900/30 border border-red-700/50 text-red-400 text-xs rounded-lg px-3 py-2 mb-4"
-              >
-                {error}
-              </motion.div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-3">
+            <header className="relative overflow-hidden border-b border-[#252422]/10 bg-[#f7ead7] px-5 pb-5 pt-6 sm:px-7 sm:pb-6 sm:pt-7">
+              <div className="pointer-events-none absolute -right-12 -top-14 h-40 w-40 rounded-full bg-[#f0c955]/40 blur-3xl" />
               <button
                 onClick={onClose}
                 disabled={isMutating}
-                className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-brand-orange hover:text-brand-orange transition-colors disabled:opacity-50"
+                aria-label="Close milestone"
+                className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full border border-[#252422]/10 bg-[#fffaf0]/75 text-[#252422]/55 transition hover:bg-white hover:text-[#eb5e28] disabled:opacity-40"
               >
-                Cancel
+                <X className="h-5 w-5" />
               </button>
-              <button
-                onClick={handleSave}
-                disabled={isMutating || !title.trim()}
-                className="flex-1 bg-brand-orange text-black rounded-lg py-2.5 text-sm font-semibold hover:bg-brand-orange/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isMutating ? 'Saving...' : existingMilestone ? 'Update' : 'Create'}
-              </button>
-              {existingMilestone && (
-                <button
-                  onClick={handleDelete}
+              <div className="relative flex items-center gap-4 pr-12">
+                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#252422] text-2xl text-[#fffaf0] shadow-lg">
+                  {icon || "✦"}
+                </span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#eb5e28]">
+                    {existingMilestone ? "Edit milestone" : "New milestone"}
+                  </p>
+                  <h2 className="mt-1 font-serif text-2xl font-semibold">
+                    Week {weekIndex + 1}
+                  </h2>
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-[#77726a]">
+                    <CalendarDays className="h-3 w-3" /> {date}
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div className="space-y-5 p-5 sm:p-7">
+              <Field label="Title" count={`${title.length}/50`}>
+                <input
+                  autoFocus
+                  type="text"
+                  value={title}
+                  onChange={(event) => {
+                    setTitle(event.target.value);
+                    setError("");
+                  }}
+                  placeholder="What happened in this chapter?"
+                  maxLength={50}
                   disabled={isMutating}
-                  className="px-3 border border-zinc-700 text-red-400 rounded-lg hover:border-red-600 transition-colors disabled:opacity-50"
+                  className="w-full rounded-2xl border border-[#252422]/12 bg-white/75 px-4 py-3.5 text-sm font-medium outline-none transition placeholder:text-[#9a9287] focus:border-[#eb5e28]/60 focus:ring-4 focus:ring-[#eb5e28]/8 disabled:opacity-50"
+                />
+              </Field>
+
+              <Field
+                label="The story behind it"
+                count={`${description.length}/200`}
+                optional
+              >
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Add the details you will want to remember..."
+                  rows={3}
+                  maxLength={200}
+                  disabled={isMutating}
+                  className="w-full resize-none rounded-2xl border border-[#252422]/12 bg-white/75 px-4 py-3.5 text-sm leading-6 outline-none transition placeholder:text-[#9a9287] focus:border-[#eb5e28]/60 focus:ring-4 focus:ring-[#eb5e28]/8 disabled:opacity-50"
+                />
+              </Field>
+
+              <div>
+                <div className="mb-3 flex items-end justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#625f59]">
+                    Life area
+                  </label>
+                  <span className="text-[10px] font-semibold text-[#9a9287]">
+                    Choose one
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                  {CATEGORIES.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setCategory(item.id);
+                        setIcon(item.icon);
+                      }}
+                      disabled={isMutating}
+                      title={item.label}
+                      className={`group relative rounded-2xl border px-2 py-3 text-center transition disabled:opacity-50 ${category === item.id ? "border-[#252422] bg-[#252422] text-[#fffaf0] shadow-md" : "border-[#252422]/10 bg-white/70 hover:border-[#eb5e28]/35"}`}
+                    >
+                      <span className="text-xl">{item.icon}</span>
+                      <span
+                        className={`mt-1 block truncate text-[8px] font-bold uppercase tracking-[0.08em] ${category === item.id ? "text-white/55" : "text-[#77726a]"}`}
+                      >
+                        {item.label}
+                      </span>
+                      {category === item.id && (
+                        <Check className="absolute right-1.5 top-1.5 h-3 w-3 text-[#f0c955]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    role="alert"
+                    className="rounded-2xl border border-red-300/60 bg-red-50 px-4 py-3 text-xs font-medium text-red-700"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex flex-col-reverse gap-2 border-t border-[#252422]/10 pt-5 sm:flex-row">
+                {existingMilestone && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={isMutating}
+                    className="grid h-12 w-full place-items-center rounded-2xl border border-red-200 bg-red-50 text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-40 sm:w-12"
+                    aria-label="Delete milestone"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  disabled={isMutating}
+                  className="h-12 flex-1 rounded-2xl border border-[#252422]/15 bg-white/65 text-sm font-bold transition hover:border-[#252422]/30 disabled:opacity-40"
                 >
-                  🗑️
+                  Cancel
                 </button>
-              )}
+                <button
+                  onClick={handleSave}
+                  disabled={isMutating || !title.trim()}
+                  className="flex h-12 flex-[1.35] items-center justify-center gap-2 rounded-2xl bg-[#eb5e28] text-sm font-bold text-white shadow-lg shadow-[#eb5e28]/20 transition hover:-translate-y-0.5 hover:bg-[#d94f20] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+                >
+                  {isMutating ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Flag className="h-4 w-4" />
+                  )}
+                  {isMutating
+                    ? "Saving..."
+                    : existingMilestone
+                      ? "Save changes"
+                      : "Create milestone"}
+                </button>
+              </div>
             </div>
-          </motion.div>
+          </motion.section>
         </motion.div>
       )}
     </AnimatePresence>
-  )
+  );
+}
+
+function Field({
+  label,
+  count,
+  optional = false,
+  children,
+}: {
+  label: string;
+  count: string;
+  optional?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#625f59]">
+          {label}
+          {optional && (
+            <span className="ml-1 normal-case tracking-normal text-[#9a9287]">
+              (optional)
+            </span>
+          )}
+        </label>
+        <span className="text-[10px] font-medium text-[#9a9287]">{count}</span>
+      </div>
+      {children}
+    </div>
+  );
 }
