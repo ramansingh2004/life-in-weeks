@@ -70,7 +70,7 @@ export interface IUser {
   _id: string
   name: string
   email: string
-  password: string
+  password: string | null
   googleId?: string | null
   image?: string | null
   birthDate?: string

@@ -87,16 +87,7 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      const result = await signIn("google", {
-        redirect: false,
-        callbackUrl: "/",
-      });
-
-      if (result?.error) {
-        setError("Failed to sign up with Google");
-      } else if (result?.ok) {
-        router.push("/");
-      }
+      await signIn("google", { callbackUrl: "/register" });
     } catch (networkError) {
       console.error("Network error:", networkError);
       setError("Network error. Please try again.");

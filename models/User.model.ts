@@ -21,9 +21,12 @@ const UserSchema = new Schema<IUser>({
   type: String,
   default: null 
   },
-  password: { 
+  password: {
     type: String,
-    required: true
+    required: function (this: IUser): boolean {
+      return !this.googleId
+    },
+    default: null,
   },
   birthDate: { 
     type: String

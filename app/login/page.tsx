@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -50,6 +50,7 @@ function GoogleMark() {
 
 function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -64,21 +65,26 @@ function LoginContent() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const authError = searchParams.get("error");
+    if (!authError) return;
+
+    const messages: Record<string, string> = {
+      AccessDenied: "Google could not create or access your account. Please try again.",
+      OAuthSignin: "Google sign-in could not be started. Please try again.",
+      OAuthCallback: "Google could not finish signing you in. Please try again.",
+      Configuration: "Google sign-in is temporarily unavailable.",
+    };
+
+    setError(messages[authError] ?? "Google sign-in failed. Please try again.");
+  }, [searchParams]);
+
   async function handleGoogleSignIn() {
     setError("");
     setLoading(true);
 
     try {
-      const result = await signIn("google", {
-        redirect: false,
-        callbackUrl: "/grid",
-      });
-
-      if (result?.error) {
-        setError("Failed to sign in with Google");
-      } else if (result?.ok) {
-        router.push("/grid");
-      }
+      await signIn("google", { callbackUrl: "/grid" });
     } catch (networkError) {
       console.error("Network error:", networkError);
       setError("Network error. Please try again.");
