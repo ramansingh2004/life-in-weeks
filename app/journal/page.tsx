@@ -1,28 +1,69 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { useLifeStore } from '@/store/useCapsuleStore'
-import { WeekData, MOOD_LABELS, MOOD_TEXT_COLORS } from '@/typesDefined'
+import { useRouter } from 'next/navigation'
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  CalendarDays,
+  PenLine,
+  Search,
+  Sparkles,
+} from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
+import { useLifeStore } from '@/store/useCapsuleStore'
+import { MOOD_LABELS, MOOD_TEXT_COLORS, WeekData } from '@/typesDefined'
 import { useAuth } from '@/hooks/useQuery'
-import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
+import {
+  InfiniteScrollLoader,
+  useCursorPagination,
+} from '@/hooks/useCursorPagination'
+
 type Filter = 'all' | 'memories' | 'dreams'
+
+const filterLabels: Record<Filter, string> = {
+  all: 'All entries',
+  memories: 'Memories',
+  dreams: 'Dreams',
+}
 
 export default function JournalPage() {
   const router = useRouter()
-
   const { user } = useAuth()
   const { notes, birthDate } = useLifeStore()
 
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
   const [hydrated, setHydrated] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  const totalNotesCount = Object.values(notes).filter((n) => n.note && n.note !== '<p></p>').length
+  const totalNotesCount = Object.values(notes).filter(
+    (note) => note.note && note.note !== '<p></p>'
+  ).length
 
-  // ✅ Cursor-based pagination
+  const filteredEntries = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+
+    return Object.values(notes)
+      .filter((note) => note.note && note.note !== '<p></p>')
+      .sort((first, second) => second.weekIndex - first.weekIndex)
+      .filter((entry) => {
+        const matchesFilter =
+          filter === 'all' ||
+          (filter === 'memories' && entry.isPast) ||
+          (filter === 'dreams' && !entry.isPast)
+
+        const matchesSearch =
+          normalizedSearch === '' ||
+          entry.note.toLowerCase().includes(normalizedSearch) ||
+          entry.date.toLowerCase().includes(normalizedSearch)
+
+        return matchesFilter && matchesSearch
+      })
+  }, [notes, filter, search])
+
   const {
     items: paginatedEntries,
     isLoading: isLoadingMore,
@@ -34,22 +75,18 @@ export default function JournalPage() {
     itemsPerPage: 20,
     getCursorFromItem: (item) => item.weekIndex,
     onLoadMore: async (cursor) => {
-      // Simulate loading delay
       await new Promise((resolve) => setTimeout(resolve, 300))
 
-      // Get filtered entries
-      const filtered = filteredEntries
-
       if (cursor === null) {
-        // First load
-        return filtered.slice(0, 20)
+        return filteredEntries.slice(0, 20)
       }
 
-      // Find current cursor position
-      const cursorIndex = filtered.findIndex((e) => e.weekIndex === (cursor as number))
+      const cursorIndex = filteredEntries.findIndex(
+        (entry) => entry.weekIndex === (cursor as number)
+      )
       const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0
 
-      return filtered.slice(startIndex, startIndex + 20)
+      return filteredEntries.slice(startIndex, startIndex + 20)
     },
   })
 
@@ -57,194 +94,229 @@ export default function JournalPage() {
     setHydrated(true)
   }, [])
 
-  // Get filtered entries based on current filter and search
-  const filteredEntries = useMemo(() => {
-    return Object.values(notes)
-      .filter((n) => n.note && n.note !== '<p></p>')
-      .sort((a, b) => b.weekIndex - a.weekIndex)
-      .filter((entry) => {
-        const matchesFilter =
-          filter === 'all' ||
-          (filter === 'memories' && entry.isPast) ||
-          (filter === 'dreams' && !entry.isPast)
-
-        const matchesSearch =
-          search === '' ||
-          entry.note.toLowerCase().includes(search.toLowerCase()) ||
-          entry.date.toLowerCase().includes(search.toLowerCase())
-
-        return matchesFilter && matchesSearch
-      })
-  }, [notes, filter, search])
-
-  // Load initial entries when filter/search changes
   useEffect(() => {
     if (!hydrated) return
-
-    const filtered = filteredEntries
     resetPagination()
-
-    // Load first batch
-    setTimeout(() => {
-      const initial = filtered.slice(0, 20)
-      if (initial.length > 0) {
-        // Trigger pagination to load initial items
-      }
-    }, 0)
   }, [filter, search, hydrated, filteredEntries, resetPagination])
 
   function stripHtml(html: string) {
     return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
   }
 
-  if (!hydrated || !user) {
-    return null
+  function getMoodDot(mood: number) {
+    if (mood === 1) return 'bg-red-500'
+    if (mood === 2) return 'bg-orange-500'
+    if (mood === 3) return 'bg-[#f0c955]'
+    if (mood === 4) return 'bg-[#87b9ad]'
+    return 'bg-emerald-500'
   }
 
-  if (!birthDate) {
+  if (!hydrated || !user || !birthDate) {
     return null
   }
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 sm:px-6 pt-16 sm:pt-10 pb-10">
-      {/* Sidebar */}
-      <Sidebar />
+    <main className="min-h-screen bg-[#fffaf0] text-[#252422] selection:bg-[#eb5e28]/25">
+      <Sidebar onOpenChange={setIsSidebarOpen} />
 
-      {/* Header */}
-      <div className="max-w-2xl mx-auto mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
-          <h1 className="text-xl font-light tracking-tight">Journal</h1>
-          <button
-            onClick={() => router.push('/grid')}
-            className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
-          >
-            ← Back to grid
-          </button>
-        </div>
-        <p className="text-zinc-600 text-xs">
-          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'} written
-        </p>
-      </div>
+      <div
+        className={`px-4 pb-16 pt-20 transition-transform duration-300 ease-out sm:px-6 sm:pt-12 ${
+          isSidebarOpen ? 'lg:translate-x-24' : 'translate-x-0'
+        }`}
+      >
+        <div className="mx-auto max-w-5xl">
+          <header className="mb-8 border-b border-[#252422]/10 pb-8">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#252422]/10 bg-white/65 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#625f59]">
+                <Sparkles className="h-3.5 w-3.5 text-[#eb5e28]" />
+                Your life, in your own words
+              </div>
 
-      {/* Search */}
-      <div className="max-w-2xl mx-auto mb-4 w-full">
-        <input
-          type="text"
-          placeholder="Search your memories and dreams..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-[#14213D] border border-zinc-800/80 text-white rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] transition-all placeholder:text-zinc-500"
-        />
-      </div>
-
-      {/* Filters */}
-      <div className="max-w-2xl mx-auto mb-8 flex gap-2">
-        {(['all', 'memories', 'dreams'] as Filter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`
-              px-4 py-1.5 rounded-full text-xs capitalize transition-all border duration-300
-              ${filter === f
-                ? 'bg-[#FCA311] text-black border-[#FCA311] font-semibold shadow-md shadow-[#FCA311]/10'
-                : 'border-zinc-800/80 text-zinc-400 hover:border-[#FCA311]/50 hover:text-[#FCA311]'
-              }
-            `}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* Entries with infinite scroll */}
-      <div className="max-w-2xl mx-auto space-y-4">
-        {totalNotesCount === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-zinc-600 text-sm">
-              No entries yet. Go to the grid and click a week to write your first memory.
-            </p>
-            <button
-              onClick={() => router.push('/grid')}
-              className="mt-4 text-zinc-500 text-xs underline hover:text-zinc-300 transition-colors"
-            >
-              Go to grid →
-            </button>
-          </div>
-        ) : filteredEntries.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-zinc-600 text-sm">
-              No entries match your search.
-            </p>
-          </div>
-        ) : (
-          <>
-            {paginatedEntries.length > 0 && paginatedEntries.map((entry, i) => (
-              <motion.div
-                key={entry.weekIndex}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.01, borderColor: '#FCA311' }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-[#14213D] border border-zinc-800/80 rounded-xl p-5 cursor-pointer hover:border-[#FCA311]/50 hover:shadow-[0_0_15px_rgba(252,163,17,0.15)] transition-all duration-300"
-                onClick={() => router.push(`/grid?week=${entry.weekIndex}`)}
+              <button
+                onClick={() => router.push('/grid')}
+                className="group inline-flex items-center gap-2 rounded-full border border-[#252422]/10 bg-white/65 px-4 py-2.5 text-xs font-bold transition-all hover:border-[#eb5e28]/40 hover:text-[#eb5e28]"
               >
-                {/* Entry header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full border ${entry.isPast
-                          ? 'border-zinc-700 text-zinc-400 bg-black/20'
-                          : 'border-[#FCA311]/40 text-[#FCA311] bg-[#FCA311]/5'
-                          }`}
-                      >
-                        {entry.isPast ? 'Memory' : 'Dream'}
-                      </span>
-                      {entry.mood > 0 && (
-                        <span className={`text-xs ${MOOD_TEXT_COLORS[entry.mood]}`}>
-                          {MOOD_LABELS[entry.mood]}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-zinc-400 text-xs">
-                      Week {entry.weekIndex + 1} · {entry.date}
-                    </p>
-                  </div>
+                <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+                Back to grid
+              </button>
+            </div>
 
-                  {/* Mood dot */}
-                  {entry.mood > 0 && (
-                    <div
-                      className={`w-2 h-2 rounded-full mt-1 ${entry.mood === 1
-                        ? 'bg-red-500'
-                        : entry.mood === 2
-                          ? 'bg-orange-500'
-                          : entry.mood === 3
-                            ? 'bg-yellow-500'
-                            : entry.mood === 4
-                              ? 'bg-green-500'
-                              : 'bg-emerald-400'
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="text-5xl font-semibold leading-none tracking-[-0.065em] sm:text-6xl">
+                  Your <span className="font-serif font-normal italic text-[#eb5e28]">Journal</span>
+                </h1>
+                <p className="mt-4 max-w-xl text-sm leading-6 text-[#6d6861]">
+                  A private collection of the ordinary days, turning points,
+                  feelings, and future hopes that make your life yours.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <div className="rounded-2xl bg-[#252422] px-5 py-3 text-[#fffaf0]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">
+                    Written
+                  </p>
+                  <p className="mt-1 text-xl font-bold tracking-[-0.04em]">
+                    {totalNotesCount} {totalNotesCount === 1 ? 'entry' : 'entries'}
+                  </p>
+                </div>
+                <div className="grid w-14 place-items-center rounded-2xl bg-[#f0c955]">
+                  <BookOpen className="h-5 w-5" strokeWidth={1.7} />
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <section className="mb-8 rounded-[1.75rem] border border-[#252422]/10 bg-white/70 p-3 shadow-[0_18px_55px_rgba(37,36,34,0.07)] sm:p-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a9287]" />
+              <input
+                type="search"
+                placeholder="Search memories, dreams, or dates..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="h-12 w-full rounded-2xl border border-[#252422]/10 bg-[#f3ede2] pl-11 pr-4 text-sm text-[#252422] outline-none transition-all placeholder:text-[#9a9287] focus:border-[#eb5e28] focus:ring-4 focus:ring-[#eb5e28]/10"
+              />
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(Object.keys(filterLabels) as Filter[]).map((filterValue) => (
+                <button
+                  key={filterValue}
+                  onClick={() => setFilter(filterValue)}
+                  className={`rounded-full border px-4 py-2 text-xs font-bold transition-all ${
+                    filter === filterValue
+                      ? 'border-[#252422] bg-[#252422] text-[#fffaf0] shadow-sm'
+                      : 'border-[#252422]/10 bg-transparent text-[#77726a] hover:border-[#eb5e28]/40 hover:text-[#eb5e28]'
+                  }`}
+                >
+                  {filterLabels[filterValue]}
+                </button>
+              ))}
+
+              <p className="ml-auto hidden items-center px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9a9287] sm:flex">
+                {filteredEntries.length} shown
+              </p>
+            </div>
+          </section>
+
+          <section className="mx-auto max-w-3xl">
+            {totalNotesCount === 0 ? (
+              <div className="rounded-[2rem] border border-dashed border-[#252422]/15 bg-white/45 px-6 py-20 text-center">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-[#eb5e28] text-[#fffaf0] shadow-lg">
+                  <PenLine className="h-6 w-6" />
+                </div>
+                <h2 className="mt-6 text-2xl font-semibold tracking-[-0.04em]">
+                  Your first entry is waiting
+                </h2>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#77726a]">
+                  Open any week on your grid and write down the moment you want
+                  to remember.
+                </p>
+                <button
+                  onClick={() => router.push('/grid')}
+                  className="group mt-6 inline-flex items-center gap-3 rounded-full bg-[#252422] px-6 py-3 text-sm font-bold text-[#fffaf0] transition-colors hover:bg-[#eb5e28]"
+                >
+                  Go to your grid
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </button>
+              </div>
+            ) : filteredEntries.length === 0 ? (
+              <div className="rounded-[2rem] border border-dashed border-[#252422]/15 bg-white/45 px-6 py-20 text-center">
+                <Search className="mx-auto h-7 w-7 text-[#eb5e28]" />
+                <h2 className="mt-5 text-xl font-semibold tracking-[-0.03em]">
+                  No matching entries
+                </h2>
+                <p className="mt-2 text-sm text-[#77726a]">
+                  Try a different word or choose another filter.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearch('')
+                    setFilter('all')
+                  }}
+                  className="mt-5 text-xs font-bold text-[#eb5e28] hover:underline"
+                >
+                  Clear search and filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="relative space-y-4 before:absolute before:bottom-8 before:left-[25px] before:top-8 before:w-px before:bg-[#252422]/10 sm:before:left-[31px]">
+                  {paginatedEntries.map((entry, index) => (
+                    <motion.article
+                      key={entry.weekIndex}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ y: -3 }}
+                      transition={{
+                        opacity: { delay: Math.min(index * 0.035, 0.35) },
+                        y: { delay: Math.min(index * 0.035, 0.35) },
+                      }}
+                      onClick={() => router.push(`/grid?week=${entry.weekIndex}`)}
+                      className="group relative cursor-pointer rounded-[1.5rem] border border-[#252422]/10 bg-white/70 p-5 pl-16 shadow-sm transition-all hover:border-[#eb5e28]/35 hover:shadow-[0_18px_50px_rgba(37,36,34,0.09)] sm:p-6 sm:pl-20"
+                    >
+                      <div
+                        className={`absolute left-4 top-6 grid h-7 w-7 place-items-center rounded-full border-4 border-[#fffaf0] sm:left-5 sm:h-8 sm:w-8 ${
+                          entry.isPast ? 'bg-[#403d39]' : 'bg-[#eb5e28]'
                         }`}
-                    />
-                  )}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#fffaf0]" />
+                      </div>
+
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${
+                                entry.isPast
+                                  ? 'border-[#252422]/10 bg-[#f3ede2] text-[#625f59]'
+                                  : 'border-[#eb5e28]/20 bg-[#eb5e28]/10 text-[#c9491c]'
+                              }`}
+                            >
+                              {entry.isPast ? 'Memory' : 'Dream'}
+                            </span>
+
+                            {entry.mood > 0 && (
+                              <span
+                                className={`flex items-center gap-1.5 text-xs font-semibold ${MOOD_TEXT_COLORS[entry.mood]}`}
+                              >
+                                <span className={`h-2 w-2 rounded-full ${getMoodDot(entry.mood)}`} />
+                                {MOOD_LABELS[entry.mood]}
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.11em] text-[#9a9287]">
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            Week {entry.weekIndex + 1} · {entry.date}
+                          </p>
+                        </div>
+
+                        <ArrowRight className="h-4 w-4 shrink-0 text-[#bdb5a9] transition-all group-hover:translate-x-1 group-hover:text-[#eb5e28]" />
+                      </div>
+
+                      <p className="mt-4 line-clamp-3 text-sm leading-7 text-[#57524c] sm:text-[15px]">
+                        {stripHtml(entry.note)}
+                      </p>
+                    </motion.article>
+                  ))}
                 </div>
 
-                {/* Entry content preview */}
-                <p className="text-zinc-300 text-sm leading-relaxed line-clamp-3">
-                  {stripHtml(entry.note)}
-                </p>
-              </motion.div>
-            ))}
-
-            {/* ✅ Infinite scroll loader */}
-            <InfiniteScrollLoader
-              isLoading={isLoadingMore}
-              hasMore={hasMore}
-              targetRef={observerTarget}
-              loadingText="Loading more entries..."
-              emptyText="You've reached the end of your journal"
-            />
-          </>
-        )}
+                <div className="mt-6 rounded-2xl bg-[#f3ede2]/70 p-3 text-center text-xs text-[#77726a]">
+                  <InfiniteScrollLoader
+                    isLoading={isLoadingMore}
+                    hasMore={hasMore}
+                    targetRef={observerTarget}
+                    loadingText="Loading more entries..."
+                    emptyText="You have reached the end of your journal"
+                  />
+                </div>
+              </>
+            )}
+          </section>
+        </div>
       </div>
     </main>
   )

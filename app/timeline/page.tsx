@@ -1,15 +1,29 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Film,
+  ImageIcon,
+  Mic,
+  Search,
+  Sparkles,
+  X,
+} from 'lucide-react'
+import Sidebar from '@/components/Sidebar'
+import { TagFilter } from '@/components/TagComponents/TagFilter'
 import { useLifeStore } from '@/store/useCapsuleStore'
 import { MOOD_COLORS, MOOD_LABELS } from '@/typesDefined'
-import { TagFilter } from '@/components/TagComponents/TagFilter'
-import Image from 'next/image'
-import Sidebar from '@/components/Sidebar'
 import { useAuth } from '@/hooks/useQuery'
-import { useCursorPagination, InfiniteScrollLoader } from '@/hooks/useCursorPagination'
+import {
+  InfiniteScrollLoader,
+  useCursorPagination,
+} from '@/hooks/useCursorPagination'
 
 type MediaItem = {
   _id: string
@@ -31,7 +45,6 @@ type TimelineMemory = {
 
 export default function TimelinePage() {
   const router = useRouter()
-  
   const { user, isLoading: isLoadingUser } = useAuth()
   const { getNote } = useLifeStore()
 
@@ -43,12 +56,76 @@ export default function TimelinePage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [preview, setPreview] = useState<TimelineMemory | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
     setHydrated(true)
   }, [])
 
-  // ✅ Cursor-based pagination for memories
+  useEffect(() => {
+    if (!hydrated || isLoadingUser) return
+
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    async function loadMemories() {
+      const memories: TimelineMemory[] = []
+
+      for (let weekIndex = 0; weekIndex < 10000; weekIndex++) {
+        const note = getNote(weekIndex)
+
+        if (!note || !note.note || note.note.trim() === '<p></p>') continue
+
+        const memory: TimelineMemory = {
+          weekIndex: note.weekIndex,
+          date: note.date,
+          note: note.note,
+          mood: note.mood,
+          isPast: note.isPast,
+          isCurrent: note.isCurrent,
+          tags: note.tags || [],
+        }
+
+        try {
+          const response = await fetch(`/api/media?weekIndex=${weekIndex}`)
+          if (response.ok) {
+            const data = await response.json()
+            const media = data.data?.media || []
+            if (Array.isArray(media) && media.length > 0) memory.media = media
+          }
+        } catch (error) {
+          console.error(`Failed to load media for week ${weekIndex}:`, error)
+        }
+
+        memories.push(memory)
+      }
+
+      memories.sort((first, second) => second.weekIndex - first.weekIndex)
+      setAllMemories(memories)
+    }
+
+    loadMemories().finally(() => setLoading(false))
+  }, [hydrated, isLoadingUser, user, router, getNote])
+
+  const filteredMemories = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    return allMemories.filter((memory) => {
+      const matchesSearch =
+        normalizedSearch === '' ||
+        memory.note.toLowerCase().includes(normalizedSearch) ||
+        memory.date.toLowerCase().includes(normalizedSearch)
+      const matchesMood = moodFilter === null || memory.mood === moodFilter
+      const matchesTags =
+        selectedTags.length === 0 ||
+        selectedTags.every((tag) => memory.tags?.includes(tag))
+
+      return matchesSearch && matchesMood && matchesTags
+    })
+  }, [allMemories, searchTerm, moodFilter, selectedTags])
+
   const {
     items: paginatedMemories,
     isLoading: isLoadingMore,
@@ -60,592 +137,241 @@ export default function TimelinePage() {
     itemsPerPage: 15,
     getCursorFromItem: (item) => item.weekIndex,
     onLoadMore: async (cursor) => {
-      // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 300))
-      
-      const filtered = getFilteredMemories()
-      
-      if (cursor === null) {
-        return filtered.slice(0, 15)
-      }
-      
-      const cursorIndex = filtered.findIndex((m) => m.weekIndex === (cursor as number))
+
+      if (cursor === null) return filteredMemories.slice(0, 15)
+
+      const cursorIndex = filteredMemories.findIndex(
+        (memory) => memory.weekIndex === (cursor as number)
+      )
       const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0
-      
-      return filtered.slice(startIndex, startIndex + 15)
+      return filteredMemories.slice(startIndex, startIndex + 15)
     },
   })
 
-  // Load all memories from backend
-  useEffect(() => {
-    if (!hydrated || isLoadingUser) return
-
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    async function loadMemories() {
-      const allMems: TimelineMemory[] = []
-
-      // Get all weeks - iterate through a reasonable range
-      for (let i = 0; i < 10000; i++) {
-        const note = getNote(i)
-        if (note && note.note && note.note.trim() !== '<p></p>') {
-          const memory: TimelineMemory = {
-            weekIndex: note.weekIndex,
-            date: note.date,
-            note: note.note,
-            mood: note.mood,
-            isPast: note.isPast,
-            isCurrent: note.isCurrent,
-            tags: note.tags || [],
-          }
-
-          // Load media for this week
-          try {
-            const mediaRes = await fetch(`/api/media?weekIndex=${i}`)
-            if (mediaRes.ok) {
-              const mediaData = await mediaRes.json()
-              const media = mediaData.data?.media || []
-              if (media && Array.isArray(media) && media.length > 0) {
-                memory.media = media
-              }
-            }
-          } catch (err) {
-            console.error(`Failed to load media for week ${i}:`, err)
-          }
-
-          allMems.push(memory)
-        }
-      }
-
-      // Sort by weekIndex descending (newest first)
-      allMems.sort((a, b) => b.weekIndex - a.weekIndex)
-      setAllMemories(allMems)
-    }
-
-    loadMemories().finally(() => setLoading(false))
-  }, [hydrated, isLoadingUser, user, router, getNote])
-
-  // Get filtered memories
-  const getFilteredMemories = useCallback((): TimelineMemory[] => {
-    return allMemories.filter((mem) => {
-      const matchesSearch =
-        searchTerm === '' ||
-        mem.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        mem.date.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesMood = moodFilter === null || mem.mood === moodFilter
-
-      const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => mem.tags?.includes(tag))
-
-      return matchesSearch && matchesMood && matchesTags
-    })
-  }, [allMemories, searchTerm, moodFilter, selectedTags])
-
-  // Reset pagination when filters change
   useEffect(() => {
     if (!hydrated) return
     resetPagination()
   }, [searchTerm, moodFilter, selectedTags, hydrated, resetPagination])
 
-  // Prevent background scroll when preview is open
   useEffect(() => {
-    if (preview || imagePreview) {
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.body.style.overflow = 'unset'
-      }
+    document.body.style.overflow = preview || imagePreview ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
     }
   }, [preview, imagePreview])
 
-  // ✅ Show loading while checking auth
-  if (isLoadingUser) {
+  if (!hydrated || isLoadingUser || loading) {
     return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <div className="flex gap-1 justify-center mb-4">
-            {[0, 1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                animate={{ opacity: [0.2, 1, 0.2] }}
-                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                className="w-2 h-2 bg-zinc-600 rounded-[1px]"
-              />
-            ))}
-          </div>
-          <p className="text-zinc-600 text-xs">Loading...</p>
-        </motion.div>
-      </main>
-    )
-  }
-
-  if (!hydrated || loading) {
-    return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-          <div className="flex gap-1 justify-center mb-4">
-            {[0, 1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                animate={{ opacity: [0.2, 1, 0.2] }}
-                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                className="w-2 h-2 bg-zinc-600 rounded-[1px]"
-              />
-            ))}
-          </div>
-          <p className="text-zinc-600 text-xs">Loading timeline...</p>
-        </motion.div>
-      </main>
-    )
-  }
-
-  const images = preview?.media?.filter((m) => m.type === 'image') || []
-  const videos = preview?.media?.filter((m) => m.type === 'video') || []
-  const audios = preview?.media?.filter((m) => m.type === 'audio') || []
-
-  const filtered = getFilteredMemories()
-
-  return (
-    <main className="min-h-screen bg-black text-white pt-16 sm:pt-10 px-4 sm:px-6 pb-10">
-      {/* Sidebar */}
-      <Sidebar />
-
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.push('/grid')}
-            className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors mb-4"
-          >
-            ← Back to grid
-          </button>
-          <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">Your Memory Timeline</h1>
-          <p className="text-zinc-600 text-sm">
-            {filtered.length} memory/memories · Browse your life chronologically
+      <main className="grid min-h-screen place-items-center bg-[#fffaf0]">
+        <div className="text-center">
+          <span className="mx-auto block h-8 w-8 animate-spin rounded-full border-2 border-[#eb5e28] border-t-transparent" />
+          <p className="mt-4 text-xs font-medium text-[#77726a]">
+            {loading ? 'Building your timeline...' : 'Loading...'}
           </p>
         </div>
+      </main>
+    )
+  }
 
-        {/* Search */}
-        <div className="mb-6">
-          <input
-            type="text"
-            placeholder="Search memories..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#14213D] border border-zinc-800/80 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#FCA311] focus:ring-1 focus:ring-[#FCA311] transition-all placeholder:text-zinc-500"
-          />
-        </div>
+  const images = preview?.media?.filter((item) => item.type === 'image') || []
+  const videos = preview?.media?.filter((item) => item.type === 'video') || []
+  const audios = preview?.media?.filter((item) => item.type === 'audio') || []
 
-        {/* Tag Filter */}
-        <div className="mb-6 bg-[#14213D] rounded-lg border border-zinc-800/80 p-4">
-          <TagFilter selectedTags={selectedTags} onTagsChange={setSelectedTags} mode="multiple" />
-        </div>
+  return (
+    <main className="min-h-screen bg-[#fffaf0] text-[#252422] selection:bg-[#eb5e28]/25">
+      <Sidebar onOpenChange={setIsSidebarOpen} />
 
-        {/* Mood Filter */}
-        <div className="mb-6 flex items-center gap-2 flex-wrap">
-          <span className="text-zinc-600 text-xs uppercase tracking-widest">Filter by mood:</span>
-          <button
-            onClick={() => setMoodFilter(null)}
-            className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
-              moodFilter === null
-                ? 'border-brand-orange bg-brand-orange text-black font-semibold'
-                : 'border-zinc-700 text-zinc-400 hover:border-brand-orange hover:text-brand-orange'
-            }`}
-          >
-            All
-          </button>
-          {[1, 2, 3, 4, 5].map((mood) => {
-            const colors = MOOD_COLORS[mood]
-            const label = MOOD_LABELS[mood]
-            return (
+      <div
+        className={`px-4 pb-16 pt-20 transition-transform duration-300 ease-out sm:px-6 sm:pt-12 ${
+          isSidebarOpen ? 'lg:translate-x-24' : 'translate-x-0'
+        }`}
+      >
+        <div className="mx-auto max-w-5xl">
+          <header className="mb-8 border-b border-[#252422]/10 pb-8">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#252422]/10 bg-white/65 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#625f59]">
+                <Sparkles className="h-3.5 w-3.5 text-[#eb5e28]" />
+                Your story in chronological order
+              </div>
               <button
-                key={mood}
-                onClick={() => setMoodFilter(moodFilter === mood ? null : mood)}
-                className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
-                  moodFilter === mood
-                    ? 'border-brand-orange bg-brand-orange text-black font-semibold'
-                    : `border-zinc-700 text-zinc-400 hover:border-brand-orange hover:text-brand-orange ${colors}`
-                }`}
+                onClick={() => router.push('/grid')}
+                className="group inline-flex items-center gap-2 rounded-full border border-[#252422]/10 bg-white/65 px-4 py-2.5 text-xs font-bold transition-all hover:border-[#eb5e28]/40 hover:text-[#eb5e28]"
               >
-                {label}
+                <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+                Back to grid
               </button>
-            )
-          })}
-        </div>
+            </div>
 
-        {/* Active Filters Display */}
-        {(selectedTags.length > 0 || moodFilter !== null) && (
-          <div className="mb-4 p-3 bg-[#FCA311]/10 border border-[#FCA311]/30 rounded-lg flex items-center justify-between">
-            <p className="text-[#FCA311] text-xs font-medium">
-              🔍 Filtered by:{' '}
-              {selectedTags.length > 0 && selectedTags.map((t) => `#${t}`).join(', ')}
-              {selectedTags.length > 0 && moodFilter && ' + '}
-              {moodFilter && MOOD_LABELS[moodFilter]}
-            </p>
-            <button
-              onClick={() => {
-                setSelectedTags([])
-                setMoodFilter(null)
-              }}
-              className="text-[#FCA311] hover:text-[#FCA311]/80 text-xs underline transition-colors font-semibold"
-            >
-              Clear
-            </button>
-          </div>
-        )}
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h1 className="text-5xl font-semibold leading-none tracking-[-0.065em] sm:text-6xl">
+                  Memory <span className="font-serif font-normal italic text-[#eb5e28]">Timeline</span>
+                </h1>
+                <p className="mt-4 max-w-xl text-sm leading-6 text-[#6d6861]">
+                  Follow the moments, moods, and milestones that shaped your life—newest first.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-[#252422] px-5 py-4 text-[#fffaf0]">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">Memories found</p>
+                <p className="mt-1 text-xl font-bold">{filteredMemories.length}</p>
+              </div>
+            </div>
+          </header>
 
-        {/* Timeline with infinite scroll */}
-        {allMemories.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-zinc-600 text-sm mb-4">
-              No memories yet. Start writing some!
-            </p>
-            <button
-              onClick={() => router.push('/grid')}
-              className="border border-zinc-700 text-zinc-400 rounded-lg px-4 py-2.5 text-xs hover:border-zinc-600 transition-colors"
-            >
-              Go to grid →
-            </button>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-zinc-600 text-sm mb-4">
-              No memories match your filters.
-            </p>
-          </div>
-        ) : (
-          <>
-            {paginatedMemories.length > 0 && (
-              <div className="space-y-4 pb-10">
-                {paginatedMemories.map((mem, idx) => {
-                  const moodColor = mem.mood ? MOOD_COLORS[mem.mood] : 'bg-zinc-800'
-                  const moodLabel = mem.mood ? MOOD_LABELS[mem.mood] : null
+          <section className="mb-8 rounded-[1.75rem] border border-[#252422]/10 bg-white/70 p-4 shadow-[0_18px_55px_rgba(37,36,34,0.07)]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a9287]" />
+              <input
+                type="search"
+                placeholder="Search your timeline..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="h-12 w-full rounded-2xl border border-[#252422]/10 bg-[#f3ede2] pl-11 pr-4 text-sm outline-none transition-all placeholder:text-[#9a9287] focus:border-[#eb5e28] focus:ring-4 focus:ring-[#eb5e28]/10"
+              />
+            </div>
 
-                  return (
-                    <motion.div
-                      key={mem.weekIndex}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="group"
-                    >
-                      {/* Timeline line and dot */}
-                      <div className="flex gap-4">
-                        {/* Left side - dot and line */}
-                        <div className="flex flex-col items-center flex-shrink-0">
-                          <motion.div
-                            className={`w-3 h-3 rounded-full border-2 border-white ${moodColor} group-hover:scale-125 hover:border-[#FCA311] transition-all cursor-pointer`}
-                            whileHover={{ scale: 1.2 }}
-                            onClick={() => setPreview(mem)}
-                          />
-                          {idx < paginatedMemories.length - 1 && (
-                            <div className="w-0.5 h-12 bg-gradient-to-b from-[#FCA311]/80 via-[#14213D] to-black/20 mt-2" />
-                          )}
-                        </div>
+            <div className="mt-4 rounded-2xl border border-[#252422]/10 bg-[#f3ede2] p-3">
+              <TagFilter selectedTags={selectedTags} onTagsChange={setSelectedTags} mode="multiple" />
+            </div>
 
-                        {/* Right side - content card */}
-                        <div className="flex-1 pb-4">
-                          <div
-                            onClick={() => setPreview(mem)}
-                            className="bg-[#14213D] border border-zinc-800/80 rounded-lg p-4 group-hover:border-[#FCA311]/60 group-hover:shadow-[0_0_15px_rgba(252,163,17,0.15)] transition-all duration-300 cursor-pointer"
-                          >
-                            {/* Date and mood */}
-                            <div className="flex items-start justify-between mb-2">
-                              <p className="text-zinc-500 text-xs uppercase tracking-widest">
-                                Week {mem.weekIndex + 1}
-                              </p>
-                              {moodLabel && (
-                                <span
-                                  className={`text-xs font-medium ${MOOD_COLORS[mem.mood]} text-white px-2 py-1 rounded`}
-                                >
-                                  {moodLabel}
-                                </span>
-                              )}
-                            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[#9a9287]">Mood</span>
+              <button 
+               onClick={() => setMoodFilter(null)} 
+               className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${moodFilter === null ? 'border-[#252422] bg-[#252422] text-[#fffaf0]' : 'border-[#252422]/10 text-[#77726a] hover:border-[#eb5e28]/35 hover:text-[#eb5e28]'}`}>
+                All
+              </button>
+              {[1, 2, 3, 4, 5].map((mood) => (
+                <button 
+                 key={mood} 
+                 onClick={() => setMoodFilter(moodFilter === mood ? null : mood)} 
+                 className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${moodFilter === mood ? 'border-[#eb5e28] bg-[#eb5e28] text-[#fffaf0]' : 'border-[#252422]/10 text-[#77726a] hover:border-[#eb5e28]/35 hover:text-[#eb5e28]'}`}>
+                  {MOOD_LABELS[mood]}
+                </button>
+              ))}
+            </div>
 
-                            {/* Date */}
-                            <p className="text-zinc-600 text-xs mb-3">{mem.date}</p>
-
-                            {/* Memory text (preview) */}
-                            <div className="mb-3">
-                              <div
-                                className="prose prose-invert prose-sm max-w-none text-zinc-300 line-clamp-3"
-                                dangerouslySetInnerHTML={{ __html: mem.note }}
-                              />
-                            </div>
-
-                            {/* Tags Display */}
-                            {mem.tags && mem.tags.length > 0 && (
-                              <div className="mb-3 flex flex-wrap gap-2">
-                                {mem.tags.map((tag) => (
-                                  <button
-                                    key={tag}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      if (!selectedTags.includes(tag)) {
-                                        setSelectedTags([...selectedTags, tag])
-                                      }
-                                    }}
-                                    className="text-xs px-2 py-1 bg-[#FCA311]/10 text-[#FCA311] border border-[#FCA311]/20 rounded hover:bg-[#FCA311]/25 transition-colors"
-                                  >
-                                    #{tag}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Media preview indicators */}
-                            {mem.media && mem.media.length > 0 && (
-                              <div className="flex gap-2 mb-3 flex-wrap">
-                                {mem.media.filter((m) => m.type === 'image').length > 0 && (
-                                  <span className="text-xs bg-black/35 border border-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
-                                    📷 {mem.media.filter((m) => m.type === 'image').length}
-                                  </span>
-                                )}
-                                {mem.media.filter((m) => m.type === 'video').length > 0 && (
-                                  <span className="text-xs bg-black/35 border border-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
-                                    🎥 {mem.media.filter((m) => m.type === 'video').length}
-                                  </span>
-                                )}
-                                {mem.media.filter((m) => m.type === 'audio').length > 0 && (
-                                  <span className="text-xs bg-black/35 border border-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
-                                    🎙️ {mem.media.filter((m) => m.type === 'audio').length}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-
-                            {/* View button */}
-                            <button className="text-[#FCA311]/85 text-xs font-semibold hover:text-[#FCA311] hover:underline underline-offset-4 transition-colors">
-                              View full memory →
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )
-                })}
+            {(selectedTags.length > 0 || moodFilter !== null) && (
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-[#eb5e28]/10 px-4 py-3 text-xs text-[#c9491c]">
+                <span className="font-semibold">Filters active</span>
+                <button 
+                 onClick={() => { setSelectedTags([]); setMoodFilter(null) }} 
+                 className="font-bold hover:underline">
+                  Clear all
+                </button>
               </div>
             )}
+          </section>
 
-            {/* ✅ Infinite scroll loader */}
-            <InfiniteScrollLoader
-              isLoading={isLoadingMore}
-              hasMore={hasMore}
-              targetRef={observerTarget}
-              loadingText="Loading more memories..."
-              emptyText="You've reached the beginning of your timeline"
-            />
-          </>
-        )}
+          <section className="mx-auto max-w-3xl">
+            {allMemories.length === 0 ? (
+              <EmptyState 
+               title="No memories yet" 
+               copy="Write your first memory from any week on the grid." 
+               onAction={() => router.push('/grid')} 
+              />
+            ) : filteredMemories.length === 0 ? (
+              <EmptyState 
+               title="No matching memories" 
+               copy="Try another search, mood, or tag." 
+               onAction={() => { setSearchTerm(''); setMoodFilter(null); setSelectedTags([]) }} 
+               action="Clear filters" 
+              />
+            ) : (
+              <>
+                <div className="relative space-y-4 before:absolute before:bottom-8 before:left-[15px] before:top-8 before:w-px before:bg-[#252422]/10">
+                  {paginatedMemories.map((memory, index) => {
+                    const moodColor = memory.mood ? MOOD_COLORS[memory.mood] : 'bg-[#403d39]'
+                    const imageCount = memory.media?.filter((item) => item.type === 'image').length || 0
+                    const videoCount = memory.media?.filter((item) => item.type === 'video').length || 0
+                    const audioCount = memory.media?.filter((item) => item.type === 'audio').length || 0
+
+                    return (
+                      <motion.article 
+                       key={memory.weekIndex} 
+                       initial={{ opacity: 0, y: 14 }} 
+                       animate={{ opacity: 1, y: 0 }} 
+                       whileHover={{ y: -3 }} 
+                       transition={{ delay: Math.min(index * 0.035, 0.35) }} 
+                       className="group relative pl-11"
+                      >
+                        <button 
+                         onClick={() => setPreview(memory)} 
+                         className={`absolute left-0 top-7 z-10 h-8 w-8 rounded-full border-[5px] border-[#fffaf0] ${moodColor} transition-transform group-hover:scale-110`} aria-label={`Open week ${memory.weekIndex + 1}`}
+                        />
+                        <div 
+                        onClick={() => setPreview(memory)} 
+                        className="cursor-pointer rounded-[1.5rem] border border-[#252422]/10 bg-white/70 p-5 shadow-sm transition-all group-hover:border-[#eb5e28]/35 group-hover:shadow-[0_18px_50px_rgba(37,36,34,0.09)] sm:p-6">
+                          <div 
+                          className="flex items-start justify-between gap-4">
+                            <div>
+                              <p 
+                               className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#eb5e28]">
+                                Week {memory.weekIndex + 1}
+                              </p>
+                              <p 
+                               className="mt-2 flex items-center gap-2 text-xs font-semibold text-[#9a9287]">
+                                <CalendarDays className="h-3.5 w-3.5" />{memory.date}
+                              </p>
+                            </div>
+                            {memory.mood > 0 && <span className="rounded-full bg-[#f3ede2] px-3 py-1.5 text-xs font-semibold text-[#625f59]">{MOOD_LABELS[memory.mood]}</span>}
+                          </div>
+
+                          <div className="prose mt-4 line-clamp-3 max-w-none text-sm leading-7 text-[#57524c]" dangerouslySetInnerHTML={{ __html: memory.note }} />
+
+                          {memory.tags && memory.tags.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{memory.tags.map((tag) => <button key={tag} onClick={(event) => { event.stopPropagation(); if (!selectedTags.includes(tag)) setSelectedTags([...selectedTags, tag]) }} className="rounded-full border border-[#eb5e28]/20 bg-[#eb5e28]/10 px-2.5 py-1 text-[10px] font-bold text-[#c9491c]">#{tag}</button>)}</div>}
+
+                          {(imageCount > 0 || videoCount > 0 || audioCount > 0) && <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-semibold text-[#77726a]">{imageCount > 0 && <span className="flex items-center gap-1 rounded-full bg-[#f3ede2] px-2.5 py-1"><ImageIcon className="h-3 w-3" />{imageCount}</span>}{videoCount > 0 && <span className="flex items-center gap-1 rounded-full bg-[#f3ede2] px-2.5 py-1"><Film className="h-3 w-3" />{videoCount}</span>}{audioCount > 0 && <span className="flex items-center gap-1 rounded-full bg-[#f3ede2] px-2.5 py-1"><Mic className="h-3 w-3" />{audioCount}</span>}</div>}
+
+                          <div className="mt-5 flex items-center gap-2 text-xs font-bold text-[#eb5e28]">Open memory <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></div>
+                        </div>
+                      </motion.article>
+                    )
+                  })}
+                </div>
+
+                <div className="mt-6 rounded-2xl bg-[#f3ede2]/70 p-3 text-center text-xs text-[#77726a]"><InfiniteScrollLoader isLoading={isLoadingMore} hasMore={hasMore} targetRef={observerTarget} loadingText="Loading more memories..." emptyText="You have reached the beginning of your timeline" /></div>
+              </>
+            )}
+          </section>
+        </div>
       </div>
 
-      {/* Preview Modal */}
       <AnimatePresence mode="wait">
         {preview && (
-          <motion.div
-            key="preview-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setPreview(null)}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-4"
-          >
-            <motion.div
-              key="preview-modal"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bg-[#14213D] border border-zinc-800/80 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 overflow-y-auto shadow-2xl shadow-black/90"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-5">
-                <div>
-                  <span className="text-zinc-500 text-xs uppercase tracking-widest">Memory</span>
-                  <h2 className="text-white text-lg font-light mt-1">Week {preview.weekIndex + 1}</h2>
-                  <p className="text-zinc-600 text-xs mt-0.5">{preview.date}</p>
-                </div>
-                <button
-                  onClick={() => setPreview(null)}
-                  className="text-zinc-400 hover:text-[#FCA311] text-xl leading-none transition-colors flex-shrink-0"
-                >
-                  ×
-                </button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPreview(null)} className="fixed inset-0 z-50 flex items-center justify-center bg-[#252422]/70 px-4 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 20 }} onClick={(event) => event.stopPropagation()} className="max-h-[88svh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-[#252422]/10 bg-[#fffaf0] p-5 shadow-2xl sm:p-7">
+              <div className="flex items-start justify-between gap-4 border-b border-[#252422]/10 pb-5">
+                <div><p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#eb5e28]">Memory · Week {preview.weekIndex + 1}</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">{preview.date}</h2></div>
+                <button onClick={() => setPreview(null)} className="grid h-10 w-10 place-items-center rounded-full border border-[#252422]/10 transition-colors hover:bg-[#f3ede2]" aria-label="Close preview"><X className="h-4 w-4" /></button>
               </div>
 
-              {/* Mood Badge */}
-              {preview.mood > 0 && (
-                <div className="mb-4 flex items-center gap-2">
-                  <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${MOOD_COLORS[preview.mood]} text-white`}>
-                    {MOOD_LABELS[preview.mood]}
-                  </span>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((m) => (
-                      <div
-                        key={m}
-                        className={`w-6 h-6 rounded-full border text-xs flex items-center justify-center ${
-                          m === preview.mood
-                            ? `${MOOD_COLORS[preview.mood]} border-white text-white`
-                            : 'border-zinc-700 text-zinc-600'
-                        }`}
-                      >
-                        {m}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="mt-5 flex flex-wrap items-center gap-2">{preview.mood > 0 && <span className={`rounded-full px-3 py-1.5 text-xs font-bold text-white ${MOOD_COLORS[preview.mood]}`}>{MOOD_LABELS[preview.mood]}</span>}{preview.tags?.map((tag) => <button key={tag} onClick={() => { if (!selectedTags.includes(tag)) setSelectedTags([...selectedTags, tag]); setPreview(null) }} className="rounded-full border border-[#eb5e28]/20 bg-[#eb5e28]/10 px-3 py-1.5 text-xs font-bold text-[#c9491c]">#{tag}</button>)}</div>
 
-              {/* Tags Display */}
-              {preview.tags && preview.tags.length > 0 && (
-                <div className="mb-4 pb-4 border-b border-zinc-800/80">
-                  <p className="text-[#FCA311]/90 text-xs font-semibold tracking-wider uppercase mb-2">Tags</p>
-                  <div className="flex flex-wrap gap-2">
-                    {preview.tags.map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => {
-                          if (!selectedTags.includes(tag)) {
-                            setSelectedTags([...selectedTags, tag])
-                          }
-                          setPreview(null)
-                        }}
-                        className="px-3 py-1 bg-brand-orange/20 text-brand-orange border border-brand-orange/30 rounded-full text-xs hover:bg-brand-orange/30 transition-colors"
-                      >
-                        #{tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="prose mt-5 max-w-none rounded-2xl border border-[#252422]/10 bg-white/60 p-5 text-[#57524c]" dangerouslySetInnerHTML={{ __html: preview.note }} />
 
-              {/* Content */}
-              <div className="bg-black/30 border border-zinc-800/80 rounded-lg px-4 py-3 mb-6">
-                <div
-                  className="prose prose-invert prose-sm max-w-none text-zinc-300"
-                  dangerouslySetInnerHTML={{ __html: preview.note }}
-                />
-              </div>
+              {images.length > 0 && <MediaSection title={`Photos (${images.length})`}><div className="grid grid-cols-3 gap-2">{images.map((item) => <motion.button key={item._id} layoutId={item._id} onClick={() => setImagePreview(item.url)} className="group relative aspect-square overflow-hidden rounded-xl"><Image src={item.url} alt={item.name} width={240} height={240} className="h-full w-full object-cover transition-transform group-hover:scale-105" /></motion.button>)}</div></MediaSection>}
+              {videos.length > 0 && <MediaSection title={`Videos (${videos.length})`}><div className="space-y-3">{videos.map((item) => <video key={item._id} src={item.url} controls className="max-h-52 w-full rounded-xl bg-[#252422]" />)}</div></MediaSection>}
+              {audios.length > 0 && <MediaSection title={`Voice notes (${audios.length})`}><div className="space-y-2">{audios.map((item) => <div key={item._id} className="flex items-center gap-3 rounded-xl bg-[#f3ede2] p-3"><Mic className="h-4 w-4 text-[#eb5e28]" /><audio src={item.url} controls className="h-8 flex-1" /></div>)}</div></MediaSection>}
 
-              {/* Photos */}
-              {images.length > 0 && (
-                <div className="mb-6">
-                  <p className="text-[#FCA311]/90 text-xs font-semibold tracking-wider uppercase mb-2">Photos ({images.length})</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {images.map((item) => (
-                      <motion.div
-                        key={item._id}
-                        layoutId={item._id}
-                        onClick={() => setImagePreview(item.url)}
-                        className="relative group aspect-square cursor-pointer"
-                      >
-                        <Image
-                          src={item.url}
-                          alt={item.name}
-                          width={200}
-                          height={200}
-                          className="w-full h-full object-cover rounded-lg hover:opacity-90 transition-opacity"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <span className="text-white text-2xl">🔍</span>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Videos */}
-              {videos.length > 0 && (
-                <div className="mb-6">
-                  <p className="text-[#FCA311]/90 text-xs font-semibold tracking-wider uppercase mb-2">Videos ({videos.length})</p>
-                  <div className="space-y-2">
-                    {videos.map((item) => (
-                      <motion.div key={item._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                        <video src={item.url} controls className="w-full rounded-lg max-h-48 bg-zinc-900" />
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Audio */}
-              {audios.length > 0 && (
-                <div className="mb-6">
-                  <p className="text-[#FCA311]/90 text-xs font-semibold tracking-wider uppercase mb-2">Voice Notes ({audios.length})</p>
-                  <div className="space-y-2">
-                    {audios.map((item) => (
-                      <motion.div
-                        key={item._id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-3 bg-black/30 border border-zinc-800/50 rounded-lg px-3 py-2 hover:bg-black/40 transition-colors"
-                      >
-                        <span className="text-lg flex-shrink-0">🎙️</span>
-                        <audio src={item.url} controls className="flex-1 h-8" />
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Close button */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setPreview(null)}
-                  className="flex-1 border border-zinc-700 text-zinc-400 rounded-lg py-2.5 text-sm hover:border-brand-orange hover:text-brand-orange transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    router.push('/grid')
-                    setPreview(null)
-                  }}
-                  className="flex-1 bg-brand-orange text-black rounded-lg py-2.5 text-sm font-semibold hover:bg-brand-orange/90 transition-colors"
-                >
-                  Edit in grid →
-                </button>
-              </div>
+              <div className="mt-7 flex gap-3"><button onClick={() => setPreview(null)} className="min-h-12 flex-1 rounded-full border border-[#252422]/15 text-sm font-bold">Close</button><button onClick={() => { router.push(`/grid?week=${preview.weekIndex}`); setPreview(null) }} className="group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#252422] text-sm font-bold text-[#fffaf0] transition-colors hover:bg-[#eb5e28]">Edit in grid <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></button></div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Image Fullscreen Preview */}
-      <AnimatePresence mode="wait">
-        {imagePreview && (
-          <motion.div
-            key="image-preview-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setImagePreview(null)}
-            className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-4"
-          >
-            <motion.img
-              key="image-preview-img"
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              src={imagePreview}
-              alt="Preview"
-              className="max-w-full max-h-full rounded-xl object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button
-              onClick={() => setImagePreview(null)}
-              className="absolute top-4 right-4 text-white text-3xl hover:text-zinc-400 transition-colors"
-            >
-              ×
-            </button>
-          </motion.div>
-        )}
+      <AnimatePresence>
+        {imagePreview && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setImagePreview(null)} className="fixed inset-0 z-[100] flex items-center justify-center bg-[#252422]/95 p-4"><motion.img initial={{ scale: 0.94 }} animate={{ scale: 1 }} src={imagePreview} alt="Memory preview" className="max-h-full max-w-full rounded-2xl object-contain" onClick={(event) => event.stopPropagation()} /><button onClick={() => setImagePreview(null)} className="absolute right-5 top-5 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white"><X className="h-5 w-5" /></button></motion.div>}
       </AnimatePresence>
     </main>
   )
+}
+
+function EmptyState({ title, copy, onAction, action = 'Go to grid' }: { title: string; copy: string; onAction: () => void; action?: string }) {
+  return <div className="rounded-[2rem] border border-dashed border-[#252422]/15 bg-white/45 px-6 py-20 text-center"><CalendarDays className="mx-auto h-7 w-7 text-[#eb5e28]" /><h2 className="mt-5 text-2xl font-semibold tracking-[-0.04em]">{title}</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#77726a]">{copy}</p><button onClick={onAction} className="mt-6 rounded-full bg-[#252422] px-6 py-3 text-sm font-bold text-[#fffaf0] transition-colors hover:bg-[#eb5e28]">{action}</button></div>
+}
+
+function MediaSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="mt-6"><p className="mb-3 text-[9px] font-bold uppercase tracking-[0.15em] text-[#eb5e28]">{title}</p>{children}</section>
 }
