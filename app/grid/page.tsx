@@ -12,7 +12,7 @@ import { useAuth, useWeeks } from '@/hooks/useQuery'
 import dynamic from 'next/dynamic'
 // ✅ LCP OPTIMIZATION 1: Preload critical components with lower priority
 const Sidebar = dynamic(() => import('@/components/Sidebar'), {
-  loading: () => <div className="w-14 sm:w-64 bg-zinc-950 fixed left-0 top-0 h-screen" />,
+  loading: () => <div className="fixed left-0 top-0 h-screen w-14 bg-[#252422] sm:w-64" />,
 })
 
 // ✅ LCP OPTIMIZATION 2: Defer non-critical modals
@@ -28,7 +28,7 @@ const MilestoneModal = dynamic(() => import('@/components/MilestoneModal'), {
 
 // ✅ LCP OPTIMIZATION 3: Delay DateSearch slightly (below fold)
 const DateSearch = dynamic(() => import('@/components/DateSearch'), {
-  loading: () => <div className="h-10 bg-zinc-900 rounded-lg animate-pulse mb-6" />,
+  loading: () => <div className="h-10 animate-pulse rounded-xl bg-[#e8e1d7]" />,
 })
 
 function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
@@ -47,20 +47,35 @@ function generateWeeks(birthDate: Date, lifeExpectancy: number): Week[] {
 // ✅ LCP OPTIMIZATION 4: Separate above-the-fold header component
 const Header = ({
   currentAge,
-  stats,
   milestonesCount,
 }: {
   currentAge: number
-  stats: { lived: number; remaining: number; total: number }
   milestonesCount: number
 }) => (
-  <div className="mb-8 pl-0">
-    <h1 className="text-2xl sm:text-3xl font-light tracking-tight mb-2">
-      Life <span className="text-brand-orange">in</span> Weeks
-    </h1>
-    <p className="text-zinc-600 text-sm">
-      Age {currentAge} · {stats.lived.toLocaleString()} weeks lived · {milestonesCount} milestones
-    </p>
+  <div className="mb-8 flex flex-col gap-6 border-b border-[#252422]/10 pb-8 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#252422]/10 bg-white/65 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#625f59]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#eb5e28]" />
+        Your lifetime at a glance
+      </div>
+      <h1 className="text-4xl font-semibold leading-none tracking-[-0.06em] sm:text-5xl">
+        Life <span className="font-serif font-normal italic text-[#eb5e28]">in Weeks</span>
+      </h1>
+      <p className="mt-4 max-w-xl text-sm leading-6 text-[#6d6861]">
+        Every square holds one week. Look back with gratitude and make space for what comes next.
+      </p>
+    </div>
+
+    <div className="flex flex-wrap gap-2">
+      <div className="rounded-2xl border border-[#252422]/10 bg-white/65 px-4 py-3">
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9a9287]">Current age</p>
+        <p className="mt-1 text-lg font-bold tracking-[-0.03em]">{currentAge} years</p>
+      </div>
+      <div className="rounded-2xl border border-[#252422]/10 bg-white/65 px-4 py-3">
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9a9287]">Milestones</p>
+        <p className="mt-1 text-lg font-bold tracking-[-0.03em]">{milestonesCount}</p>
+      </div>
+    </div>
   </div>
 )
 
@@ -74,18 +89,35 @@ const StatsCards = ({
   animatedRemaining: number
   animatedTotal: number
 }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
+  <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
     {[
-      { label: 'Weeks lived', value: animatedLived.toLocaleString() },
-      { label: 'Weeks remaining', value: animatedRemaining.toLocaleString() },
-      { label: 'Total weeks', value: animatedTotal.toLocaleString() },
+      {
+        label: 'Weeks lived',
+        value: animatedLived.toLocaleString(),
+        eyebrow: 'Your story so far',
+        className: 'bg-[#eb5e28] text-[#fffaf0]',
+      },
+      {
+        label: 'Weeks ahead',
+        value: animatedRemaining.toLocaleString(),
+        eyebrow: 'Space for possibility',
+        className: 'bg-[#f0c955] text-[#252422]',
+      },
+      {
+        label: 'Total weeks',
+        value: animatedTotal.toLocaleString(),
+        eyebrow: 'Your complete map',
+        className: 'bg-[#87b9ad] text-[#252422]',
+      },
     ].map((stat) => (
       <div
         key={stat.label}
-        className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3"
+        className={`${stat.className} relative min-h-36 overflow-hidden rounded-3xl border border-[#252422]/10 p-5 shadow-sm`}
       >
-        <p className="text-zinc-500 text-xs mb-1">{stat.label}</p>
-        <p className="text-white text-lg font-light">{stat.value}</p>
+        <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full border border-current opacity-15" />
+        <p className="text-[9px] font-bold uppercase tracking-[0.15em] opacity-65">{stat.eyebrow}</p>
+        <p className="mt-6 text-4xl font-semibold tracking-[-0.06em]">{stat.value}</p>
+        <p className="mt-1 text-xs font-semibold opacity-70">{stat.label}</p>
       </div>
     ))}
   </div>
@@ -136,7 +168,7 @@ const WeekSquare = memo(({
       {isHighlighted && (
         <motion.div
           layoutId="highlight"
-          className="absolute inset-0 bg-brand-orange/30 rounded-[2px] pointer-events-none"
+          className="pointer-events-none absolute inset-0 rounded-[3px] bg-[#eb5e28]/35"
           animate={{
             boxShadow: [
               '0 0 0 0px rgba(255, 120, 0, 0.5)',
@@ -156,18 +188,18 @@ const WeekSquare = memo(({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => onTooltip(null)}
         className={`
-          w-[14px] h-[14px] rounded-[2px] cursor-pointer
-          transition-all duration-150 hover:scale-150 hover:z-10 relative
+          relative h-[14px] w-[14px] cursor-pointer rounded-[3px]
+          border border-[#252422]/[0.04] transition-all duration-150 hover:z-10 hover:scale-150 hover:shadow-lg
           ${
             isHighlighted
-              ? 'ring-2 ring-brand-orange scale-150'
+              ? 'scale-150 ring-2 ring-[#eb5e28]'
               : week.isCurrent
-                ? 'bg-white ring-2 ring-white ring-offset-1 ring-offset-black animate-pulse'
+                ? 'animate-pulse bg-[#eb5e28] ring-2 ring-[#eb5e28] ring-offset-2 ring-offset-[#fffaf0]'
                 : week.isPast
-                  ? moodColor || 'bg-zinc-500'
+                  ? moodColor || 'bg-[#403d39]'
                   : noted
-                    ? 'bg-zinc-600'
-                    : 'bg-zinc-800 hover:bg-zinc-600'
+                    ? 'bg-[#9a9287]'
+                    : 'bg-[#ddd5c9] hover:bg-[#bdb5a9]'
           }
         `}
       />
@@ -176,7 +208,7 @@ const WeekSquare = memo(({
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="absolute -top-2 -right-2 w-5 h-5 bg-brand-orange rounded-full flex items-center justify-center text-xs font-bold text-black shadow-lg cursor-pointer hover:scale-110"
+          className="absolute -right-2 -top-2 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-[#eb5e28] text-xs font-bold text-[#fffaf0] shadow-lg transition-transform hover:scale-110"
           onClick={(e) => {
             e.stopPropagation()
             onMilestoneClick(week)
@@ -218,84 +250,94 @@ const WeekGridComponent = memo(({
   onContextMenu,
 }: WeekGridProps) => {
   return (
-    <div className="mb-10 overflow-x-auto pb-4">
-      <div className="flex gap-2">
-        <div className="flex flex-col gap-[4px] pt-[1px] flex-shrink-0">
+    <section className="mb-6 rounded-[2rem] border border-[#252422]/10 bg-white/70 p-4 shadow-[0_18px_60px_rgba(37,36,34,0.08)] sm:p-6">
+      <div className="mb-5 flex flex-col gap-2 border-b border-[#252422]/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#eb5e28]">Your life atlas</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em]">Every year. Every week.</h2>
+        </div>
+        <p className="text-xs text-[#77726a]">{years.length} years · 52 weeks per row</p>
+      </div>
+
+      <div className="overflow-x-auto pb-3">
+        <div className="flex gap-2">
+          <div className="flex flex-shrink-0 flex-col gap-[4px] pt-[1px]">
           {years.map((y) => (
             <div
               key={y}
-              className="text-zinc-700 text-[8px] w-6 h-[14px] flex items-center justify-end pr-2"
+              className="flex h-[14px] w-6 items-center justify-end pr-2 text-[8px] font-semibold text-[#9a9287]"
             >
               {y % 5 === 0 ? y : ''}
             </div>
           ))}
+          </div>
+
+          <div className="flex flex-shrink-0 flex-col gap-[4px]" onMouseLeave={() => onTooltip(null)}>
+            {years.map((yearIndex) => (
+              <div key={yearIndex} className="flex gap-[4px]">
+                {weeks.slice(yearIndex * 52, yearIndex * 52 + 52).map((week) => {
+                  const note = getNote(week.index)
+                  const moodColor = note?.mood ? MOOD_COLORS[note.mood] : null
+                  const noted = hasNote(week.index)
+                  const milestone = getMilestone(week.index) ?? null
+                  const isHighlighted = highlightedWeekIndex === week.index
+
+                  return (
+                    <WeekSquare
+                      key={week.index}
+                      week={week}
+                      noted={noted}
+                      moodColor={moodColor}
+                      milestone={milestone}
+                      isHighlighted={isHighlighted}
+                      onWeekClick={onWeekClick}
+                      onMilestoneClick={onMilestoneClick}
+                      onTooltip={onTooltip}
+                      onContextMenu={onContextMenu}
+                    />
+                  )
+                })}
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-[4px] flex-shrink-0" onMouseLeave={() => onTooltip(null)}>
-          {years.map((yearIndex) => (
-            <div key={yearIndex} className="flex gap-[4px]">
-              {weeks.slice(yearIndex * 52, yearIndex * 52 + 52).map((week) => {
-                const note = getNote(week.index)
-                const moodColor = note?.mood ? MOOD_COLORS[note.mood] : null
-                const noted = hasNote(week.index)
-                const milestone = getMilestone(week.index) ?? null
-                const isHighlighted = highlightedWeekIndex === week.index
-
-                return (
-                  <WeekSquare
-                    key={week.index}
-                    week={week}
-                    noted={noted}
-                    moodColor={moodColor}
-                    milestone={milestone}
-                    isHighlighted={isHighlighted}
-                    onWeekClick={onWeekClick}
-                    onMilestoneClick={onMilestoneClick}
-                    onTooltip={onTooltip}
-                    onContextMenu={onContextMenu}
-                  />
-                )
-              })}
+        <div className="ml-8 mt-3 flex gap-[4px]">
+          {Array.from({ length: 52 }, (_, i) => (
+            <div key={i} className="w-[14px] flex-shrink-0 text-center text-[8px] font-semibold text-[#9a9287]">
+              {(i + 1) % 13 === 0 ? i + 1 : ''}
             </div>
           ))}
         </div>
       </div>
-
-      <div className="flex gap-[4px] mt-3 ml-8">
-        {Array.from({ length: 52 }, (_, i) => (
-          <div key={i} className="text-zinc-700 text-[8px] w-[14px] text-center flex-shrink-0">
-            {(i + 1) % 13 === 0 ? i + 1 : ''}
-          </div>
-        ))}
-      </div>
-    </div>
+    </section>
   )
 })
 WeekGridComponent.displayName = 'WeekGridComponent'
 
 // ✅ LCP OPTIMIZATION 8: Skeleton that matches above-the-fold layout
 const AboveTheFoldSkeleton = () => (
-  <div className="min-h-screen bg-black text-white">
-    <div className="pt-14 sm:pt-10 px-4 sm:px-6 py-10">
-      <div className="max-w-5xl mx-auto">
+  <div className="min-h-screen bg-[#fffaf0] text-[#252422]">
+    <div className="px-4 py-10 pl-14 pt-16 sm:pl-64 sm:pr-6 sm:pt-10">
+      <div className="mx-auto max-w-7xl">
         {/* Header skeleton */}
         <div className="mb-8 pl-0">
-          <div className="h-8 w-48 bg-zinc-800 rounded animate-pulse mb-2" />
-          <div className="h-4 w-96 bg-zinc-900 rounded animate-pulse" />
+          <div className="mb-2 h-8 w-48 animate-pulse rounded bg-[#ddd5c9]" />
+          <div className="h-4 w-96 max-w-full animate-pulse rounded bg-[#e8e1d7]" />
         </div>
 
         {/* Stats cards skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
-              <div className="h-3 w-24 bg-zinc-800 rounded animate-pulse mb-2" />
-              <div className="h-5 w-32 bg-zinc-800 rounded animate-pulse" />
+            <div key={i} className="rounded-3xl border border-[#252422]/10 bg-white/60 px-4 py-5">
+              <div className="mb-2 h-3 w-24 animate-pulse rounded bg-[#ddd5c9]" />
+              <div className="h-8 w-32 animate-pulse rounded bg-[#e8e1d7]" />
             </div>
           ))}
         </div>
 
         {/* Grid skeleton */}
-        <div className="mb-10 h-64 bg-zinc-900 rounded animate-pulse" />
+        <div className="mb-10 h-64 animate-pulse rounded-[2rem] bg-[#e8e1d7]" />
       </div>
     </div>
   </div>
@@ -432,15 +474,15 @@ export default function GridPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <Suspense fallback={<div className="w-14 sm:w-64 bg-zinc-950 fixed left-0 top-0 h-screen" />}>
+    <main className="min-h-screen bg-[#fffaf0] text-[#252422] selection:bg-[#eb5e28]/25">
+      <Suspense fallback={<div className="fixed left-0 top-0 h-screen w-14 bg-[#252422] sm:w-64" />}>
         <Sidebar />
       </Suspense>
 
-      <div className="pt-14 sm:pt-10 px-4 sm:px-6 py-10">
-        <div className="max-w-5xl mx-auto">
+      <div className="px-4 py-8 pl-14 pt-16 sm:pl-64 sm:pr-6 sm:pt-10">
+        <div className="mx-auto max-w-7xl">
           {/* ✅ LCP OPTIMIZATION 12: Render above-the-fold content first */}
-          <Header currentAge={currentAge} stats={stats} milestonesCount={milestones.length} />
+          <Header currentAge={currentAge} milestonesCount={milestones.length} />
 
           <StatsCards
             animatedLived={animatedLived}
@@ -450,14 +492,16 @@ export default function GridPage() {
 
           {/* ✅ LCP OPTIMIZATION 13: Lazy load DateSearch (below fold) */}
           {storedDate && (
-            <Suspense fallback={<div className="h-10 bg-zinc-900 rounded-lg animate-pulse mb-6" />}>
-              <DateSearch
-                birthDate={storedDate}
-                weeks={weeks}
-                onWeekSelect={handleWeekClick}
-                onHighlight={setHighlightedWeekIndex}
-              />
-            </Suspense>
+            <div className="mb-5 rounded-3xl border border-[#252422]/10 bg-white/55 p-3 shadow-sm sm:p-4">
+              <Suspense fallback={<div className="h-10 animate-pulse rounded-xl bg-[#e8e1d7]" />}>
+                <DateSearch
+                  birthDate={storedDate}
+                  weeks={weeks}
+                  onWeekSelect={handleWeekClick}
+                  onHighlight={setHighlightedWeekIndex}
+                />
+              </Suspense>
+            </div>
           )}
 
           {/* Grid Component */}
@@ -475,30 +519,30 @@ export default function GridPage() {
           />
 
           {/* Legend */}
-          <div className="flex items-center gap-6 flex-wrap text-xs mb-10">
+          <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-3xl border border-[#252422]/10 bg-[#f3ede2] px-5 py-4 text-xs">
             {[
-              { icon: 'bg-zinc-500', label: 'Lived' },
-              { icon: 'bg-brand-orange animate-pulse', label: 'This week' },
-              { icon: 'bg-zinc-800', label: 'Future' },
+              { icon: 'bg-[#403d39]', label: 'Lived' },
+              { icon: 'bg-[#eb5e28] animate-pulse', label: 'This week' },
+              { icon: 'bg-[#ddd5c9]', label: 'Future' },
               { icon: 'bg-emerald-700', label: 'Amazing' },
               { icon: 'bg-red-900', label: 'Hard' },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2">
-                <div className={`w-[14px] h-[14px] rounded-[2px] ${item.icon}`} />
-                <span className="text-zinc-500">{item.label}</span>
+                <div className={`h-[14px] w-[14px] rounded-[3px] ${item.icon}`} />
+                <span className="font-medium text-[#6d6861]">{item.label}</span>
               </div>
             ))}
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-brand-orange rounded-full flex items-center justify-center text-xs font-bold text-black" />
-              <span className="text-zinc-500">Milestone</span>
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#eb5e28] text-xs font-bold text-[#fffaf0]" />
+              <span className="font-medium text-[#6d6861]">Milestone</span>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="text-center pb-10">
-            <p className="text-zinc-700 text-xs">
-              You have lived {stats.lived.toLocaleString()} weeks. <br />
-              Make the remaining {stats.remaining.toLocaleString()} count.
+          <div className="pb-10 text-center">
+            <p className="font-serif text-sm italic leading-6 text-[#77726a]">
+              You have lived {stats.lived.toLocaleString()} weeks.{' '}
+              <span className="text-[#eb5e28]">Make the remaining {stats.remaining.toLocaleString()} count.</span>
             </p>
           </div>
         </div>
@@ -540,7 +584,7 @@ export default function GridPage() {
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="fixed pointer-events-none bg-zinc-800 text-white text-xs px-2 py-1 rounded z-50"
+          className="pointer-events-none fixed z-50 rounded-xl border border-[#252422]/10 bg-[#252422] px-3 py-2 text-xs text-[#fffaf0] shadow-xl"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
           {tooltip.text}

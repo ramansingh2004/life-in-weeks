@@ -1,15 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --brand-orange: #fca311;
-  --brand-navy: #14213d;
-  --brand-navy-light: #1c2a4a;
-  --brand-navy-border: #22345e;
-  --brand-gray: #e5e5e5;
-  --brand-white: #ffffff;
-  --brand-black: #000000;
+  /* Core page colors */
+  --background: #252422;
+  --foreground: #fffaf0;
+
+  /* Life in Weeks palette */
+  --brand-orange: #eb5e28;
+  --brand-orange-hover: #d94f1d;
+  --brand-cream: #fffaf0;
+  --brand-paper: #f3ede2;
+  --brand-charcoal: #252422;
+  --brand-yellow: #f0c955;
+  --brand-sage: #87b9ad;
+
+  /* Legacy names retained for existing components */
+  --brand-black: var(--brand-charcoal);
+  --brand-white: var(--brand-cream);
+  --brand-navy: #403d39;
+  --brand-navy-light: #4b4742;
+  --brand-navy-border: #625f59;
+  --brand-gray: #d8d0c4;
+
+  /* Reusable UI tokens */
+  --surface: #302e2b;
+  --surface-raised: #403d39;
+  --surface-hover: #4b4742;
+  --border: rgba(255, 250, 240, 0.12);
+  --border-strong: rgba(255, 250, 240, 0.22);
+  --muted: #bdb5a9;
+  --shadow-color: rgba(12, 11, 10, 0.28);
 }
 
 @theme {
@@ -18,6 +38,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
+  /* Existing brand utilities */
   --color-brand-black: var(--brand-black);
   --color-brand-navy: var(--brand-navy);
   --color-brand-navy-light: var(--brand-navy-light);
@@ -26,48 +47,162 @@
   --color-brand-gray: var(--brand-gray);
   --color-brand-white: var(--brand-white);
 
-  /* Mapping standard zinc colors to align with our branding */
-  --color-zinc-950: #000000;
-  --color-zinc-900: #14213d;
-  --color-zinc-800: #1c2a4a;
-  --color-zinc-700: #22345e;
-  --color-zinc-600: #5c6c94;
-  --color-zinc-500: #e5e5e5;
-  --color-zinc-400: #e5e5e5;
-  --color-zinc-300: #ffffff;
-  --color-zinc-200: #ffffff;
-  --color-zinc-100: #ffffff;
+  /* New landing-page utilities */
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-paper: var(--brand-paper);
+  --color-brand-charcoal: var(--brand-charcoal);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-sage: var(--brand-sage);
+  --color-brand-surface: var(--surface);
+  --color-brand-surface-raised: var(--surface-raised);
+
+  /* Warm neutral scale for existing zinc utilities */
+  --color-zinc-950: #252422;
+  --color-zinc-900: #302e2b;
+  --color-zinc-800: #403d39;
+  --color-zinc-700: #57524c;
+  --color-zinc-600: #756f67;
+  --color-zinc-500: #9a9287;
+  --color-zinc-400: #bdb5a9;
+  --color-zinc-300: #d8d0c4;
+  --color-zinc-200: #e8e1d7;
+  --color-zinc-100: #f3ede2;
+  --color-zinc-50: #fffaf0;
+}
+
+* {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
+  min-height: 100vh;
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Sleek custom scrollbar for any overflow containers (like our weeks grid) */
-.overflow-x-auto, .overflow-y-auto {
+::selection {
+  background: rgba(235, 94, 40, 0.32);
+  color: var(--brand-cream);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-orange);
+  outline-offset: 3px;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+select {
+  background-color: var(--surface);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* Shared optional component classes */
+.app-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 50px var(--shadow-color);
+}
+
+.app-surface-raised {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+.app-surface-hover {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    transform 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.app-surface-hover:hover {
+  background: var(--surface-hover);
+  border-color: rgba(235, 94, 40, 0.42);
+  box-shadow: 0 16px 40px var(--shadow-color);
+  transform: translateY(-2px);
+}
+
+.text-muted {
+  color: var(--muted);
+}
+
+.brand-focus-ring {
+  outline: none;
+}
+
+.brand-focus-ring:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--brand-charcoal),
+    0 0 0 4px var(--brand-orange);
+}
+
+/* Scrollbars for grids, timelines, journals, and dialogs */
+* {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: rgba(255, 250, 240, 0.2) transparent;
 }
 
-/* Chrome, Safari, Edge, and Opera support */
-.overflow-x-auto::-webkit-scrollbar, .overflow-y-auto::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
+*::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
 }
 
-.overflow-x-auto::-webkit-scrollbar-track, .overflow-y-auto::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.overflow-x-auto::-webkit-scrollbar-thumb, .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 250, 240, 0.18);
+  border: 2px solid transparent;
   border-radius: 9999px;
-  transition: background 0.2s ease;
+  background-clip: padding-box;
 }
 
-.overflow-x-auto::-webkit-scrollbar-thumb:hover, .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(235, 94, 40, 0.65);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
