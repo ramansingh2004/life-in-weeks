@@ -1,9 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Chapter } from '@/typesDefined'
+import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import Image from 'next/image'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  BookOpen,
+  CalendarDays,
+  Film,
+  Flag,
+  ImageIcon,
+  Sparkles,
+  X,
+} from 'lucide-react'
+import { Chapter } from '@/typesDefined'
 
 interface Milestone {
   icon: string
@@ -27,6 +37,19 @@ interface ChapterDetailModalProps {
   notes: Note[]
 }
 
+type Tab = 'overview' | 'photos' | 'videos' | 'timeline'
+
+const tabs: Array<{ id: Tab; label: string; icon: typeof BookOpen }> = [
+  { id: 'overview', label: 'Overview', icon: BookOpen },
+  { id: 'photos', label: 'Photos', icon: ImageIcon },
+  { id: 'videos', label: 'Videos', icon: Film },
+  { id: 'timeline', label: 'Timeline', icon: CalendarDays },
+]
+
+function stripHtml(html: string) {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 export function ChapterDetailModal({
   chapter,
   onClose,
@@ -35,276 +58,273 @@ export function ChapterDetailModal({
   milestones,
   notes,
 }: ChapterDetailModalProps) {
+  const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'photos' | 'videos' | 'timeline'>('overview')
 
-  // Prevent background scroll when modal is open
   useEffect(() => {
-    if (chapter) {
-      document.body.style.overflow = "hidden"
-      return () => {
-        document.body.style.overflow = "unset"
+    document.body.style.overflow = 'hidden'
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        if (selectedPhoto) setSelectedPhoto(null)
+        else onClose()
       }
     }
-  }, [chapter])
 
-  if (!chapter) return null;
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose, selectedPhoto])
+
+  if (!chapter) return null
 
   const weekCount = chapter.endWeek - chapter.startWeek + 1
+  const moments = [
+    ...milestones.map((milestone) => ({
+      id: `milestone-${milestone.weekIndex}-${milestone.title}`,
+      weekIndex: milestone.weekIndex,
+      type: 'milestone' as const,
+      title: milestone.title,
+      description: milestone.description,
+      icon: milestone.icon || '🏆',
+    })),
+    ...notes.map((note) => ({
+      id: `note-${note.weekIndex}`,
+      weekIndex: note.weekIndex,
+      type: 'note' as const,
+      title: `Week ${note.weekIndex + 1}`,
+      description: stripHtml(note.note),
+      icon: '✦',
+    })),
+  ].sort((a, b) => a.weekIndex - b.weekIndex)
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={onClose}
-      className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#252422]/75 p-3 backdrop-blur-md sm:p-6"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose()
+      }}
     >
-      <motion.div
-        onClick={(e) => e.stopPropagation()}
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="bg-zinc-900 border border-zinc-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+      <motion.section
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 18, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 25 }}
+        className="flex max-h-[92svh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-[#252422]/10 bg-[#fffaf0] text-[#252422] shadow-[0_30px_100px_rgba(37,36,34,0.35)]"
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 p-4 sm:p-6 flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl sm:text-4xl mb-2">
-              {chapter.emoji} {chapter.title}
+        <header className="relative overflow-hidden border-b border-[#252422]/10 bg-[#f7ead7] px-5 pb-5 pt-6 sm:px-8 sm:pb-7 sm:pt-8">
+          <div className="pointer-events-none absolute -right-14 -top-20 h-48 w-48 rounded-full bg-[#f0c955]/45 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 right-1/4 h-24 w-24 rounded-full bg-[#87b9ad]/30 blur-2xl" />
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close chapter"
+            className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full border border-[#252422]/10 bg-[#fffaf0]/80 text-[#252422]/65 transition hover:border-[#eb5e28]/30 hover:bg-white hover:text-[#eb5e28] sm:right-6 sm:top-6"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          <div className="relative max-w-3xl pr-12">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#252422] text-2xl shadow-lg shadow-[#252422]/15">
+                {chapter.emoji}
+              </span>
+              <span className="rounded-full border border-[#eb5e28]/20 bg-[#eb5e28]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#c74718]">
+                Life chapter
+              </span>
+            </div>
+            <h2 className="font-serif text-3xl font-semibold tracking-tight sm:text-5xl">
+              {chapter.title}
             </h2>
-            <p className="text-zinc-400">
-              Weeks {chapter.startWeek + 1} - {chapter.endWeek + 1} ({weekCount} weeks)
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#252422]/60 sm:text-base">
+              Weeks {chapter.startWeek + 1}–{chapter.endWeek + 1} · {weekCount} weeks in this part of your story
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-zinc-600 hover:text-white transition-colors text-2xl flex-shrink-0"
-          >
-            ✕
-          </button>
-        </div>
+        </header>
 
-        {/* Tabs */}
-        <div className="sticky top-20 bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 flex gap-2 sm:gap-4 overflow-x-auto">
-          {[
-            { id: 'overview', label: '📋 Overview', count: null },
-            { id: 'photos', label: '📸 Photos', count: photos.length },
-            { id: 'videos', label: '🎬 Videos', count: videos.length },
-            { id: 'timeline', label: '📅 Timeline', count: milestones.length },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'overview' | 'photos' | 'videos' | 'timeline')}
-              className={`py-4 px-4 border-b-2 transition-colors text-sm whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-emerald-600 text-white'
-                  : 'border-transparent text-zinc-500 hover:text-white'
-              }`}
-            >
-              {tab.label} {tab.count !== null && `(${tab.count})`}
-            </button>
-          ))}
-        </div>
+        <nav className="flex gap-1 overflow-x-auto border-b border-[#252422]/10 bg-[#fffaf0] px-3 py-3 sm:px-6" aria-label="Chapter sections">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            const count = tab.id === 'photos' ? photos.length : tab.id === 'videos' ? videos.length : undefined
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition sm:text-sm ${
+                  activeTab === tab.id
+                    ? 'bg-[#252422] text-[#fffaf0] shadow-md'
+                    : 'text-[#252422]/55 hover:bg-[#252422]/5 hover:text-[#252422]'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+                {count !== undefined && (
+                  <span className={activeTab === tab.id ? 'text-[#f0c955]' : 'text-[#eb5e28]'}>{count}</span>
+                )}
+              </button>
+            )
+          })}
+        </nav>
 
-        {/* Content */}
-        <div className="p-4 sm:p-6 space-y-6">
-          {/* Overview Tab */}
-          {activeTab === 'overview' && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-6"
-            >
-              {/* Description */}
-              <div>
-                <h3 className="text-lg font-light text-white mb-3">Chapter Summary</h3>
-                <p className="text-zinc-300 leading-relaxed">{chapter.description}</p>
-              </div>
+        <div className="overflow-y-auto px-5 py-6 sm:px-8 sm:py-8">
+          <AnimatePresence mode="wait">
+            {activeTab === 'overview' && (
+              <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                <p className="max-w-3xl text-base leading-8 text-[#252422]/70 sm:text-lg">
+                  {chapter.description}
+                </p>
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-zinc-800 rounded p-4">
-                  <p className="text-zinc-500 text-xs uppercase mb-2">Duration</p>
-                  <p className="text-2xl font-light text-white">{weekCount}</p>
-                  <p className="text-xs text-zinc-600 mt-1">weeks</p>
+                <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    { label: 'Weeks', value: weekCount, color: 'bg-[#f0c955]/35' },
+                    { label: 'Average mood', value: `${chapter.averageMood.toFixed(1)}/5`, color: 'bg-[#87b9ad]/35' },
+                    { label: 'Photos', value: photos.length, color: 'bg-[#eb5e28]/12' },
+                    { label: 'Milestones', value: milestones.length, color: 'bg-white' },
+                  ].map((stat) => (
+                    <div key={stat.label} className={`rounded-2xl border border-[#252422]/10 p-4 ${stat.color}`}>
+                      <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
+                      <p className="mt-1 text-xs font-medium text-[#252422]/50">{stat.label}</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="bg-zinc-800 rounded p-4">
-                  <p className="text-zinc-500 text-xs uppercase mb-2">Avg Mood</p>
-                  <p className="text-2xl font-light text-white">
-                    {chapter.averageMood.toFixed(1)}/5
-                  </p>
-                  <p className="text-xs text-zinc-600 mt-1">happiness</p>
-                </div>
-                <div className="bg-zinc-800 rounded p-4">
-                  <p className="text-zinc-500 text-xs uppercase mb-2">Photos</p>
-                  <p className="text-2xl font-light text-white">{photos.length}</p>
-                  <p className="text-xs text-zinc-600 mt-1">moments captured</p>
-                </div>
-                <div className="bg-zinc-800 rounded p-4">
-                  <p className="text-zinc-500 text-xs uppercase mb-2">Milestones</p>
-                  <p className="text-2xl font-light text-white">{chapter.milestoneCount}</p>
-                  <p className="text-xs text-zinc-600 mt-1">achievements</p>
-                </div>
-              </div>
 
-              {/* Key Tags */}
-              {chapter.keyTags.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-light text-white mb-3">Key Themes</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {chapter.keyTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="px-4 py-2 bg-emerald-600/20 text-emerald-300 rounded-full text-sm border border-emerald-600/40"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Key Moments */}
-              {notes.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-light text-white mb-3">Key Moments</h3>
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {notes.slice(0, 5).map((note, idx) => (
-                      <div key={idx} className="bg-zinc-800 p-3 rounded">
-                        <p className="text-xs text-zinc-500 mb-1">Week {note.weekIndex + 1}</p>
-                        <p className="text-sm text-zinc-300 line-clamp-2">{note.note}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Photos Tab */}
-          {activeTab === 'photos' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {photos.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {photos.map((photo, idx) => (
-                    <motion.button
-                      key={idx}
-                      onClick={() => setSelectedPhoto(photo)}
-                      whileHover={{ scale: 1.05 }}
-                      className="relative aspect-square rounded-lg overflow-hidden group bg-zinc-800"
-                    >
-                      <Image
-                        src={photo}
-                        alt={`Chapter moment ${idx}`}
-                        width={300}
-                        height={300}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                        <span className="text-white text-3xl opacity-0 group-hover:opacity-100">
-                          🔍
+                {chapter.keyTags.length > 0 && (
+                  <div className="mt-8">
+                    <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#252422]/40">Themes</p>
+                    <div className="flex flex-wrap gap-2">
+                      {chapter.keyTags.map((tag) => (
+                        <span key={tag} className="rounded-full border border-[#eb5e28]/20 bg-[#eb5e28]/8 px-3 py-1.5 text-xs font-semibold text-[#c74718]">
+                          #{tag}
                         </span>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-zinc-500">No photos in this chapter</p>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Videos Tab */}
-          {activeTab === 'videos' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {videos.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {videos.map((video, idx) => (
-                    <div key={idx} className="aspect-video rounded-lg overflow-hidden bg-zinc-800">
-                      <video
-                        src={video}
-                        controls
-                        className="w-full h-full object-cover"
-                      />
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-zinc-500">No videos in this chapter</p>
-                </div>
-              )}
-            </motion.div>
-          )}
+                  </div>
+                )}
 
-          {/* Timeline Tab */}
-          {activeTab === 'timeline' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {milestones.length > 0 ? (
-                <div className="space-y-4">
-                  {milestones.map((milestone, idx) => (
-                    <div
-                      key={idx}
-                      className="flex gap-4 pb-4 border-b border-zinc-800 last:border-0"
-                    >
-                      <div className="text-2xl flex-shrink-0">{milestone.icon}</div>
-                      <div className="flex-1">
-                        <h4 className="text-white font-medium">{milestone.title}</h4>
-                        <p className="text-sm text-zinc-400 mt-1">{milestone.description}</p>
-                        <p className="text-xs text-zinc-600 mt-2">
-                          Week {milestone.weekIndex + 1} • {milestone.category}
-                        </p>
-                      </div>
+                {(milestones.length > 0 || notes.length > 0) && (
+                  <div className="mt-8 rounded-3xl border border-[#252422]/10 bg-white/70 p-5 sm:p-6">
+                    <div className="mb-5 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-[#eb5e28]" />
+                      <h3 className="font-serif text-xl font-semibold">Key moments</h3>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-zinc-500">No milestones in this chapter</p>
-                </div>
-              )}
-            </motion.div>
-          )}
+                    <div className="space-y-4">
+                      {moments.slice(0, 4).map((moment) => (
+                        <div key={moment.id} className="flex gap-3">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#f7ead7] text-sm">{moment.icon}</span>
+                          <div>
+                            <p className="text-sm font-semibold">{moment.title}</p>
+                            <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#252422]/55">{moment.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'photos' && (
+              <motion.div key="photos" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                {photos.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {photos.map((photo, index) => (
+                      <button
+                        key={`${photo}-${index}`}
+                        type="button"
+                        onClick={() => setSelectedPhoto(photo)}
+                        className="group relative aspect-square overflow-hidden rounded-2xl bg-[#f7ead7]"
+                      >
+                        <Image src={photo} alt={`${chapter.title} memory ${index + 1}`} fill sizes="(max-width: 640px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" />
+                        <span className="absolute inset-0 bg-[#252422]/0 transition group-hover:bg-[#252422]/10" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState icon={<ImageIcon className="h-7 w-7" />} title="No photos in this chapter" description="Photos added to these weeks will appear here." />
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'videos' && (
+              <motion.div key="videos" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                {videos.length > 0 ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {videos.map((video, index) => (
+                      <div key={`${video}-${index}`} className="overflow-hidden rounded-2xl border border-[#252422]/10 bg-[#252422]">
+                        <video src={video} controls preload="metadata" className="aspect-video w-full" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState icon={<Film className="h-7 w-7" />} title="No videos in this chapter" description="Videos attached to these weeks will appear here." />
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === 'timeline' && (
+              <motion.div key="timeline" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                {moments.length > 0 ? (
+                  <div className="relative ml-4 space-y-6 border-l border-[#eb5e28]/25 pl-7 sm:ml-5 sm:pl-9">
+                    {moments.map((moment) => (
+                      <article key={moment.id} className="relative rounded-2xl border border-[#252422]/10 bg-white/70 p-5">
+                        <span className="absolute -left-[2.55rem] top-5 grid h-6 w-6 place-items-center rounded-full border-4 border-[#fffaf0] bg-[#eb5e28] sm:-left-[3.35rem]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                        </span>
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {moment.type === 'milestone' ? <Flag className="h-4 w-4 text-[#eb5e28]" /> : <BookOpen className="h-4 w-4 text-[#87b9ad]" />}
+                            <h3 className="font-semibold">{moment.title}</h3>
+                          </div>
+                          <span className="text-xs font-medium text-[#252422]/40">Week {moment.weekIndex + 1}</span>
+                        </div>
+                        <p className="text-sm leading-6 text-[#252422]/60">{moment.description}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState icon={<CalendarDays className="h-7 w-7" />} title="This timeline is waiting for moments" description="Journal entries and milestones from this chapter will appear here." />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </motion.div>
+      </motion.section>
 
-      {/* Photo Lightbox */}
       <AnimatePresence>
         {selectedPhoto && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-[#252422]/95 p-4"
             onClick={() => setSelectedPhoto(null)}
-            className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
           >
-            <motion.div
-              onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-4xl max-h-[90vh]"
-            >
-              <Image
-                src={selectedPhoto}
-                alt="Full view"
-                width={800}
-                height={600}
-                className="max-w-full max-h-full rounded-lg"
-              />
-              <button
-                onClick={() => setSelectedPhoto(null)}
-                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
-              >
-                ✕
-              </button>
+            <button type="button" aria-label="Close photo" onClick={() => setSelectedPhoto(null)} className="absolute right-5 top-5 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
+              <X className="h-5 w-5" />
+            </button>
+            <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }} exit={{ scale: 0.96 }} className="relative h-[82vh] w-full max-w-5xl" onClick={(event) => event.stopPropagation()}>
+              <Image src={selectedPhoto} alt="Selected chapter memory" fill sizes="100vw" className="object-contain" priority />
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
+  )
+}
+
+function EmptyState({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
+  return (
+    <div className="flex min-h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-[#252422]/15 bg-white/45 px-6 text-center">
+      <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#f7ead7] text-[#eb5e28]">{icon}</span>
+      <h3 className="font-serif text-xl font-semibold">{title}</h3>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-[#252422]/50">{description}</p>
+    </div>
   )
 }
