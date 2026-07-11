@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Flag,
   Layers3,
-  Plus,
   Sparkles,
 } from "lucide-react";
 import { useMilestoneStore, type Milestone } from "@/store/useMilestoneStore";
