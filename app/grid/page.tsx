@@ -318,7 +318,7 @@ WeekGridComponent.displayName = 'WeekGridComponent'
 // ✅ LCP OPTIMIZATION 8: Skeleton that matches above-the-fold layout
 const AboveTheFoldSkeleton = () => (
   <div className="min-h-screen bg-[#fffaf0] text-[#252422]">
-    <div className="px-4 py-10 pl-14 pt-16 sm:pl-64 sm:pr-6 sm:pt-10">
+    <div className="px-4 py-10 pt-16 sm:px-6 sm:pt-10">
       <div className="mx-auto max-w-7xl">
         {/* Header skeleton */}
         <div className="mb-8 pl-0">
@@ -374,6 +374,7 @@ export default function GridPage() {
   const [selectedMilestoneWeek, setSelectedMilestoneWeek] = useState<Week | null>(null)
   const [hydrated, setHydrated] = useState(false)
   const [highlightedWeekIndex, setHighlightedWeekIndex] = useState<number | null>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // ✅ LCP OPTIMIZATION 10: Memoized data transformations
   const weeks = useMemo(() => {
@@ -476,10 +477,14 @@ export default function GridPage() {
   return (
     <main className="min-h-screen bg-[#fffaf0] text-[#252422] selection:bg-[#eb5e28]/25">
       <Suspense fallback={<div className="fixed left-0 top-0 h-screen w-14 bg-[#252422] sm:w-64" />}>
-        <Sidebar />
+        <Sidebar onOpenChange={setIsSidebarOpen} />
       </Suspense>
 
-      <div className="px-4 py-8 pl-14 pt-16 sm:pl-64 sm:pr-6 sm:pt-10">
+      <div
+        className={`px-4 py-8 pt-16 transition-transform duration-300 ease-out sm:px-6 sm:pt-10 ${
+          isSidebarOpen ? 'lg:translate-x-24' : 'translate-x-0'
+        }`}
+      >
         <div className="mx-auto max-w-7xl">
           {/* ✅ LCP OPTIMIZATION 12: Render above-the-fold content first */}
           <Header currentAge={currentAge} milestonesCount={milestones.length} />

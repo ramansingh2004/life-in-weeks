@@ -1,127 +1,139 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
-import { useAuthStore } from "@/store/useAuthStore"
-import { useMilestoneStore } from "@/store/useMilestoneStore"
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { usePathname, useRouter } from 'next/navigation'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useMilestoneStore } from '@/store/useMilestoneStore'
 
 type NavItem = {
   id: string
   label: string
   icon: string
   href: string
-  action?: () => void
 }
 
 type Props = {
   onLogout?: () => void
+  onOpenChange?: (isOpen: boolean) => void
 }
 
-export default function Sidebar({ onLogout }: Props) {
+export default function Sidebar({ onLogout, onOpenChange }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
   const { milestones } = useMilestoneStore()
   const [isOpen, setIsOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  //const [theme, setTheme] = useState<"light" | "dark">("dark")
 
-  // Prevent background scroll when sidebar is open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden"
-      return () => {
-        document.body.style.overflow = "unset"
-      }
+    onOpenChange?.(isOpen)
+
+    document.body.style.overflow = isOpen ? 'hidden' : ''
+
+    return () => {
+      document.body.style.overflow = ''
     }
-  }, [isOpen])
+  }, [isOpen, onOpenChange])
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
 
   async function handleLogout() {
     try {
       setIsLoggingOut(true)
       await logout()
       onLogout?.()
-      // Delay navigation slightly to ensure logout completes
-      setTimeout(() => {
-        router.push("/login")
-      }, 100)
+      setTimeout(() => router.push('/login'), 100)
     } catch (error) {
-      console.error("Logout failed:", error)
+      console.error('Logout failed:', error)
       setIsLoggingOut(false)
     }
   }
 
   const navItems: NavItem[] = [
-    { id: "grid", label: "Grid", icon: "📊", href: "/grid" },
-    { id: "milestones", label: `Milestones (${milestones.length})`, icon: "🎯", href: "/milestone" },
-    { id: "stats", label: "Stats", icon: "📈", href: "/stats" },
-    { id: "journal", label: "Journal", icon: "📝", href: "/journal" },
-    { id: "timeline", label: "timeline", icon: "📜", href: "/timeline" },
-    { id: "gallery", label: "Gallery", icon: "🖼️", href: "/gallery" },
-    { id: "Life Chapters", label: "Life Chapters", icon: "🏡", href: "/life-chapters" },
-    { id: "statsCards", label: "Stats Cards", icon: "📊", href: "/stats-cards" },
+    { id: 'grid', label: 'Grid', icon: '▦', href: '/grid' },
+    { id: 'milestones', label: `Milestones (${milestones.length})`, icon: '◆', href: '/milestone' },
+    { id: 'stats', label: 'Stats', icon: '↗', href: '/stats' },
+    { id: 'journal', label: 'Journal', icon: '✎', href: '/journal' },
+    { id: 'timeline', label: 'Timeline', icon: '⌁', href: '/timeline' },
+    { id: 'gallery', label: 'Gallery', icon: '▧', href: '/gallery' },
+    { id: 'life-chapters', label: 'Life Chapters', icon: '◇', href: '/life-chapters' },
+    { id: 'stats-cards', label: 'Stats Cards', icon: '◫', href: '/stats-cards' },
   ]
 
   return (
     <>
-      {/* Hamburger Button */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-40 p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-brand-orange hover:text-brand-orange transition-colors"
-        title="Toggle sidebar"
+        onClick={() => setIsOpen((open) => !open)}
+        className="fixed left-4 top-4 z-40 grid h-11 w-11 place-items-center rounded-2xl border border-[#252422]/10 bg-[#fffaf0]/95 text-[#252422] shadow-lg backdrop-blur-md transition-colors hover:border-[#eb5e28]/50 hover:text-[#eb5e28]"
+        title={isOpen ? 'Close sidebar' : 'Open sidebar'}
+        aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
+        aria-expanded={isOpen}
       >
-        <motion.div
+        <motion.span
           animate={{ rotate: isOpen ? 90 : 0 }}
-          transition={{ duration: 0.3 }}
-          className="text-xl"
+          transition={{ duration: 0.25 }}
+          className="text-lg leading-none"
+          aria-hidden="true"
         >
-          ☰
-        </motion.div>
+          {isOpen ? '×' : '☰'}
+        </motion.span>
       </motion.button>
 
-      {/* Sidebar Overlay */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <motion.button
+            type="button"
+            aria-label="Close sidebar"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
+            className="fixed inset-0 z-30 cursor-default bg-[#252422]/35 backdrop-blur-[2px]"
           />
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <motion.div
-        initial={{ x: -300, opacity: 0 }}
-        animate={{ x: isOpen ? 0 : -300, opacity: isOpen ? 1 : 0 }}
-        exit={{ x: -300, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed left-0 top-0 h-screen w-64 bg-zinc-900 border-r border-zinc-800 z-35 overflow-y-auto flex flex-col"
+      <motion.aside
+        initial={false}
+        animate={{ x: isOpen ? 0 : -280, opacity: isOpen ? 1 : 0 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+        className="fixed left-0 top-0 z-[35] flex h-[100svh] w-64 flex-col overflow-y-auto border-r border-white/10 bg-[#252422] text-[#fffaf0] shadow-2xl"
+        aria-hidden={!isOpen}
       >
-        {/* Header */}
-        <div className="p-6 pt-16 border-b border-zinc-800">
-          <h1 className="text-xl font-light text-white mb-1">Life in Weeks</h1>
-          <p className="text-zinc-500 text-xs">Your life visualized</p>
+        <div className="border-b border-white/10 px-6 pb-5 pt-20">
+          <div className="mb-3 flex items-center gap-3">
+            <span className="grid grid-cols-4 gap-1" aria-hidden="true">
+              {Array.from({ length: 7 }, (_, index) => (
+                <span key={index} className="h-1.5 w-1.5 rounded-[2px] bg-[#eb5e28]" />
+              ))}
+            </span>
+            <h1 className="font-bold tracking-[-0.04em]">Life in Weeks</h1>
+          </div>
+          <p className="text-xs text-white/45">Your story, one week at a time.</p>
         </div>
 
-        {/* User Info */}
         {user && (
-          <div className="px-6 py-4 border-b border-zinc-800">
-            <p className="text-zinc-500 text-xs uppercase tracking-widest mb-1">Signed in</p>
-            <p className="text-white text-sm font-medium">{user.name}</p>
-            <p className="text-zinc-500/60 text-xs mt-1">{user.email}</p>
+          <div className="border-b border-white/10 px-6 py-4">
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#eb5e28]">Signed in</p>
+            <p className="mt-2 truncate text-sm font-semibold">{user.name}</p>
+            <p className="mt-1 truncate text-xs text-white/40">{user.email}</p>
           </div>
         )}
 
-        {/* Navigation Items */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Main navigation">
           {navItems.map((item) => {
             const isActive = pathname === item.href
+
             return (
               <motion.button
                 key={item.id}
@@ -129,65 +141,43 @@ export default function Sidebar({ onLogout }: Props) {
                   router.push(item.href)
                   setIsOpen(false)
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${
                   isActive
-                    ? "bg-brand-orange text-black font-semibold shadow-md shadow-brand-orange/10"
-                    : "text-zinc-500 hover:bg-zinc-850 hover:text-white"
+                    ? 'bg-[#eb5e28] font-bold text-[#fffaf0] shadow-lg shadow-[#eb5e28]/10'
+                    : 'text-white/55 hover:bg-white/[0.07] hover:text-white'
                 }`}
-                whileHover={{ x: 4 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ x: 3 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <span className="text-lg flex-shrink-0">{item.icon}</span>
-                <span className="text-sm flex-1 text-left">{item.label}</span>
+                <span className="w-5 flex-shrink-0 text-center text-base" aria-hidden="true">{item.icon}</span>
+                <span className="flex-1 text-sm">{item.label}</span>
+                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[#f0c955]" />}
               </motion.button>
             )
           })}
         </nav>
 
-        {/* Divider */}
-        <div className="h-px bg-zinc-800 mx-3" />
-
-        {/* Settings Section */}
-        <div className="px-3 py-4 space-y-2">
-
-          {/* Logout */}
+        <div className="border-t border-white/10 p-3">
           <motion.button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
               isLoggingOut
-                ? "text-zinc-600 bg-zinc-900/50 cursor-not-allowed"
-                : "text-zinc-400 hover:bg-red-900/30 hover:text-red-400"
+                ? 'cursor-not-allowed text-white/25'
+                : 'text-white/55 hover:bg-red-500/10 hover:text-red-300'
             }`}
-            whileHover={isLoggingOut ? {} : { x: 4 }}
-            whileTap={isLoggingOut ? {} : { scale: 0.95 }}
+            whileHover={isLoggingOut ? {} : { x: 3 }}
+            whileTap={isLoggingOut ? {} : { scale: 0.98 }}
           >
-            <span className="text-lg flex-shrink-0">
-              {isLoggingOut ? "⏳" : "🚪"}
-            </span>
-            <span className="text-sm flex-1 text-left">
-              {isLoggingOut ? "Signing out..." : "Sign out"}
-            </span>
+            <span aria-hidden="true">{isLoggingOut ? '◌' : '↪'}</span>
+            <span className="text-sm">{isLoggingOut ? 'Signing out...' : 'Sign out'}</span>
           </motion.button>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-zinc-800">
-          <p className="text-zinc-600 text-xs text-center">
-            Made with <span className="text-red-400">♥</span> for your life
-          </p>
+        <div className="border-t border-white/10 px-6 py-4 text-center text-[10px] text-white/30">
+          Make time visible. Make it count.
         </div>
-      </motion.div>
-
-      {/* Sidebar open indicator (small dot) */}
-      {isOpen && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0 }}
-          className="fixed bottom-4 left-4 w-2 h-2 rounded-full bg-brand-orange z-40"
-        />
-      )}
+      </motion.aside>
     </>
   )
 }
