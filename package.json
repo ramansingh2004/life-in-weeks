@@ -13,6 +13,7 @@
     "@tiptap/pm": "^3.22.2",
     "@tiptap/react": "^3.22.2",
     "@tiptap/starter-kit": "^3.22.2",
+    "@toggleflow/node": "0.1.0",
     "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
@@ -32,6 +33,7 @@
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.8.1",
     "redis": "^6.0.0",
+    "server-only": "^0.0.1",
     "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },

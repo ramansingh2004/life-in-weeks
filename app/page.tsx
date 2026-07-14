@@ -1,21 +1,20 @@
-import { getToggleFlowFlags } from '@/lib/toggleflow';
 import LandingPageClient from '../components/landing-page-client';
 
+import { isFeatureEnabled } from '@/lib/toggleflow';
+
+/*
+ * Ensure the flag is evaluated at request time instead of
+ * permanently capturing its value during next build.
+ */
+export const dynamic = 'force-dynamic';
+
 export default async function Page() {
-  let aModeEnabled = false;
-
-  try {
-    const flags = await getToggleFlowFlags(
-      'test-user-123'
+  const aModeEnabled =
+    await isFeatureEnabled(
+      'a_mode',
+      'life-in-weeks-landing',
+      false
     );
-
-    aModeEnabled = flags['a_mode'] ?? false;
-  } catch (error) {
-    console.error(
-      'Unable to load ToggleFlow flags:',
-      error
-    );
-  }
 
   return (
     <LandingPageClient
