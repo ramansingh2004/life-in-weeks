@@ -1,25 +1,29 @@
-import LandingPageClient from '../components/landing-page-client';
+import { headers } from 'next/headers';
 
+import LandingPageClient from '../components/landing-page-client';
 import { isFeatureEnabled } from '@/lib/toggleflow';
 
-/*
- * Ensure the flag is evaluated at request time instead of
- * permanently capturing its value during next build.
- */
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function Page() {
-  const LoginModeEnabled =
+  const requestHeaders = await headers();
+
+  const visitorId =
+    requestHeaders.get(
+      'x-toggleflow-visitor-id'
+    ) ?? 'anonymous';
+
+  const loginModeEnabled =
     await isFeatureEnabled(
       'login_button',
-      'life-in-weeks-landing',
+      visitorId,
       false
     );
 
   return (
     <LandingPageClient
-      LoginModeEnabled={LoginModeEnabled}
+      LoginModeEnabled={loginModeEnabled}
     />
   );
 }
