@@ -62,9 +62,9 @@ const details = [
 const previewWeeks = Array.from({ length: 312 }, (_, index) => index)
 
 interface LandingPageClientProps {
-  aModeEnabled: boolean;
+  LoginModeEnabled: boolean;
 }
-export default function LandingPageClient({aModeEnabled,}: LandingPageClientProps) {
+export default function LandingPageClient({LoginModeEnabled,}: LandingPageClientProps) {
   const router = useRouter()
   const { data: session, status } = useSession()
   const { user, isLoading: isLoadingUser } = useAuth()
@@ -98,7 +98,7 @@ export default function LandingPageClient({aModeEnabled,}: LandingPageClientProp
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {aModeEnabled && (<Link
+            {LoginModeEnabled && (<Link
               href="/login"
               className="hidden rounded-full px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-[#252422]/5 sm:block"
             >

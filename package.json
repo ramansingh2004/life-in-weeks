@@ -13,7 +13,7 @@
     "@tiptap/pm": "^3.22.2",
     "@tiptap/react": "^3.22.2",
     "@tiptap/starter-kit": "^3.22.2",
-    "@toggleflow/node": "0.1.0",
+    "@toggleflow/node": "^0.1.0",
     "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",

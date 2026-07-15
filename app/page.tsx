@@ -9,16 +9,16 @@ import { isFeatureEnabled } from '@/lib/toggleflow';
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const aModeEnabled =
+  const LoginModeEnabled =
     await isFeatureEnabled(
-      'a_mode',
+      'login_button',
       'life-in-weeks-landing',
       false
     );
 
   return (
     <LandingPageClient
-      aModeEnabled={aModeEnabled}
+      LoginModeEnabled={LoginModeEnabled}
     />
   );
 }
