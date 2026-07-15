@@ -51,24 +51,23 @@ export async function middleware(
     existingVisitorId ??
     crypto.randomUUID();
 
-  /*
-   * Pass the ID to the current server-rendered request.
-   * This also makes the first visit use the same ID that
-   * is being stored in the response cookie.
-   */
-  const requestHeaders = new Headers(
-    request.headers
-  );
-
-  requestHeaders.set(
-    VISITOR_HEADER,
-    visitorId
-  );
-
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
+
+  const rolloutSubject = token?.id
+  ? `user:${String(token.id)}`
+  : `visitor:${visitorId}`;
+
+const requestHeaders = new Headers(
+  request.headers
+);
+
+requestHeaders.set(
+  VISITOR_HEADER,
+  rolloutSubject
+);
 
   const pathname = request.nextUrl.pathname;
 
