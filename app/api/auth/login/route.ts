@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server"
+import { after, NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { User } from "@/models/User.model"
 import { signToken } from "@/lib/jwt"
 import bcrypt from "bcryptjs"
 import { UserLoginSchema, UserResponseSchema } from "@/validators/user.validator"
+import { trackFeatureConversion, } from "@/lib/toggleflow"
 
 export async function POST(req: NextRequest) {
   try {
@@ -129,6 +130,26 @@ export async function POST(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
     })
+
+    // Use the same visitor ID that evaluated the landing-page flag.
+// Fall back to the authenticated database user ID.
+const toggleFlowUserId =
+  req.headers.get(
+    "x-toggleflow-visitor-id"
+  ) ?? user._id.toString()
+
+after(async () => {
+  await trackFeatureConversion(
+    "login_button",
+    toggleFlowUserId,
+    "login_completed",
+    {
+      metadata: {
+        provider: "credentials",
+      },
+    }
+  )
+})
 
     console.log("✅ [LOGIN] Cookie set, login complete")
     return res

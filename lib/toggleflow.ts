@@ -41,18 +41,24 @@ function createToggleFlowClient(): ToggleFlow {
 
     staleTtlMs: 5 * 60_000,
     maxCacheEntries: 1_000,
-    timeoutMs: 3_000,
+    timeoutMs:
+      process.env.NODE_ENV === 'development'
+        ? 5_000
+        : 15_000,
     maxRetries: 2,
     retryBaseDelayMs: 100,
     retryMaxDelayMs: 5_000,
 
     onError(error: ToggleFlowError) {
-      console.error('ToggleFlow evaluation failed', {
-        code: error.code,
-        statusCode: error.statusCode,
-        message: error.message,
-      });
-    },
+  console.warn(
+    [
+      '[ToggleFlow] Evaluation failed',
+      `code=${error.code}`,
+      `status=${error.statusCode ?? 'none'}`,
+      `message=${error.message}`,
+    ].join(' | ')
+  );
+},
   });
 }
 
@@ -77,12 +83,55 @@ export async function isFeatureEnabled(
       fallback
     );
   } catch (error) {
-    console.error(
-      'Unable to initialize ToggleFlow:',
-      error
-    );
+    const message =
+  error instanceof Error
+    ? error.message
+    : String(error);
+
+console.warn(
+  `[ToggleFlow] Using fallback for "${key}": ${message}`
+);
 
     return fallback;
+  }
+}
+
+interface TrackFeatureConversionOptions {
+  eventId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export async function trackFeatureConversion(
+  flagKey: string,
+  userId: string,
+  conversionType: string,
+  options: TrackFeatureConversionOptions = {}
+): Promise<boolean> {
+  try {
+    const result =
+      await getToggleFlowClient().trackFlagConversion(
+        flagKey,
+        userId,
+        conversionType,
+        {
+          eventId: options.eventId,
+          metadata: options.metadata,
+        }
+      );
+
+    return result.recorded || result.duplicate;
+  } catch (error) {
+    console.error(
+      'Unable to record ToggleFlow conversion:',
+      {
+        flagKey,
+        conversionType,
+        error,
+      }
+    );
+
+    // Analytics failures must not break the user's action.
+    return false;
   }
 }
 
